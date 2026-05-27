@@ -46,7 +46,7 @@ button:disabled {
 
 .home,
 .workspace {
-  width: min(1440px, calc(100vw - 48px));
+  width: min(1024px, calc(100vw - 48px));
   margin: 0 auto;
   padding: 38px 0 56px;
 }
@@ -187,7 +187,7 @@ button:disabled {
 }
 
 .lead {
-  max-width: 1040px;
+  max-width: 100%;
   padding: 18px 20px;
   border-left: 4px solid var(--blue);
   background: #f7fbff;
@@ -274,8 +274,8 @@ button:disabled {
 
 .prototype-grid {
   display: grid;
-  grid-template-columns: minmax(640px, 1fr) 360px;
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
 }
 
 .simulation-panel,
@@ -517,10 +517,10 @@ button:disabled {
   word-break: keep-all;
 }
 
-@media (max-width: 1040px) {
+@media (max-width: 900px) {
   .home,
   .workspace {
-    width: min(100vw - 24px, 1440px);
+    width: min(100vw - 24px, 1024px);
     padding: 24px 0 36px;
   }
 
