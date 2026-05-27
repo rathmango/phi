@@ -15,9 +15,16 @@ const passageBottom = 350;
 const bottomY = 360;
 const dotRadius = 2.45;
 const dotGap = 6.35;
-const fallSpeed = 0.72;
+const fallSpeed = 2;
 const laneGap = 8;
 const pipeDepth = 8;
+const maxQueueCount = 3000;
+const maxPassageLanes = 8;
+const timerPresets = [
+  { label: "1분", seconds: 60 },
+  { label: "2분", seconds: 120 },
+  { label: "5분", seconds: 300 },
+];
 
 type QueueDot = {
   id: string;
@@ -60,23 +67,47 @@ function passagePosition(fraction: number, laneIndex: number, lanes: number) {
   };
 }
 
+function expectedDuration(queueCount: number, lanes: number) {
+  return (Math.ceil(queueCount / lanes) + pipeDepth) / fallSpeed;
+}
+
+function resolvePreset(targetSeconds: number) {
+  let best = {
+    queueCount: 50,
+    lanes: 1,
+    error: Number.POSITIVE_INFINITY,
+  };
+
+  for (let lanes = 1; lanes <= maxPassageLanes; lanes += 1) {
+    const targetBatches = Math.max(1, Math.round(targetSeconds * fallSpeed - pipeDepth));
+    const rawQueueCount = targetBatches * lanes;
+    const nextQueueCount = Math.min(maxQueueCount, Math.max(50, rawQueueCount));
+    const duration = expectedDuration(nextQueueCount, lanes);
+    const error = Math.abs(duration - targetSeconds);
+
+    if (error < best.error || (error === best.error && lanes > best.lanes)) {
+      best = { queueCount: nextQueueCount, lanes, error };
+    }
+  }
+
+  return best;
+}
+
 export function QueuePrototype() {
   const [status, setStatus] = useState<MachineStatus>("waiting");
   const [queueCount, setQueueCount] = useState(600);
   const [passageLanes, setPassageLanes] = useState(3);
   const [flowDistance, setFlowDistance] = useState(Math.ceil(queueCount / passageLanes) + pipeDepth);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [lastMeasuredSeconds, setLastMeasuredSeconds] = useState<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
+  const elapsedRef = useRef(0);
 
   const totalBatches = Math.ceil(queueCount / passageLanes);
   const completeDistance = totalBatches + pipeDepth;
   const isComplete = flowDistance >= completeDistance;
   const passageWidth = getPassageWidth(passageLanes);
   const passageX = viewWidth / 2 - passageWidth / 2;
-
-  useEffect(() => {
-    setFlowDistance(Math.ceil(queueCount / passageLanes) + pipeDepth);
-    setStatus("waiting");
-  }, [passageLanes, queueCount]);
 
   useEffect(() => {
     if (status !== "active") {
@@ -93,10 +124,15 @@ export function QueuePrototype() {
       setFlowDistance((value) => {
         const next = Math.min(completeDistance, value + fallSpeed * deltaSeconds);
         if (next >= completeDistance) {
-          window.setTimeout(() => setStatus("waiting"), 0);
+          window.setTimeout(() => {
+            setLastMeasuredSeconds((current) => current ?? elapsedRef.current);
+            setStatus("waiting");
+          }, 0);
         }
         return next;
       });
+      elapsedRef.current += deltaSeconds;
+      setElapsedSeconds(elapsedRef.current);
 
       frame = window.requestAnimationFrame(tick);
     };
@@ -152,6 +188,9 @@ export function QueuePrototype() {
 
     // 뒤집기는 queue를 통로로 이동시키는 동작이 아니라 상단/하단의 물리적 위치를 바꾸는 동작이다.
     setFlowDistance(0);
+    elapsedRef.current = 0;
+    setElapsedSeconds(0);
+    setLastMeasuredSeconds(null);
     setStatus("active");
   }
 
@@ -165,6 +204,21 @@ export function QueuePrototype() {
       setStatus("active");
     }
   }
+
+  function startPreset(targetSeconds: number) {
+    const preset = resolvePreset(targetSeconds);
+
+    setQueueCount(preset.queueCount);
+    setPassageLanes(preset.lanes);
+    setFlowDistance(0);
+    elapsedRef.current = 0;
+    setElapsedSeconds(0);
+    setLastMeasuredSeconds(null);
+    setStatus("active");
+  }
+
+  const expectedSeconds = expectedDuration(queueCount, passageLanes);
+  const remainingSeconds = Math.max(0, expectedSeconds - elapsedSeconds);
 
   return (
     <div className="prototype-grid">
@@ -209,16 +263,38 @@ export function QueuePrototype() {
 
       <aside className="control-panel">
         <section>
+          <h3>프리셋 타이머</h3>
+          <div className="preset-row">
+            {timerPresets.map((preset) => (
+              <button key={preset.seconds} onClick={() => startPreset(preset.seconds)}>
+                {preset.label}
+              </button>
+            ))}
+          </div>
+          <p className="control-hint">
+            프리셋은 목표 시간에 맞춰 queue 수와 통로 너비를 조정한 뒤 바로 시작합니다.
+          </p>
+        </section>
+
+        <section>
           <h3>모델 파라미터</h3>
           <label>
             queue 수량
             <input
               type="range"
               min="50"
-              max="1000"
+              max={maxQueueCount}
               step="10"
               value={queueCount}
-              onChange={(event) => setQueueCount(Number(event.target.value))}
+              onChange={(event) => {
+                const nextQueueCount = Number(event.target.value);
+                setQueueCount(nextQueueCount);
+                setFlowDistance(Math.ceil(nextQueueCount / passageLanes) + pipeDepth);
+                setStatus("waiting");
+                elapsedRef.current = 0;
+                setElapsedSeconds(0);
+                setLastMeasuredSeconds(null);
+              }}
             />
             <output>{queueCount}</output>
           </label>
@@ -227,13 +303,43 @@ export function QueuePrototype() {
             <input
               type="range"
               min="1"
-              max="8"
+              max={maxPassageLanes}
               step="1"
               value={passageLanes}
-              onChange={(event) => setPassageLanes(Number(event.target.value))}
+              onChange={(event) => {
+                const nextPassageLanes = Number(event.target.value);
+                setPassageLanes(nextPassageLanes);
+                setFlowDistance(Math.ceil(queueCount / nextPassageLanes) + pipeDepth);
+                setStatus("waiting");
+                elapsedRef.current = 0;
+                setElapsedSeconds(0);
+                setLastMeasuredSeconds(null);
+              }}
             />
             <output>{passageLanes}개 동시</output>
           </label>
+        </section>
+
+        <section>
+          <h3>시간 측정</h3>
+          <dl className="debug-list">
+            <div>
+              <dt>예상 총 시간</dt>
+              <dd>{formatTime(expectedSeconds)}</dd>
+            </div>
+            <div>
+              <dt>경과 시간</dt>
+              <dd>{formatTime(elapsedSeconds)}</dd>
+            </div>
+            <div>
+              <dt>남은 예상 시간</dt>
+              <dd>{formatTime(remainingSeconds)}</dd>
+            </div>
+            <div>
+              <dt>최근 측정값</dt>
+              <dd>{lastMeasuredSeconds === null ? "-" : formatTime(lastMeasuredSeconds)}</dd>
+            </div>
+          </dl>
         </section>
 
         <section>
@@ -280,4 +386,14 @@ function statusLabel(status: MachineStatus) {
   if (status === "active") return "작동중";
   if (status === "paused") return "일시정지";
   return "대기";
+}
+
+function formatTime(seconds: number) {
+  const safeSeconds = Math.max(0, seconds);
+  const minutes = Math.floor(safeSeconds / 60);
+  const rest = safeSeconds - minutes * 60;
+  if (minutes <= 0) {
+    return `${rest.toFixed(1)}초`;
+  }
+  return `${minutes}분 ${rest.toFixed(1)}초`;
 }
