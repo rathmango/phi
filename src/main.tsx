@@ -1,17 +1,21 @@
 import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ArrowLeft, FileText, FlaskConical, GitBranch, ListTree, Play } from "lucide-react";
+import { GlossaryChatPrototype } from "./projects/glossary-chat/GlossaryChatPrototype";
 import { MermaidDiagram } from "./shared/MermaidDiagram";
 import { QueuePrototype } from "./projects/queue-flow/QueuePrototype";
-import { projects } from "./projects";
+import { Project, ProjectSectionId, projects } from "./projects";
 import "./styles.css";
 
-type SectionId = "brief" | "abstraction" | "flowchart" | "prototype";
-
-const sections: Array<{ id: SectionId; label: string; icon: React.ComponentType<{ size?: number }> }> = [
+const queueSections: Array<{ id: ProjectSectionId; label: string; icon: React.ComponentType<{ size?: number }> }> = [
   { id: "brief", label: "분해안", icon: FileText },
   { id: "abstraction", label: "추상화", icon: ListTree },
   { id: "flowchart", label: "플로우차트", icon: GitBranch },
+  { id: "prototype", label: "프로토타입", icon: FlaskConical },
+];
+
+const glossarySections: Array<{ id: ProjectSectionId; label: string; icon: React.ComponentType<{ size?: number }> }> = [
+  { id: "onepager", label: "1 Pager", icon: FileText },
   { id: "prototype", label: "프로토타입", icon: FlaskConical },
 ];
 
@@ -19,13 +23,23 @@ function getRoute() {
   const [, projectId, section] = window.location.hash.match(/^#\/projects\/([^/]+)\/?([^/]*)?/) ?? [];
   return {
     projectId,
-    section: (section || "brief") as SectionId,
+    section: section as ProjectSectionId | undefined,
   };
+}
+
+function defaultSection(project: Project) {
+  return project.kind === "glossary" ? "onepager" : "brief";
+}
+
+function projectSections(project: Project) {
+  return project.kind === "glossary" ? glossarySections : queueSections;
 }
 
 function App() {
   const [route, setRoute] = useState(getRoute);
   const project = useMemo(() => projects.find((item) => item.id === route.projectId), [route.projectId]);
+  const activeSection = project ? route.section || defaultSection(project) : undefined;
+  const sections = project ? projectSections(project) : [];
 
   function navigate(hash: string) {
     window.history.pushState(null, "", hash);
@@ -57,7 +71,7 @@ function App() {
             <button
               className="project-card"
               key={item.id}
-              onClick={() => navigate(`#/projects/${item.id}/brief`)}
+              onClick={() => navigate(`#/projects/${item.id}/${defaultSection(item)}`)}
             >
               <span>{item.status}</span>
               <strong>{item.title}</strong>
@@ -86,7 +100,7 @@ function App() {
       <nav className="section-tabs" aria-label="프로젝트 섹션">
         {sections.map((section) => {
           const Icon = section.icon;
-          const selected = route.section === section.id;
+          const selected = activeSection === section.id;
           return (
             <button
               className={selected ? "selected" : ""}
@@ -101,7 +115,7 @@ function App() {
       </nav>
 
       <section className="content-surface">
-        {route.section === "brief" && (
+        {project.kind === "queue" && activeSection === "brief" && (
           <article className="diagram-view">
             <h2>분해안</h2>
             <p className="section-copy">{project.brief}</p>
@@ -109,7 +123,7 @@ function App() {
           </article>
         )}
 
-        {route.section === "abstraction" && (
+        {project.kind === "queue" && activeSection === "abstraction" && (
           <article className="doc-view">
             <h2>추상화</h2>
             <p className="lead">{project.abstraction.oneLine}</p>
@@ -124,23 +138,73 @@ function App() {
           </article>
         )}
 
-        {route.section === "flowchart" && (
+        {project.kind === "queue" && activeSection === "flowchart" && (
           <article className="diagram-view">
             <h2>플로우차트</h2>
             <MermaidDiagram chart={project.flowchart} />
           </article>
         )}
 
-        {route.section === "prototype" && (
+        {project.kind === "glossary" && activeSection === "onepager" && (
+          <article className="onepager-view">
+            <div className="onepager-layout">
+              <section className="onepager-panel primary">
+                <p className="eyebrow">Problem</p>
+                <h2>문제 정의</h2>
+                <div className="onepager-block">
+                  <h3>사용자와 페인포인트</h3>
+                  <p>{project.onePager.user}</p>
+                </div>
+                <div className="onepager-block">
+                  <h3>사용자의 목표</h3>
+                  <p>{project.onePager.goal}</p>
+                </div>
+                <div className="onepager-block">
+                  <h3>핵심 마찰</h3>
+                  <p>{project.onePager.friction}</p>
+                </div>
+              </section>
+
+              <section className="onepager-panel">
+                <p className="eyebrow">Interaction</p>
+                <h2>해결책</h2>
+                <ol className="solution-flow">
+                  {project.onePager.solution.map((item) => (
+                    <li key={item.title}>
+                      <strong>{item.title}</strong>
+                      <p>{item.text}</p>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+
+              <section className="onepager-panel scenario">
+                <p className="eyebrow">Test</p>
+                <h2>테스트 시나리오</h2>
+                <ol className="scenario-flow">
+                  {project.onePager.scenario.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ol>
+              </section>
+            </div>
+          </article>
+        )}
+
+        {activeSection === "prototype" && (
           <article className="prototype-view">
             <div className="prototype-heading">
               <div>
                 <h2>동작 프로토타입</h2>
-                <p>뒤집기, 일시정지, 재개 트리거와 이동 완료 조건을 실제 queue 움직임으로 확인합니다.</p>
+                <p>
+                  {project.kind === "glossary"
+                    ? "채팅 안의 자연어 정정이 저장 가능한 번역 기준으로 바뀌고, 새 채팅에서 다시 적용되는 과정을 확인합니다."
+                    : "뒤집기, 일시정지, 재개 트리거와 이동 완료 조건을 실제 queue 움직임으로 확인합니다."}
+                </p>
               </div>
               <Play size={22} />
             </div>
-            <QueuePrototype />
+            {project.kind === "glossary" ? <GlossaryChatPrototype /> : <QueuePrototype />}
           </article>
         )}
       </section>

@@ -97,9 +97,44 @@ flowchart TB
   class gravity,neck,totalSand lowAmber;
 `;
 
-export const projects = [
+export type ProjectSectionId = "brief" | "abstraction" | "flowchart" | "onepager" | "prototype";
+
+type QueueProject = {
+  id: string;
+  kind: "queue";
+  title: string;
+  status: string;
+  summary: string;
+  brief: string;
+  decomposition: string;
+  abstraction: {
+    oneLine: string;
+    items: Array<{ key: string; text: string }>;
+  };
+  flowchart: string;
+};
+
+type GlossaryProject = {
+  id: string;
+  kind: "glossary";
+  title: string;
+  status: string;
+  summary: string;
+  onePager: {
+    user: string;
+    goal: string;
+    friction: string;
+    solution: Array<{ title: string; text: string }>;
+    scenario: Array<string>;
+  };
+};
+
+export type Project = QueueProject | GlossaryProject;
+
+export const projects: Project[] = [
   {
     id: "queue-hourglass",
+    kind: "queue",
     title: "Queue Hourglass",
     status: "진행중",
     summary: "상단/하단 영역과 통로를 가진 queue 이동 기반 시간 측정 모델",
@@ -131,4 +166,48 @@ export const projects = [
     },
     flowchart: queueFlowChart,
   },
-] as const;
+  {
+    id: "hid-glossary-chat",
+    kind: "glossary",
+    title: "Glossary Chat",
+    status: "HID 1주차",
+    summary: "채팅 안에 흩어지는 번역 정정을 지속 가능한 Glossary 규칙으로 저장하는 LLM 번역 UX",
+    onePager: {
+      user:
+        "외국계 회사에서 해외 본사와 매일 이메일, 슬랙, 문서를 주고받는 실무자. 업무시간 내내 LLM 채팅 앱으로 업무 문장을 번역하며, 같은 브랜드명, 제품명, 팀명, 직책, 사람 이름이 매번 다르게 번역되는 것에 부담을 느낀다.",
+      goal:
+        "한국어로 정리한 업무 내용을 바탕으로 해외 본사에 공유할 영문 보고 문서나 메시지를 Notion, Gmail, Slack에 바로 붙여 넣을 수 있는 수준으로 작성한다. 브랜드명, 제품명, 팀명, 사람 이름, 직책, 자주 쓰는 표현 방식이 이전 문서와 일관되게 반영되어야 한다.",
+      friction:
+        "사용자가 번역 결과를 고치면서 만든 용어 규칙과 표현 기준이 채팅창 안에만 일회성으로 남는다. 사용자는 Speak는 브랜드명으로 유지, April은 월이 아니라 사람 이름처럼 정정하지만, 새 채팅에서는 같은 기준을 다시 설명해야 한다.",
+      solution: [
+        {
+          title: "번역 요청",
+          text: "사용자가 번역을 요청하면 시스템은 번역 모드로 전환하고, 입력 문서에 적용 가능한 Glossary가 있는지 먼저 확인한다.",
+        },
+        {
+          title: "적용 표시",
+          text: "번역 결과 상단에는 적용된 Glossary 라벨이 표시된다. 라벨에 호버하면 이번 번역에 사용된 규칙이 펼쳐지고, 본문에서는 적용된 부분이 같은 색상으로 하이라이트된다.",
+        },
+        {
+          title: "자연어 정정",
+          text: "사용자가 자연어로 정정하면 시스템은 이를 1회성 수정 요청이 아니라 반복 적용 가능한 Glossary 후보로 인식한다.",
+        },
+        {
+          title: "저장 후 다음 번역에 반영",
+          text: "사용자가 저장을 확인하면 규칙이 Glossary에 추가된다. 이미 생성된 번역 결과는 그대로 남고, 이후 새 채팅이나 다음 번역 요청에서 같은 규칙이 자동 적용된다.",
+        },
+      ],
+      scenario: [
+        "\"April will work on the Speak Friday promotion page design with the KR marketing team.\" 를 한국어로 번역해 달라고 입력한다.",
+        "번역 결과에서 April이 4월로 해석되고, Speak와 KR marketing team이 원하는 기준으로 처리되지 않은 것을 확인한다.",
+        "April은 4월이 아니라 사람 이름이고, Speak는 스픽으로, KR marketing team은 한국 마케팅팀으로 번역해야 한다고 자연어로 정정한다.",
+        "Glossary에 등록하겠냐는 팝업에서 추출된 규칙을 확인한다.",
+        "확인 버튼을 눌러 Glossary 등록 완료 상태를 확인한다.",
+        "새 채팅 세션을 연다.",
+        "같은 문장을 다시 한국어로 번역해 달라고 입력한다.",
+        "Glossary 적용됨 라벨에 마우스를 올려 등록한 Glossary가 잘 적용됐는지 확인한다.",
+        "번역 결과와 Glossary에 따라 번역된 부분의 색상 하이라이트를 확인한다.",
+      ],
+    },
+  },
+];
