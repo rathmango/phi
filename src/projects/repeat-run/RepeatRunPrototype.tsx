@@ -1,18 +1,16 @@
 import {
-  Archive,
   CheckCircle2,
+  ChevronDown,
   ClipboardList,
-  Eye,
-  FileClock,
+  History,
   MessageSquareText,
   PanelLeft,
-  Pin,
-  Play,
-  RotateCcw,
   Send,
+  SlidersHorizontal,
   Sparkles,
+  X,
 } from "lucide-react";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useState } from "react";
 
 type Turn = {
   role: "user" | "assistant";
@@ -32,14 +30,7 @@ const instructionTemplate =
 
 const firstInput = "April이 Speak Friday 프로모션 페이지 디자인을 한국 마케팅팀과 진행할 예정입니다.";
 const secondInput = "Speak 온보딩 플로우 수정안은 April에게 먼저 공유한 뒤 본사에 전달할 예정입니다.";
-const defaultRefinement = "조금 더 짧게 줄여줘.";
-
-const instructionItems = [
-  "자연스러운 비즈니스 영어",
-  "Speak는 브랜드명으로 유지",
-  "April은 사람 이름으로 처리",
-  "Notion에 붙여넣을 Markdown 형식",
-];
+const refinementInput = "조금 더 짧게 줄여줘.";
 
 let nextRunId = 0;
 
@@ -48,23 +39,27 @@ function createRunId() {
   return nextRunId;
 }
 
-function initialResult(input: string, runNumber: number) {
+function createInitialResult(input: string, runNumber: number, repeatMode: boolean) {
+  if (!repeatMode) {
+    return "좋습니다. 요청하신 문장을 자연스럽게 다듬어 보겠습니다.";
+  }
+
   if (input.includes("온보딩")) {
     return [
       "- April will review the proposed updates to the Speak onboarding flow before we share them with HQ.",
       "",
-      "참조: 작업지시서만 사용됨. 이전 실행의 '조금 더 짧게' 수정 대화는 자동 반영되지 않습니다.",
+      "이 답변은 고정된 지시문만 참조했습니다.",
     ].join("\n");
   }
 
   return [
-    `- April will work with the KR marketing team on the Speak Friday promotion page design.`,
+    "- April will work with the KR marketing team on the Speak Friday promotion page design.",
     "",
-    `실행 ${runNumber}: 고정된 작업지시서를 참조해 생성된 초안입니다.`,
+    `실행 ${runNumber}: 고정된 지시문을 참조해 생성된 초안입니다.`,
   ].join("\n");
 }
 
-function refinedResult(input: string) {
+function createRefinedResult(input: string) {
   if (input.includes("온보딩")) {
     return "- April will review the Speak onboarding updates before sharing them with HQ.";
   }
@@ -72,295 +67,239 @@ function refinedResult(input: string) {
   return "- April will work with the KR marketing team on the Speak Friday promotion page.";
 }
 
-function RunThread({ turns }: { turns: Turn[] }) {
-  return (
-    <div className="run-thread" aria-live="polite">
-      {turns.map((turn, index) => (
-        <article className={`run-message ${turn.role}`} key={`${turn.role}-${index}`}>
-          <div className="message-meta">{turn.role === "user" ? "사용자" : "AI 작업자"}</div>
-          <p>{turn.text}</p>
-        </article>
-      ))}
-    </div>
-  );
-}
-
-function AppliedInstructionLabel() {
-  return (
-    <div className="run-reference-label" tabIndex={0}>
-      <Sparkles size={15} />
-      작업지시서 참조됨
-      <div className="run-reference-tooltip" role="tooltip">
-        {instructionItems.map((item) => (
-          <span key={item}>{item}</span>
-        ))}
-      </div>
-    </div>
-  );
+function shortPreview(text: string) {
+  return text.split("\n")[0].replace(/^- /, "");
 }
 
 export function RepeatRunPrototype() {
-  const [routineMode, setRoutineMode] = useState(false);
+  const [repeatMode, setRepeatMode] = useState(false);
   const [instructionText, setInstructionText] = useState(instructionTemplate);
-  const [instructionPinned, setInstructionPinned] = useState(false);
-  const [newInput, setNewInput] = useState(firstInput);
-  const [refinementInput, setRefinementInput] = useState(defaultRefinement);
-  const [activeRun, setActiveRun] = useState<RunRecord | null>(null);
+  const [input, setInput] = useState(firstInput);
+  const [activeTurns, setActiveTurns] = useState<Turn[]>([]);
+  const [activeInput, setActiveInput] = useState("");
+  const [activeResult, setActiveResult] = useState("");
   const [records, setRecords] = useState<RunRecord[]>([]);
-  const [selectedRecordId, setSelectedRecordId] = useState<number | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<RunRecord | null>(null);
 
-  const selectedRecord = useMemo(
-    () => records.find((record) => record.id === selectedRecordId) ?? null,
-    [records, selectedRecordId],
-  );
+  const hasActiveRun = repeatMode && activeTurns.length > 0;
 
-  function pinInstruction() {
-    setRoutineMode(true);
-    setInstructionPinned(true);
-  }
-
-  function startRun(event?: FormEvent) {
+  function submitMessage(event?: FormEvent) {
     event?.preventDefault();
-    const trimmed = newInput.trim();
-    if (!trimmed || !instructionPinned || activeRun) return;
+    const trimmed = input.trim();
+    if (!trimmed) return;
 
-    const runId = createRunId();
-    const result = initialResult(trimmed, records.length + 1);
-    setActiveRun({
-      id: runId,
-      title: `실행 ${records.length + 1}`,
-      input: trimmed,
-      finalResult: result,
-      turns: [
+    if (repeatMode) {
+      if (hasActiveRun) {
+        const nextResult = createRefinedResult(activeInput);
+        setActiveTurns((current) => [
+          ...current,
+          { role: "user", text: trimmed },
+          { role: "assistant", text: nextResult },
+        ]);
+        setActiveResult(nextResult);
+        setInput("");
+        return;
+      }
+
+      const result = createInitialResult(trimmed, records.length + 1, true);
+      setActiveInput(trimmed);
+      setActiveResult(result);
+      setActiveTurns([
         { role: "user", text: trimmed },
         { role: "assistant", text: result },
-      ],
-    });
-    setNewInput("");
-    setSelectedRecordId(null);
-  }
+      ]);
+      setInput(refinementInput);
+      return;
+    }
 
-  function refineRun(event?: FormEvent) {
-    event?.preventDefault();
-    const trimmed = refinementInput.trim();
-    if (!trimmed || !activeRun) return;
-
-    const nextResult = refinedResult(activeRun.input);
-    setActiveRun({
-      ...activeRun,
-      finalResult: nextResult,
-      turns: [
-        ...activeRun.turns,
-        { role: "user", text: trimmed },
-        { role: "assistant", text: nextResult },
-      ],
-    });
-    setRefinementInput("");
+    const result = createInitialResult(trimmed, records.length + 1, false);
+    setActiveTurns((current) => [
+      ...current,
+      { role: "user", text: trimmed },
+      { role: "assistant", text: result },
+    ]);
+    setInput("");
   }
 
   function completeRun() {
-    if (!activeRun) return;
+    if (!hasActiveRun) return;
 
-    const completedRun = {
-      ...activeRun,
-      title: `완료된 실행 ${records.length + 1}`,
+    const record: RunRecord = {
+      id: createRunId(),
+      title: `완료된 작업 ${records.length + 1}`,
+      input: activeInput,
+      turns: activeTurns,
+      finalResult: activeResult,
     };
-    setRecords((current) => [completedRun, ...current]);
-    setSelectedRecordId(completedRun.id);
-    setActiveRun(null);
-    setRefinementInput(defaultRefinement);
-    setNewInput(records.length === 0 ? secondInput : "");
+    setRecords((current) => [record, ...current]);
+    setSelectedRecord(record);
+    setActiveTurns([]);
+    setActiveInput("");
+    setActiveResult("");
+    setInput(records.length === 0 ? secondInput : "");
   }
 
-  function resetPrototype() {
-    setRoutineMode(false);
-    setInstructionText(instructionTemplate);
-    setInstructionPinned(false);
-    setNewInput(firstInput);
-    setRefinementInput(defaultRefinement);
-    setActiveRun(null);
-    setRecords([]);
-    setSelectedRecordId(null);
+  function toggleRepeatMode() {
+    setRepeatMode((current) => !current);
+    setActiveTurns([]);
+    setActiveInput("");
+    setActiveResult("");
+    setInput(firstInput);
+    setSelectedRecord(null);
+    setHistoryOpen(false);
   }
 
   return (
-    <div className="routine-prototype">
-      <aside className="routine-history" aria-label="채팅 히스토리">
+    <div className="routine-chat-shell">
+      <aside className="routine-chat-history" aria-label="채팅 히스토리">
         <div className="history-title">
           <PanelLeft size={18} />
           <h3>히스토리</h3>
         </div>
-        <button type="button" className="history-item muted">
+
+        <button type="button" className="history-chat-item">
           <MessageSquareText size={16} />
-          <span>
-            일반 채팅
-            <small>지난 번역 질문</small>
-          </span>
+          <span>지난 번역 질문</span>
         </button>
-        <button type="button" className="history-item selected">
+
+        <button type="button" className="history-chat-item selected">
           <ClipboardList size={16} />
-          <span>
-            업무 번역 반복 작업
-            <small>
-              {routineMode ? "반복 작업 세션" : "일반 채팅"} · 완료 {records.length}개
-            </small>
-          </span>
+          <span>업무 번역</span>
+          {repeatMode && <small>반복 대화</small>}
         </button>
-        <button type="button" className="history-item muted">
+
+        <button type="button" className="history-chat-item">
           <MessageSquareText size={16} />
-          <span>
-            회의록 요약
-            <small>일반 채팅</small>
-          </span>
+          <span>회의록 요약</span>
         </button>
       </aside>
 
-      <section className="routine-workspace">
-        <header className="routine-toolbar">
+      <section className="routine-chat-window">
+        <header className="routine-chat-topbar">
           <div>
-            <p className="eyebrow">Routine Mode</p>
-            <h3>작업지시서 아래의 독립 실행</h3>
+            <strong>업무 번역</strong>
+            {repeatMode && <span>반복 대화</span>}
           </div>
-          <div className="routine-actions">
-            <button type="button" className={routineMode ? "active" : ""} onClick={() => setRoutineMode(true)}>
-              <Play size={16} />
-              반복 작업 모드
-            </button>
-            <button type="button" onClick={resetPrototype}>
-              <RotateCcw size={16} />
-              초기화
-            </button>
+          <div className="routine-topbar-actions">
+            <label className="repeat-toggle">
+              <input type="checkbox" checked={repeatMode} onChange={toggleRepeatMode} />
+              <span>반복 대화</span>
+            </label>
           </div>
         </header>
 
-        <section className={`instruction-panel ${instructionPinned ? "pinned" : ""}`}>
-          <div className="instruction-header">
-            <div>
-              <p className="eyebrow">Instruction</p>
-              <h3>작업지시서</h3>
+        {repeatMode && (
+          <section className="routine-instruction-strip" aria-label="반복 대화 지시문">
+            <div className="instruction-strip-title">
+              <SlidersHorizontal size={16} />
+              <span>지시문</span>
+              <ChevronDown size={15} />
             </div>
-            {instructionPinned && (
-              <span className="instruction-status">
-                <Pin size={15} />
-                고정됨
-              </span>
-            )}
-          </div>
+            <textarea
+              aria-label="반복 대화 지시문"
+              value={instructionText}
+              onChange={(event) => setInstructionText(event.target.value)}
+            />
+          </section>
+        )}
 
-          {instructionPinned ? (
-            <>
-              <div className="instruction-chips">
-                {instructionItems.map((item) => (
-                  <span key={item}>{item}</span>
-                ))}
-              </div>
-              <button type="button" className="text-action" onClick={() => setInstructionPinned(false)}>
-                작업지시서 수정
-              </button>
-            </>
+        <div className={`routine-chat-thread ${activeTurns.length === 0 ? "empty" : ""}`} aria-live="polite">
+          {activeTurns.length === 0 ? (
+            <div className="chat-empty-state">
+              <Sparkles size={30} />
+              <p>{repeatMode ? "지시문 아래에서 새 입력을 보냅니다." : "메시지를 입력해 대화를 시작합니다."}</p>
+            </div>
           ) : (
-            <div className="instruction-editor">
-              <textarea
-                aria-label="작업지시서 입력"
-                value={instructionText}
-                onChange={(event) => setInstructionText(event.target.value)}
-              />
-              <button type="button" disabled={!routineMode} onClick={pinInstruction}>
-                <Pin size={16} />
-                작업지시서 고정
-              </button>
-            </div>
+            activeTurns.map((turn, index) => (
+              <article className={`routine-chat-message ${turn.role}`} key={`${turn.role}-${index}`}>
+                <div className="message-meta">{turn.role === "user" ? "사용자" : "ChatGPT"}</div>
+                <p>{turn.text}</p>
+              </article>
+            ))
           )}
-        </section>
+        </div>
 
-        <section className="active-run-panel">
-          <div className="active-run-header">
-            <div>
-              <p className="eyebrow">Current Run</p>
-              <h3>{activeRun ? "진행 중인 실행" : "새 입력"}</h3>
-            </div>
-            {activeRun && <AppliedInstructionLabel />}
-          </div>
-
-          {activeRun ? (
-            <>
-              <RunThread turns={activeRun.turns} />
-              <form className="run-refine-form" onSubmit={refineRun}>
-                <input
-                  aria-label="실행 안 수정 요청"
-                  placeholder="이번 실행 안에서만 수정 요청"
-                  value={refinementInput}
-                  onChange={(event) => setRefinementInput(event.target.value)}
-                />
-                <button type="submit">
-                  <Send size={16} />
-                  수정 요청
+        <div className="routine-composer-area">
+          <div className="composer-inline-actions">
+            {repeatMode && (
+              <>
+                <button type="button" className="icon-action" aria-label="반복 대화 기록" onClick={() => setHistoryOpen(true)}>
+                  <History size={18} />
+                  {records.length > 0 && <span>{records.length}</span>}
                 </button>
-                <button type="button" className="complete-run-button" onClick={completeRun}>
+                <button type="button" className="complete-chip" disabled={!hasActiveRun} onClick={completeRun}>
                   <CheckCircle2 size={16} />
                   완료
                 </button>
-              </form>
-            </>
-          ) : (
-            <form className="new-run-form" onSubmit={startRun}>
-              <textarea
-                aria-label="새 실행 입력"
-                value={newInput}
-                onChange={(event) => setNewInput(event.target.value)}
-                placeholder="작업지시서 아래에서 처리할 새 입력값"
-              />
-              <button type="submit" disabled={!instructionPinned || !newInput.trim()}>
-                <Play size={16} />
-                실행 시작
+              </>
+            )}
+          </div>
+
+          <form className="routine-chat-composer" onSubmit={submitMessage}>
+            <textarea
+              aria-label="채팅 입력"
+              value={input}
+              onChange={(event) => setInput(event.target.value)}
+              placeholder="메시지 입력"
+              rows={3}
+            />
+            <button type="submit" aria-label="보내기" disabled={!input.trim()}>
+              <Send size={18} />
+            </button>
+          </form>
+        </div>
+
+        {historyOpen && (
+          <div className="routine-history-popover" role="dialog" aria-label="반복 대화 기록">
+            <div className="popover-header">
+              <strong>반복 대화 기록</strong>
+              <button type="button" aria-label="닫기" onClick={() => setHistoryOpen(false)}>
+                <X size={16} />
               </button>
-              {!instructionPinned && <p>반복 작업 모드를 켜고 작업지시서를 고정하면 실행을 시작할 수 있습니다.</p>}
-            </form>
-          )}
-        </section>
-      </section>
-
-      <aside className="routine-records">
-        <section>
-          <div className="side-title">
-            <Archive size={18} />
-            <h3>실행 기록</h3>
-          </div>
-          {records.length === 0 ? (
-            <p className="empty-record">완료된 실행은 최종 결과 미리보기만 남고, 긴 수정 대화는 기록을 열 때만 보입니다.</p>
-          ) : (
-            <ul className="run-record-list">
-              {records.map((record) => (
-                <li key={record.id} className={record.id === selectedRecordId ? "selected" : ""}>
-                  <button type="button" onClick={() => setSelectedRecordId(record.id)}>
-                    <FileClock size={16} />
-                    <span>
-                      <strong>{record.title}</strong>
-                      <small>{record.finalResult.split("\n")[0]}</small>
-                    </span>
-                    <Eye size={15} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
-
-        <section>
-          <div className="side-title">
-            <ClipboardList size={18} />
-            <h3>기록 상세</h3>
-          </div>
-          {selectedRecord ? (
-            <div className="record-detail">
-              <strong>{selectedRecord.input}</strong>
-              <RunThread turns={selectedRecord.turns} />
             </div>
-          ) : (
-            <p className="empty-record">실행 기록을 열면 원문, 수정 대화, 최종 결과를 다시 확인할 수 있습니다.</p>
-          )}
-        </section>
-      </aside>
+
+            {records.length === 0 ? (
+              <p className="record-empty">완료한 작업이 여기에 쌓입니다.</p>
+            ) : (
+              <div className="record-popover-layout">
+                <ul className="compact-record-list">
+                  {records.map((record) => (
+                    <li key={record.id}>
+                      <button
+                        type="button"
+                        className={selectedRecord?.id === record.id ? "selected" : ""}
+                        onClick={() => setSelectedRecord(record)}
+                      >
+                        <strong>{record.title}</strong>
+                        <span>{shortPreview(record.finalResult)}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="compact-record-detail">
+                  {selectedRecord ? (
+                    <>
+                      <strong>{selectedRecord.input}</strong>
+                      <div>
+                        {selectedRecord.turns.map((turn, index) => (
+                          <p key={`${turn.role}-${index}`}>
+                            <b>{turn.role === "user" ? "사용자" : "ChatGPT"}</b>
+                            {turn.text}
+                          </p>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="record-empty">기록을 선택하면 대화 전체를 볼 수 있습니다.</p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
