@@ -561,6 +561,7 @@ button:disabled {
   margin: 8px 0 0;
   color: var(--muted);
   line-height: 1.68;
+  white-space: pre-line;
   word-break: keep-all;
 }
 
