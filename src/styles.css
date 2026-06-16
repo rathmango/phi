@@ -1217,27 +1217,15 @@ button:disabled {
 
 .routine-composer-area {
   position: relative;
-  display: grid;
-  gap: 8px;
   padding: 12px 16px 16px;
   border-top: 1px solid var(--line);
   background: #ffffff;
 }
 
-.composer-inline-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  min-height: 36px;
-}
-
-.composer-inline-actions:empty {
-  display: none;
-}
-
 .icon-action {
   position: relative;
-  width: 40px;
+  width: 84px;
+  min-height: 46px;
   padding: 0;
 }
 
@@ -1257,6 +1245,8 @@ button:disabled {
 }
 
 .complete-chip {
+  width: 84px;
+  min-height: 46px;
   border-color: #16824a;
   background: #dcfce7;
   color: #14532d;
@@ -1264,9 +1254,9 @@ button:disabled {
 
 .routine-chat-composer {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 44px;
-  gap: 8px;
-  align-items: end;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: stretch;
 }
 
 .routine-chat-composer textarea {
@@ -1283,9 +1273,21 @@ button:disabled {
 }
 
 .routine-chat-composer button {
-  width: 44px;
-  height: 44px;
   padding: 0;
+}
+
+.composer-action-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  justify-content: flex-end;
+  align-items: stretch;
+  width: 84px;
+}
+
+.send-button {
+  width: 84px;
+  min-height: 46px;
   border-color: var(--blue);
   background: #e8f2ff;
   color: var(--blue-dark);
@@ -1451,8 +1453,23 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
-  .routine-chat-composer button {
-    width: 100%;
+  .composer-action-rail {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
+  .send-button,
+  .icon-action {
+    width: 46px;
+  }
+
+  .complete-chip {
+    width: auto;
+    min-width: 84px;
+  }
+
+  .composer-action-rail {
+    width: auto;
   }
 
   .routine-history-popover {

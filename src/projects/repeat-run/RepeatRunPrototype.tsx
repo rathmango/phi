@@ -221,21 +221,6 @@ export function RepeatRunPrototype() {
         </div>
 
         <div className="routine-composer-area">
-          <div className="composer-inline-actions">
-            {repeatMode && (
-              <>
-                <button type="button" className="icon-action" aria-label="반복 대화 기록" onClick={() => setHistoryOpen(true)}>
-                  <History size={18} />
-                  {records.length > 0 && <span>{records.length}</span>}
-                </button>
-                <button type="button" className="complete-chip" disabled={!hasActiveRun} onClick={completeRun}>
-                  <CheckCircle2 size={16} />
-                  완료
-                </button>
-              </>
-            )}
-          </div>
-
           <form className="routine-chat-composer" onSubmit={submitMessage}>
             <textarea
               aria-label="채팅 입력"
@@ -244,9 +229,23 @@ export function RepeatRunPrototype() {
               placeholder="메시지 입력"
               rows={3}
             />
-            <button type="submit" aria-label="보내기" disabled={!input.trim()}>
-              <Send size={18} />
-            </button>
+            <div className="composer-action-rail">
+              {repeatMode && (
+                <>
+                  <button type="button" className="icon-action" aria-label="반복 대화 기록" onClick={() => setHistoryOpen(true)}>
+                    <History size={18} />
+                    {records.length > 0 && <span>{records.length}</span>}
+                  </button>
+                  <button type="button" className="complete-chip" disabled={!hasActiveRun} onClick={completeRun}>
+                    <CheckCircle2 size={16} />
+                    완료
+                  </button>
+                </>
+              )}
+              <button type="submit" className="send-button" aria-label="보내기" disabled={!input.trim()}>
+                <Send size={18} />
+              </button>
+            </div>
           </form>
         </div>
 
