@@ -158,16 +158,25 @@ export function RepeatRunPrototype() {
           <h3>히스토리</h3>
         </div>
 
+        {repeatMode && (
+          <button type="button" className="history-chat-item selected pinned">
+            <ClipboardList size={16} />
+            <span>업무 번역</span>
+            <small>반복 대화</small>
+          </button>
+        )}
+
         <button type="button" className="history-chat-item">
           <MessageSquareText size={16} />
           <span>지난 번역 질문</span>
         </button>
 
-        <button type="button" className="history-chat-item selected">
-          <ClipboardList size={16} />
-          <span>업무 번역</span>
-          {repeatMode && <small>반복 대화</small>}
-        </button>
+        {!repeatMode && (
+          <button type="button" className="history-chat-item selected">
+            <ClipboardList size={16} />
+            <span>업무 번역</span>
+          </button>
+        )}
 
         <button type="button" className="history-chat-item">
           <MessageSquareText size={16} />
@@ -186,6 +195,12 @@ export function RepeatRunPrototype() {
               <input type="checkbox" checked={repeatMode} onChange={toggleRepeatMode} />
               <span>반복 대화</span>
             </label>
+            {repeatMode && (
+              <button type="button" className="icon-action topbar-history-button" aria-label="반복 대화 기록" onClick={() => setHistoryOpen(true)}>
+                <History size={18} />
+                {records.length > 0 && <span>{records.length}</span>}
+              </button>
+            )}
           </div>
         </header>
 
@@ -231,16 +246,10 @@ export function RepeatRunPrototype() {
             />
             <div className="composer-action-rail">
               {repeatMode && (
-                <>
-                  <button type="button" className="icon-action" aria-label="반복 대화 기록" onClick={() => setHistoryOpen(true)}>
-                    <History size={18} />
-                    {records.length > 0 && <span>{records.length}</span>}
-                  </button>
-                  <button type="button" className="complete-chip" disabled={!hasActiveRun} onClick={completeRun}>
-                    <CheckCircle2 size={16} />
-                    완료
-                  </button>
-                </>
+                <button type="button" className="complete-chip" disabled={!hasActiveRun} onClick={completeRun}>
+                  <CheckCircle2 size={16} />
+                  완료
+                </button>
               )}
               <button type="submit" className="send-button" aria-label="보내기" disabled={!input.trim()}>
                 <Send size={18} />

@@ -1020,6 +1020,11 @@ button:disabled {
   background: #e8f2ff;
 }
 
+.history-chat-item.pinned {
+  border-color: #8ccaa2;
+  background: #effaf3;
+}
+
 .history-chat-item span {
   overflow: hidden;
   font-weight: 800;
@@ -1072,7 +1077,7 @@ button:disabled {
   white-space: nowrap;
 }
 
-.routine-chat-topbar span {
+.routine-chat-topbar > div:first-child > span {
   display: inline-flex;
   align-items: center;
   min-height: 24px;
@@ -1088,6 +1093,7 @@ button:disabled {
   display: flex;
   gap: 8px;
   align-items: center;
+  justify-content: flex-end;
 }
 
 .routine-topbar-actions button,
@@ -1224,8 +1230,8 @@ button:disabled {
 
 .icon-action {
   position: relative;
-  width: 84px;
-  min-height: 46px;
+  width: 42px;
+  min-height: 38px;
   padding: 0;
 }
 
@@ -1296,12 +1302,12 @@ button:disabled {
 .routine-history-popover {
   position: absolute;
   right: 16px;
-  bottom: 116px;
+  top: 66px;
   z-index: 4;
   display: grid;
   gap: 12px;
   width: min(620px, calc(100% - 32px));
-  max-height: min(560px, calc(100% - 140px));
+  max-height: min(560px, calc(100% - 84px));
   overflow: auto;
   padding: 14px;
   border: 1px solid #9db4d0;
@@ -1474,7 +1480,8 @@ button:disabled {
 
   .routine-history-popover {
     right: 10px;
-    bottom: 128px;
+    top: 112px;
     width: calc(100% - 20px);
+    max-height: calc(100% - 124px);
   }
 }
