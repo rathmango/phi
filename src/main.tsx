@@ -4,6 +4,7 @@ import { ArrowLeft, FileText, FlaskConical, GitBranch, ListTree, Play } from "lu
 import { GlossaryChatPrototype } from "./projects/glossary-chat/GlossaryChatPrototype";
 import { MermaidDiagram } from "./shared/MermaidDiagram";
 import { QueuePrototype } from "./projects/queue-flow/QueuePrototype";
+import { RepeatRunPrototype } from "./projects/repeat-run/RepeatRunPrototype";
 import { Project, ProjectSectionId, projects } from "./projects";
 import "./styles.css";
 
@@ -28,11 +29,11 @@ function getRoute() {
 }
 
 function defaultSection(project: Project) {
-  return project.kind === "glossary" ? "onepager" : "brief";
+  return project.kind === "queue" ? "brief" : "onepager";
 }
 
 function projectSections(project: Project) {
-  return project.kind === "glossary" ? glossarySections : queueSections;
+  return project.kind === "queue" ? queueSections : glossarySections;
 }
 
 function App() {
@@ -145,7 +146,7 @@ function App() {
           </article>
         )}
 
-        {project.kind === "glossary" && activeSection === "onepager" && (
+        {project.kind !== "queue" && activeSection === "onepager" && (
           <article className="onepager-view">
             <div className="onepager-layout">
               <section className="onepager-panel primary">
@@ -199,12 +200,16 @@ function App() {
                 <p>
                   {project.kind === "glossary"
                     ? "채팅 안의 자연어 정정이 저장 가능한 번역 기준으로 바뀌고, 새 채팅에서 다시 적용되는 과정을 확인합니다."
+                    : project.kind === "routine"
+                      ? "작업지시서를 고정하고, 각 입력을 독립 실행으로 처리한 뒤 완료된 실행을 기록으로 보관하는 흐름을 확인합니다."
                     : "뒤집기, 일시정지, 재개 트리거와 이동 완료 조건을 실제 queue 움직임으로 확인합니다."}
                 </p>
               </div>
               <Play size={22} />
             </div>
-            {project.kind === "glossary" ? <GlossaryChatPrototype /> : <QueuePrototype />}
+            {project.kind === "glossary" && <GlossaryChatPrototype />}
+            {project.kind === "routine" && <RepeatRunPrototype />}
+            {project.kind === "queue" && <QueuePrototype />}
           </article>
         )}
       </section>
