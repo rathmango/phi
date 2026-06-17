@@ -97,7 +97,143 @@ flowchart TB
   class gravity,neck,totalSand lowAmber;
 `;
 
-export type ProjectSectionId = "brief" | "abstraction" | "flowchart" | "onepager" | "prototype";
+export const hourglassDecompositionChart = `
+flowchart TB
+  root["고수준<br/>뒤집힌 순간 위쪽에 놓인 정해진 양의 모래가<br/>좁은 통로를 지나 아래쪽으로 떨어지고,<br/>위쪽 모래가 모두 사라진 시점으로<br/>정해진 시간이 지났음을 보여준다"]
+
+  root --> start["1. 모래시계를 뒤집어<br/>시간 측정을 시작한다"]
+  root --> flow["2. 위쪽 모래가 좁은 통로를 지나<br/>아래쪽으로 떨어진다"]
+  root --> progress["3. 위쪽과 아래쪽의 모래 양으로<br/>시간 진행을 보여준다"]
+  root --> finish["4. 위쪽 모래가 다 떨어지면<br/>측정이 끝난다"]
+
+  start --> chamberSwap["1-1. 위쪽과 아래쪽 공간의<br/>위치가 바뀐다<br/><br/>뒤집힘 여부: is_flipped, 0 / 1<br/>회전 각도: rotation_angle, 0~180도<br/>현재 위쪽 공간: upper_chamber_id"]
+
+  start --> sandBecomesTop["1-2. 아래에 있던 모래가<br/>위쪽 모래가 된다<br/><br/>전체 모래 양: total_sand_amount<br/>위쪽 모래 양: top_sand_amount<br/>아래쪽 모래 양: bottom_sand_amount"]
+
+  start --> startTime["1-3. 측정 시작 시점이<br/>정해진다<br/><br/>시작 시각: start_time<br/>목표 측정 시간: target_duration_sec<br/>경과 시간: elapsed_sec = 0"]
+
+  flow --> downwardMove["2-1. 위쪽에 있는 모래가<br/>아래 방향으로 이동한다<br/><br/>중력 가속도: gravity<br/>위쪽 모래 존재 여부: has_top_sand, 0 / 1<br/>모래 이동 방향: downward = 1"]
+
+  flow --> neckLimit["2-2. 가운데 통로가 한 번에 지나가는<br/>모래 양을 제한한다<br/><br/>통로 지름: neck_width_mm<br/>초당 통과 모래 양: flow_rate<br/>통로 막힘 여부: is_blocked, 0 / 1"]
+
+  flow --> sandShift["2-3. 시간에 따라<br/>모래 양이 이동한다<br/><br/>경과 시간: elapsed_sec<br/>이동한 모래 양: moved_sand_amount<br/>단위 시간당 이동량: sand_per_sec"]
+
+  progress --> topDecrease["3-1. 위쪽 모래 양이<br/>줄어든다<br/><br/>위쪽 모래 양: top_sand_amount<br/>위쪽 모래 감소량: top_sand_decrease<br/>남은 비율: remaining_ratio, 0~100%"]
+
+  progress --> bottomIncrease["3-2. 아래쪽 모래 양이<br/>늘어난다<br/><br/>아래쪽 모래 양: bottom_sand_amount<br/>아래쪽 모래 증가량: bottom_sand_increase<br/>완료 비율: progress_ratio, 0~100%"]
+
+  progress --> timeRead["3-3. 모래 양의 변화가<br/>남은 시간으로 읽힌다<br/><br/>예상 전체 시간: target_duration_sec<br/>지난 시간: elapsed_sec<br/>남은 시간: remaining_sec"]
+
+  finish --> emptyCheck["4-1. 위쪽에 남은 모래가<br/>있는지 확인한다<br/><br/>위쪽 모래 양: top_sand_amount<br/>위쪽 모래 없음 여부: is_top_empty, 0 / 1<br/>아래쪽 모래 가득 참 여부: is_bottom_full, 0 / 1"]
+
+  finish --> noFlow["4-2. 더 이상 통로를 지나는<br/>모래가 없어진다<br/><br/>통과 중인 모래 양: falling_sand_amount<br/>초당 통과 모래 양: flow_rate = 0<br/>이동 상태: is_flowing, 0 / 1"]
+
+  finish --> finishedState["4-3. 정해진 시간이 지났다는<br/>상태가 된다<br/><br/>경과 시간: elapsed_sec ≈ target_duration_sec<br/>남은 시간: remaining_sec = 0<br/>측정 완료 여부: is_finished, 0 / 1"]
+
+  classDef high fill:#ffffff,stroke:#64748b,stroke-width:3px,color:#111827,font-weight:bold;
+  classDef mid fill:#e8f2ff,stroke:#2563eb,stroke-width:3px,color:#0f172a,font-weight:bold;
+  classDef action fill:#e9f9f1,stroke:#16824a,stroke-width:2px,color:#10251a,font-weight:bold;
+  classDef endState fill:#f5eafe,stroke:#7c3aed,stroke-width:3px,color:#1f133a,font-weight:bold;
+
+  class root high;
+  class start,flow,progress mid;
+  class finish endState;
+  class chamberSwap,sandBecomesTop,startTime,downwardMove,neckLimit,sandShift,topDecrease,bottomIncrease,timeRead,emptyCheck,noFlow,finishedState action;
+`;
+
+export const musicBoxDecompositionChart = `
+flowchart TB
+  root["고수준<br/>감긴 태엽이 풀리는 힘으로 실린더를 돌리고,<br/>실린더의 핀이 금속 빗살을 차례대로 튕겨<br/>정해진 음악을 재생한다"]
+
+  root --> wind["1. 태엽을 감아<br/>재생될 시간을 정한다"]
+  root --> read["2. 태엽이 풀리면서 실린더가 돌고,<br/>저장된 음의 순서를 읽는다"]
+  root --> sound["3. 핀이 금속 빗살을 튕겨<br/>소리를 낸다"]
+  root --> finish["4. 태엽이 다 풀리면<br/>재생이 끝난다"]
+
+  wind --> handle["1-1. 손잡이를 돌려<br/>태엽을 감는다<br/><br/>손잡이 회전 횟수: n회<br/>손잡이 회전 각도: theta_handle<br/>손잡이 회전 방향: 1 / -1"]
+
+  wind --> windLevelChange["1-2. 손잡이를 돌린 만큼<br/>태엽 감김 정도가 올라간다<br/><br/>회전 1회당 감김 증가량: wind_per_turn<br/>현재 태엽 감김 정도: wind_level, 0~100%<br/>최대 감김 정도: max_wind = 100%"]
+
+  wind --> durationMap["1-3. 감긴 정도가<br/>오르골이 돌아갈 수 있는 시간으로 남는다<br/><br/>감김 1%당 재생 시간: sec_per_wind<br/>예상 재생 시간: expected_duration_sec<br/>남은 재생 시간: remaining_duration_sec"]
+
+  read --> unwind["2-1. 감긴 태엽이 풀리며<br/>회전 운동을 만든다<br/><br/>태엽 풀림 정도: unwind_level<br/>태엽 풀림 속도: unwind_rate<br/>출력 회전 속도: output_rpm"]
+
+  read --> gearTransfer["2-2. 회전이 기어를 지나<br/>실린더에 전달된다<br/><br/>기어비: gear_ratio<br/>실린더 회전 속도: cylinder_rpm<br/>실린더 회전 방향: 1 / -1"]
+
+  read --> cylinderPosition["2-3. 실린더의 현재 위치가<br/>곡의 진행 위치가 된다<br/><br/>실린더 현재 각도: cylinder_angle, 0~360도<br/>실린더 회전 완료 횟수: cylinder_turn_count<br/>곡 진행률: music_progress, 0~100%"]
+
+  read --> pinRead["2-4. 실린더 위의 핀이 읽기 위치를 지나가며<br/>다음 음을 정한다<br/><br/>핀 개수: pin_count<br/>각 핀의 각도 위치: pin_angle<br/>각 핀의 가로 위치: pin_x<br/>현재 읽기 위치와 핀의 거리: read_distance<br/>핀 통과 여부: 0 / 1"]
+
+  sound --> tineSelect["3-1. 지나간 핀의 위치가<br/>어떤 빗살을 칠지 정한다<br/><br/>핀 가로 위치: pin_x<br/>빗살 번호: tine_index<br/>해당 빗살의 음 높이: frequency_hz"]
+
+  sound --> pluck["3-2. 핀이 금속 빗살을<br/>밀고 지나간다<br/><br/>핀 접촉 여부: contact, 0 / 1<br/>접촉 깊이: contact_depth_mm<br/>접촉 시간: contact_duration_sec<br/>튕김 세기: pluck_strength"]
+
+  sound --> vibration["3-3. 밀렸다가 놓인 빗살이<br/>진동한다<br/><br/>빗살 길이: tine_length_mm<br/>빗살 두께: tine_thickness_mm<br/>진동 주파수: vibration_frequency_hz<br/>진동 세기: amplitude<br/>진동 감쇠율: decay_rate"]
+
+  sound --> audibleSound["3-4. 빗살의 진동이<br/>들을 수 있는 소리로 퍼진다<br/><br/>음량: volume_db<br/>소리 지속 시간: sound_duration_sec<br/>현재 울리고 있는 음 개수: active_note_count"]
+
+  finish --> windDecrease["4-1. 재생되는 동안<br/>태엽 감김 정도가 줄어든다<br/><br/>현재 태엽 감김 정도: wind_level<br/>감김 감소 속도: wind_decrease_rate<br/>남은 재생 시간: remaining_duration_sec"]
+
+  finish --> finishCheck["4-2. 남은 감김 정도로<br/>계속 재생할 수 있는지 판단한다<br/><br/>남은 재생 시간: remaining_duration_sec<br/>실린더 회전 속도: cylinder_rpm<br/>종료 여부: is_finished, 0 / 1"]
+
+  finish --> stop["4-3. 회전이 멈추고<br/>남은 진동도 사라진다<br/><br/>실린더 회전 속도: cylinder_rpm = 0<br/>현재 울리고 있는 음 개수: active_note_count = 0<br/>출력 음량: volume_db ≈ 0"]
+
+  classDef high fill:#ffffff,stroke:#64748b,stroke-width:3px,color:#111827,font-weight:bold;
+  classDef mid fill:#e8f2ff,stroke:#2563eb,stroke-width:3px,color:#0f172a,font-weight:bold;
+  classDef action fill:#e9f9f1,stroke:#16824a,stroke-width:2px,color:#10251a,font-weight:bold;
+  classDef endState fill:#f5eafe,stroke:#7c3aed,stroke-width:3px,color:#1f133a,font-weight:bold;
+
+  class root high;
+  class wind,read,sound mid;
+  class finish endState;
+  class handle,windLevelChange,durationMap,unwind,gearTransfer,cylinderPosition,pinRead,tineSelect,pluck,vibration,audibleSound,windDecrease,finishCheck,stop action;
+`;
+
+export const sensoryUnfoldingFlowChart = `
+flowchart TD
+  idle["대기<br/>사전 정의된 결과 패턴 준비됨<br/>작동 가능량 입력 대기"]
+  charge["설정 중<br/>작동 가능량 채워짐"]
+  release{"놓기 / 시작<br/>트리거 발생?"}
+  running["전개 중<br/>작동 가능량 감소<br/>시각/청각 결과 전개"]
+  tick["시간 경과<br/>진행률 증가"]
+  update["출력 갱신<br/>결과 패턴이 진행률에 맞춰 변화"]
+  pause{"멈춤<br/>트리거 발생?"}
+  paused["일시정지<br/>남은 가능량 보존<br/>출력 상태 유지"]
+  resume{"다시 시작<br/>트리거 발생?"}
+  done{"작동 가능량이<br/>소진되었는가?"}
+  complete["완료<br/>사전 정의된 결과가 완성됨"]
+  reset{"다시 감상 / 초기화<br/>트리거 발생?"}
+
+  idle -->|채우기 입력| charge
+  charge --> release
+  release -->|아니오| charge
+  release -->|예| running
+  running --> tick
+  tick --> update
+  update --> pause
+  pause -->|예| paused
+  paused --> resume
+  resume -->|아니오| paused
+  resume -->|예| running
+  pause -->|아니오| done
+  done -->|아니오| running
+  done -->|예| complete
+  complete --> reset
+  reset -->|아니오| complete
+  reset -->|예| idle
+
+  classDef state fill:#dbeafe,stroke:#1d4ed8,stroke-width:4px,color:#0f172a,font-weight:bold;
+  classDef decision fill:#fff8e6,stroke:#b7791f,stroke-width:3px,color:#111827,font-weight:bold;
+  classDef action fill:#e9f9f1,stroke:#16824a,stroke-width:3px,color:#10251a,font-weight:bold;
+  classDef endState fill:#f5eafe,stroke:#7c3aed,stroke-width:4px,color:#1f133a,font-weight:bold;
+
+  class idle,charge,running,paused state;
+  class release,pause,resume,done,reset decision;
+  class tick,update action;
+  class complete endState;
+`;
+
+export type ProjectSectionId = "brief" | "abstraction" | "flowchart" | "onepager" | "pattern" | "prototype";
 
 type QueueProject = {
   id: string;
@@ -129,9 +265,306 @@ type GlossaryProject = {
   };
 };
 
-export type Project = QueueProject | GlossaryProject;
+type PatternRow = {
+  property: string;
+  hourglass: {
+    text: string;
+    metrics: string[];
+  };
+  musicBox: {
+    text: string;
+    metrics: string[];
+  };
+  commonPattern: string;
+  differencePattern: string;
+};
+
+type CtProject = {
+  id: string;
+  kind: "ct";
+  title: string;
+  status: string;
+  summary: string;
+  decomposition: Array<{
+    title: string;
+    brief: string;
+    chart: string;
+  }>;
+  patternRecognition: {
+    overview: string;
+    rows: PatternRow[];
+    commonSummary: string;
+    differenceSummary: string;
+  };
+  abstraction: {
+    title: string;
+    oneLine: string;
+    description: string;
+    elements: Array<{ key: string; text: string }>;
+    variables: Array<{ name: string; text: string }>;
+    constants: Array<{ name: string; text: string }>;
+    events: Array<{ condition: string; result: string }>;
+    examples: Array<{ title: string; mappings: Array<{ name: string; value: string }> }>;
+  };
+  flowchart: {
+    overview: string;
+    states: Array<{ name: string; text: string }>;
+    scenarios: Array<string>;
+    chart: string;
+  };
+  prototypeNote: string;
+};
+
+export type Project = QueueProject | GlossaryProject | CtProject;
 
 export const projects: Project[] = [
+  {
+    id: "hourglass-music-box",
+    kind: "ct",
+    title: "Hourglass + Music Box",
+    status: "프로토타입 제작",
+    summary: "모래시계와 태엽식 오르골의 공통 구조를 바탕으로, 활시위 에너지가 악보 미로를 따라 빛과 소리로 전개되는 프로토타입",
+    decomposition: [
+      {
+        title: "모래시계 분해안",
+        brief:
+          "모래시계는 뒤집힌 순간 위쪽에 놓인 정해진 양의 모래가 좁은 통로를 지나 아래쪽으로 떨어지게 하고, 위쪽 모래가 모두 사라진 시점으로 정해진 시간이 지났음을 보여준다.",
+        chart: hourglassDecompositionChart,
+      },
+      {
+        title: "태엽식 오르골 분해안",
+        brief:
+          "태엽식 오르골은 감긴 태엽이 풀리는 힘으로 실린더를 돌리고, 실린더에 박힌 핀이 금속 빗살을 차례대로 튕기면서 정해진 음악을 재생한다.",
+        chart: musicBoxDecompositionChart,
+      },
+    ],
+    patternRecognition: {
+      overview:
+        "분해 단계에서 나온 저수준 값을 그대로 나열하지 않고, 각 값이 사물 안에서 맡는 역할에 이름을 붙였다. 이번 표에서는 결과를 미리 정하는 값, 작동 중 소모되는 값, 진행을 제어하는 값, 출력을 확인하는 값, 종료를 판단하는 값을 분리했다.",
+      rows: [
+        {
+          property: "사전 정의된 결과",
+          hourglass: {
+            text: "측정이 시작되기 전부터 이 모래시계가 보여줄 시간 길이가 정해져 있다.",
+            metrics: ["target_duration_sec"],
+          },
+          musicBox: {
+            text: "재생이 시작되기 전부터 실린더와 빗살 배열 안에 들려줄 음악이 정해져 있다.",
+            metrics: ["pin_count", "pin_angle", "pin_x", "tine_index", "frequency_hz"],
+          },
+          commonPattern: "둘 다 작동 후에 결과가 즉흥적으로 생기는 것이 아니라, 사물 안에 미리 정해진 결과가 시간에 따라 펼쳐진다.",
+          differencePattern: "모래시계는 정해진 시간 길이를 펼치고, 오르골은 정해진 음의 순서와 리듬을 펼친다.",
+        },
+        {
+          property: "작동 가능량",
+          hourglass: {
+            text: "위쪽에 남은 모래와 아래쪽으로 이동한 모래가 현재 얼마나 더 진행될 수 있는지를 나타낸다.",
+            metrics: ["total_sand_amount", "top_sand_amount", "bottom_sand_amount", "moved_sand_amount", "remaining_sec"],
+          },
+          musicBox: {
+            text: "태엽 감김 정도와 남은 재생 시간이 현재 얼마나 더 재생될 수 있는지를 나타낸다.",
+            metrics: ["wind_level", "max_wind", "expected_duration_sec", "remaining_duration_sec"],
+          },
+          commonPattern: "둘 다 처음에 확보된 물리량이 작동 중에 줄어들며, 남은 양이 계속 진행할 수 있는 범위를 만든다.",
+          differencePattern: "모래시계는 이동할 모래의 양이 줄어들고, 오르골은 감긴 태엽의 양이 줄어든다.",
+        },
+        {
+          property: "진행 제어",
+          hourglass: {
+            text: "통로 지름, 초당 통과 모래 양, 세워진 각도가 모래가 떨어지는 속도와 안정성을 조절한다.",
+            metrics: ["neck_width_mm", "flow_rate", "sand_per_sec", "rotation_angle", "is_blocked"],
+          },
+          musicBox: {
+            text: "기어비, 태엽 풀림 속도, 실린더 회전 속도가 음악이 진행되는 빠르기와 안정성을 조절한다.",
+            metrics: ["gear_ratio", "unwind_rate", "output_rpm", "cylinder_rpm"],
+          },
+          commonPattern: "둘 다 저장된 가능성이 한 번에 풀리지 않도록 흐름이나 회전을 제한하는 값이 있다.",
+          differencePattern: "모래시계는 통로와 자세가 흐름을 잡고, 오르골은 기어와 회전 전달이 진행을 잡는다.",
+        },
+        {
+          property: "출력 확인",
+          hourglass: {
+            text: "남은 비율과 완료 비율이 모래의 변화로 드러나면서 시간이 얼마나 지났는지 보인다.",
+            metrics: ["remaining_ratio", "progress_ratio", "elapsed_sec", "remaining_sec", "is_finished"],
+          },
+          musicBox: {
+            text: "실린더 위치와 현재 울리는 음이 소리로 드러나면서 음악이 어디까지 진행됐는지 들린다.",
+            metrics: ["cylinder_angle", "cylinder_turn_count", "music_progress", "volume_db", "active_note_count"],
+          },
+          commonPattern: "둘 다 내부 진행 상태가 사람이 확인할 수 있는 감각적 출력으로 바뀐다.",
+          differencePattern: "모래시계는 진행 상태를 시각적으로 확인하게 하고, 오르골은 진행 상태를 청각적으로 확인하게 한다.",
+        },
+        {
+          property: "종료 판정",
+          hourglass: {
+            text: "위쪽 모래 양, 통과 중인 모래 양, 흐름 여부가 측정 종료를 판단한다.",
+            metrics: ["top_sand_amount", "falling_sand_amount", "flow_rate", "is_top_empty", "is_flowing", "is_finished"],
+          },
+          musicBox: {
+            text: "태엽 감김 정도, 실린더 회전 속도, 현재 울리는 음 개수가 재생 종료를 판단한다.",
+            metrics: ["wind_level", "remaining_duration_sec", "cylinder_rpm", "active_note_count", "is_finished"],
+          },
+          commonPattern: "둘 다 더 이상 이동하거나 울릴 상태값이 남지 않으면 끝난다.",
+          differencePattern: "모래시계는 이동할 모래가 없어질 때 끝나고, 오르골은 풀릴 힘과 남은 진동이 사라질 때 끝난다.",
+        },
+      ],
+      commonSummary:
+        "모래시계와 태엽식 오르골은 모두 사물 안에 미리 정해진 결과를 가지고 있고, 작동이 시작되면 저장된 가능성이 정해진 속도로 줄거나 이동하면서 그 결과를 펼쳐 보인다. 사용자는 그 진행을 감각적 출력으로 확인한다.",
+      differenceSummary:
+        "모래시계는 정해진 시간 길이를 모래의 시각적 변화로 펼치고, 태엽식 오르골은 정해진 음악을 회전과 진동의 청각적 변화로 펼친다.",
+    },
+    abstraction: {
+      title: "Predefined Sensory Unfolding System",
+      oneLine:
+        "사전에 정의된 시각적/청각적 결과를 가지고 있으며, 특정 입력으로 작동 가능량을 채운 뒤 일정 시간에 걸쳐 그 가능량을 소모하며 결과를 완성하는 시스템.",
+      description:
+        "이 모델에서는 모래, 태엽, 실린더, 빗살 같은 물리 부품을 버린다. 대신 사전에 정의된 결과, 특정 입력으로 채워지는 작동 가능량, 시간에 따른 전개, 감상 가능한 출력만 남긴다.",
+      elements: [
+        {
+          key: "A",
+          text: "시스템 안에는 감상 가능한 시각적/청각적 결과 패턴이 사전에 정의되어 있다.",
+        },
+        {
+          key: "B",
+          text: "B 트리거에 의해 작동 가능량이 채워지거나 설정된다.",
+        },
+        {
+          key: "C",
+          text: "C 트리거에 의해 작동 가능량 설정이 중단되고 결과 전개가 시작된다.",
+        },
+        {
+          key: "D",
+          text: "시간이 흐르면서 작동 가능량은 줄어들고 진행률은 증가한다.",
+        },
+        {
+          key: "E",
+          text: "진행률에 따라 사전에 정의된 시각적/청각적 결과가 함께 변화한다.",
+        },
+        {
+          key: "F",
+          text: "작동 가능량이 모두 소진되면 결과가 완성된 상태로 멈춘다.",
+        },
+      ],
+      variables: [
+        {
+          name: "stored_potential",
+          text: "입력으로 채워지거나 설정된 전체 작동 가능량.",
+        },
+        {
+          name: "remaining_potential",
+          text: "아직 방출되지 않고 남아 있는 작동 가능량.",
+        },
+        {
+          name: "progress_position",
+          text: "사전 정의된 결과가 현재 어디까지 펼쳐졌는지 나타내는 위치.",
+        },
+        {
+          name: "sensory_output",
+          text: "현재 사용자가 보고, 듣고, 느낄 수 있는 출력 상태.",
+        },
+        {
+          name: "is_finished",
+          text: "작동 가능량이 소진되어 결과의 전개가 끝났는지 나타내는 값.",
+        },
+      ],
+      constants: [
+        {
+          name: "predefined_result_rule",
+          text: "작동 전에 이미 정해져 있는 결과의 구조. 시각 변화, 소리의 흐름, 리듬처럼 전개될 내용을 정한다.",
+        },
+        {
+          name: "release_rate",
+          text: "작동 가능량이 시간에 따라 줄어드는 속도.",
+        },
+        {
+          name: "output_mapping_rule",
+          text: "진행 위치를 감각적 출력으로 바꾸는 규칙.",
+        },
+        {
+          name: "output_channel",
+          text: "출력이 드러나는 감각 경로. visual, auditory, haptic처럼 정의할 수 있다.",
+        },
+        {
+          name: "completion_threshold",
+          text: "작동이 끝났다고 판단하는 기준값.",
+        },
+      ],
+      events: [
+        {
+          condition: "if start_signal occurs",
+          result: "stored_potential이 확정되고 progress_position이 시작 위치로 설정된다.",
+        },
+        {
+          condition: "if time passes",
+          result: "remaining_potential이 release_rate만큼 줄고 progress_position이 앞으로 이동한다.",
+        },
+        {
+          condition: "if progress_position changes",
+          result: "output_mapping_rule에 따라 sensory_output이 갱신된다.",
+        },
+        {
+          condition: "if remaining_potential <= completion_threshold",
+          result: "is_finished가 true가 되고 감각적 출력의 전개가 끝난다.",
+        },
+      ],
+      examples: [
+        {
+          title: "모래시계에 대입",
+          mappings: [
+            { name: "predefined_result_rule", value: "정해진 시간 길이" },
+            { name: "stored_potential", value: "위쪽 모래가 아래로 이동할 수 있는 상태" },
+            { name: "sensory_output", value: "위쪽 모래가 줄고 아래쪽 모래가 쌓이는 모습" },
+          ],
+        },
+        {
+          title: "태엽식 오르골에 대입",
+          mappings: [
+            { name: "predefined_result_rule", value: "정해진 음의 순서와 리듬" },
+            { name: "stored_potential", value: "감긴 태엽이 회전할 수 있는 상태" },
+            { name: "sensory_output", value: "순서대로 울리는 음과 멜로디" },
+          ],
+        },
+      ],
+    },
+    flowchart: {
+      overview:
+        "시스템 안에 사전 정의된 시각적/청각적 결과가 있고, 사용자가 작동 가능량을 설정하면 일정 시간에 걸쳐 그 가능량을 소모하며 결과를 완성하는 감상형 진행 인터페이스.",
+      states: [
+        {
+          name: "대기",
+          text: "사전 정의된 결과 패턴은 준비되어 있고, 작동 가능량 입력을 기다리는 상태.",
+        },
+        {
+          name: "설정 중",
+          text: "결과 패턴이 선택되고, 작동 가능량이 채워지거나 설정되는 상태.",
+        },
+        {
+          name: "전개 중",
+          text: "작동 가능량이 줄어들고 진행률이 증가하면서 시각적/청각적 결과가 펼쳐지는 상태.",
+        },
+        {
+          name: "일시정지",
+          text: "남은 작동 가능량과 현재 출력 상태를 유지한 채 전개를 멈춘 상태.",
+        },
+        {
+          name: "완료",
+          text: "작동 가능량이 소진되어 사전에 정의된 결과가 완성된 상태.",
+        },
+      ],
+      scenarios: [
+        "시스템에는 predefined_result_rule이 이미 정해져 있다.",
+        "사용자가 채우기 입력을 하면 stored_potential이 증가하거나 설정된다.",
+        "사용자가 놓기 또는 시작 입력을 하면 stored_potential이 확정되고 전개 중 상태로 넘어간다.",
+        "시간이 흐를 때마다 remaining_potential은 줄고 progress_position은 앞으로 이동한다.",
+        "progress_position이 바뀌면 시각적 출력과 청각적 출력이 output_mapping_rule에 맞춰 함께 변화한다.",
+        "멈춤 입력이 발생하면 현재 출력 상태를 유지한 채 일시정지하고, 다시 시작 입력이 발생하면 전개를 이어간다.",
+        "remaining_potential이 completion_threshold 이하가 되면 완료 상태가 되고, 사용자가 초기화하면 다시 대기 상태로 돌아간다.",
+      ],
+      chart: sensoryUnfoldingFlowChart,
+    },
+    prototypeNote:
+      "활시위를 당겨 작동 가능량을 정하고, 놓는 순간 에너지 입자가 사전에 정의된 악보 미로를 따라 이동하며 비발디 겨울의 음표와 트리 조명을 함께 완성하는 프로토타입이다.",
+  },
   {
     id: "queue-hourglass",
     kind: "queue",

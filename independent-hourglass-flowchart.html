@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>모래시계 추상화 플로우차트</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f7fb;
+        --ink: #142033;
+        --muted: #5f6b7a;
+        --panel: #ffffff;
+        --line: #d6deea;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 1120px;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+      }
+
+      main {
+        width: 1120px;
+        margin: 0 auto;
+        padding: 34px 28px 42px;
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: 34px;
+        line-height: 1.2;
+        letter-spacing: 0;
+      }
+
+      .overview {
+        margin: 0 0 22px;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.6;
+      }
+
+      .meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+
+      section {
+        padding: 18px 20px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      h2 {
+        margin: 0 0 12px;
+        font-size: 20px;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 20px;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.7;
+      }
+
+      .diagram-wrap {
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        overflow: auto;
+      }
+
+      .mermaid {
+        display: flex;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>모래시계 추상화 플로우차트</h1>
+      <p class="overview">
+        사용자가 시작 신호를 주면 정해진 총량의 단위가 일정한 처리율로 잔여 상태에서 완료 상태로 전환되고,
+        그 비율을 통해 시간의 진행과 종료를 보여주는 인터페이스.
+      </p>
+
+      <div class="meta">
+        <section>
+          <h2>UI 상태</h2>
+          <ul>
+            <li>대기: 아직 시간 측정이 시작되지 않은 상태</li>
+            <li>진행: 잔여 단위가 완료 단위로 전환되는 상태</li>
+            <li>완료: 잔여 단위가 0이 되어 측정이 끝난 상태</li>
+            <li>초기화: 완료 또는 진행 상태를 다시 시작 가능한 상태로 되돌리는 상태</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>상태 전환 조건</h2>
+          <ul>
+            <li>시작 입력이 발생하면 대기에서 진행으로 전환</li>
+            <li>시간이 흐르면 처리율만큼 완료 단위가 증가</li>
+            <li>잔여 단위가 남아 있으면 진행 상태 유지</li>
+            <li>잔여 단위가 0이면 완료 상태로 전환</li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="diagram-wrap">
+        <pre class="mermaid">
+flowchart TD
+  idle["대기 상태<br/>전체 단위가 잔여 상태로 준비됨"]
+  input{"시작 입력이<br/>발생했는가?"}
+  ready["기준값 설정<br/>전체 단위 수, 처리율, 시작 시점 저장"]
+  running["진행 상태<br/>잔여 단위가 완료 단위로 전환됨"]
+  tick["시간 경과"]
+  update["진행값 갱신<br/>완료 단위 += 처리율 × 경과 시간<br/>잔여 단위 = 전체 단위 - 완료 단위"]
+  doneCheck{"잔여 단위가<br/>0인가?"}
+  render["진행 표시<br/>완료 비율과 잔여 비율을 화면에 표시"]
+  finish["완료 상태<br/>종료 여부를 표시함"]
+  reset{"초기화 입력이<br/>발생했는가?"}
+  resetValues["초기화<br/>완료 단위 = 0<br/>잔여 단위 = 전체 단위"]
+
+  idle --> input
+  input -->|아니오| idle
+  input -->|예| ready
+  ready --> running
+  running --> tick
+  tick --> update
+  update --> doneCheck
+  doneCheck -->|아니오| render
+  render --> running
+  doneCheck -->|예| finish
+  finish --> reset
+  reset -->|아니오| finish
+  reset -->|예| resetValues
+  resetValues --> idle
+
+  classDef state fill:#e7f0ff,stroke:#2563eb,stroke-width:3px,color:#0f172a,font-weight:bold;
+  classDef decision fill:#fff6db,stroke:#b7791f,stroke-width:3px,color:#111827,font-weight:bold;
+  classDef action fill:#e9f9f1,stroke:#16824a,stroke-width:3px,color:#10251a,font-weight:bold;
+  classDef endState fill:#f5eafe,stroke:#7c3aed,stroke-width:3px,color:#1f133a,font-weight:bold;
+
+  class idle,running state;
+  class input,doneCheck,reset decision;
+  class ready,tick,update,render,resetValues action;
+  class finish endState;
+        </pre>
+      </div>
+    </main>
+
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+      mermaid.initialize({
+        startOnLoad: true,
+        securityLevel: "loose",
+        flowchart: {
+          htmlLabels: true,
+          curve: "basis",
+          nodeSpacing: 54,
+          rankSpacing: 72
+        },
+        theme: "base",
+        themeVariables: {
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif',
+          primaryTextColor: "#111827",
+          lineColor: "#64748b"
+        }
+      });
+    </script>
+  </body>
+</html>

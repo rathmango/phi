@@ -5,6 +5,7 @@ import { GlossaryChatPrototype } from "./projects/glossary-chat/GlossaryChatProt
 import { MermaidDiagram } from "./shared/MermaidDiagram";
 import { QueuePrototype } from "./projects/queue-flow/QueuePrototype";
 import { RepeatRunPrototype } from "./projects/repeat-run/RepeatRunPrototype";
+import { BowScoreMazePrototype } from "./projects/score-maze/BowScoreMazePrototype";
 import { Project, ProjectSectionId, projects } from "./projects";
 import "./styles.css";
 
@@ -20,6 +21,14 @@ const glossarySections: Array<{ id: ProjectSectionId; label: string; icon: React
   { id: "prototype", label: "프로토타입", icon: FlaskConical },
 ];
 
+const ctSections: Array<{ id: ProjectSectionId; label: string; icon: React.ComponentType<{ size?: number }> }> = [
+  { id: "brief", label: "분해안", icon: FileText },
+  { id: "pattern", label: "패턴 인식", icon: ListTree },
+  { id: "abstraction", label: "추상화", icon: GitBranch },
+  { id: "flowchart", label: "플로우차트", icon: GitBranch },
+  { id: "prototype", label: "프로토타입", icon: FlaskConical },
+];
+
 function getRoute() {
   const [, projectId, section] = window.location.hash.match(/^#\/projects\/([^/]+)\/?([^/]*)?/) ?? [];
   return {
@@ -29,11 +38,28 @@ function getRoute() {
 }
 
 function defaultSection(project: Project) {
-  return project.kind === "queue" ? "brief" : "onepager";
+  if (project.kind === "queue") return "brief";
+  if (project.kind === "ct") return "brief";
+  return "onepager";
 }
 
 function projectSections(project: Project) {
-  return project.kind === "queue" ? queueSections : glossarySections;
+  if (project.kind === "queue") return queueSections;
+  if (project.kind === "ct") return ctSections;
+  return glossarySections;
+}
+
+function PatternMetricCell({ text, metrics }: { text: string; metrics: string[] }) {
+  return (
+    <div className="metric-cell">
+      <p>{text}</p>
+      <div className="metric-chip-list" aria-label="분해안 저수준 값">
+        {metrics.map((metric) => (
+          <code key={metric}>{metric}</code>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function App() {
@@ -120,7 +146,7 @@ function App() {
           <article className="diagram-view">
             <h2>분해안</h2>
             <p className="section-copy">{project.brief}</p>
-            <MermaidDiagram chart={project.decomposition} />
+            <MermaidDiagram chart={project.decomposition} title="분해안" />
           </article>
         )}
 
@@ -142,11 +168,34 @@ function App() {
         {project.kind === "queue" && activeSection === "flowchart" && (
           <article className="diagram-view">
             <h2>플로우차트</h2>
-            <MermaidDiagram chart={project.flowchart} />
+            <MermaidDiagram chart={project.flowchart} title="플로우차트" />
           </article>
         )}
 
-        {project.kind !== "queue" && activeSection === "onepager" && (
+        {project.kind === "ct" && activeSection === "brief" && (
+          <article className="ct-decomposition-view">
+            <div className="pattern-intro">
+              <p className="eyebrow">Decomposition</p>
+              <h2>분해안</h2>
+              <p>
+                두 사물을 각각 먼저 분해한 뒤, 패턴 인식 단계에서 저수준 값의 역할을 비교 분해 속성으로
+                묶는다.
+              </p>
+            </div>
+
+            <div className="ct-decomposition-list">
+              {project.decomposition.map((item) => (
+                <section className="ct-decomposition-card" key={item.title}>
+                  <h3>{item.title}</h3>
+                  <p>{item.brief}</p>
+                  <MermaidDiagram chart={item.chart} fit="compact" title={item.title} />
+                </section>
+              ))}
+            </div>
+          </article>
+        )}
+
+        {(project.kind === "glossary" || project.kind === "routine") && activeSection === "onepager" && (
           <article className="onepager-view">
             <div className="onepager-layout">
               <section className="onepager-panel primary">
@@ -192,6 +241,174 @@ function App() {
           </article>
         )}
 
+        {project.kind === "ct" && activeSection === "pattern" && (
+          <article className="pattern-view">
+            <div className="pattern-intro">
+              <p className="eyebrow">Pattern Recognition</p>
+              <h2>패턴 인식</h2>
+              <p>{project.patternRecognition.overview}</p>
+            </div>
+
+            <div className="comparison-table-wrap">
+              <table className="comparison-table">
+                <thead>
+                  <tr>
+                    <th>비교 분해 속성</th>
+                    <th>모래시계</th>
+                    <th>태엽식 오르골</th>
+                    <th>공통 패턴</th>
+                    <th>차이 패턴</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {project.patternRecognition.rows.map((row) => (
+                    <tr key={row.property}>
+                      <th scope="row">{row.property}</th>
+                      <td>
+                        <PatternMetricCell text={row.hourglass.text} metrics={row.hourglass.metrics} />
+                      </td>
+                      <td>
+                        <PatternMetricCell text={row.musicBox.text} metrics={row.musicBox.metrics} />
+                      </td>
+                      <td>{row.commonPattern}</td>
+                      <td>{row.differencePattern}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="pattern-summary-grid">
+              <section>
+                <h3>공통 패턴</h3>
+                <p>{project.patternRecognition.commonSummary}</p>
+              </section>
+              <section>
+                <h3>차이 패턴</h3>
+                <p>{project.patternRecognition.differenceSummary}</p>
+              </section>
+            </div>
+          </article>
+        )}
+
+        {project.kind === "ct" && activeSection === "abstraction" && (
+          <article className="ct-abstraction-view">
+            <div className="pattern-intro">
+              <p className="eyebrow">Abstraction</p>
+              <h2>추상화</h2>
+              <p>{project.abstraction.description}</p>
+            </div>
+
+            <section className="abstraction-model">
+              <span>{project.abstraction.title}</span>
+              <p>{project.abstraction.oneLine}</p>
+            </section>
+
+            <section className="abstraction-elements-panel">
+              <h3>추상화 모델을 이루는 요소</h3>
+              <ol className="abstraction-list">
+                {project.abstraction.elements.map((item) => (
+                  <li key={item.key}>
+                    <span>{item.key}</span>
+                    <p>{item.text}</p>
+                  </li>
+                ))}
+              </ol>
+            </section>
+
+            <div className="abstraction-detail-grid">
+              <section>
+                <h3>변수</h3>
+                <dl className="term-list">
+                  {project.abstraction.variables.map((item) => (
+                    <div key={item.name}>
+                      <dt>{item.name}</dt>
+                      <dd>{item.text}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+
+              <section>
+                <h3>상수</h3>
+                <dl className="term-list">
+                  {project.abstraction.constants.map((item) => (
+                    <div key={item.name}>
+                      <dt>{item.name}</dt>
+                      <dd>{item.text}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+            </div>
+
+            <section className="event-rule-panel">
+              <h3>이벤트 규칙</h3>
+              <ol>
+                {project.abstraction.events.map((event) => (
+                  <li key={event.condition}>
+                    <code>{event.condition}</code>
+                    <p>{event.result}</p>
+                  </li>
+                ))}
+              </ol>
+            </section>
+
+            <div className="abstraction-example-grid">
+              {project.abstraction.examples.map((example) => (
+                <section key={example.title}>
+                  <h3>{example.title}</h3>
+                  <dl className="term-list compact">
+                    {example.mappings.map((item) => (
+                      <div key={item.name}>
+                        <dt>{item.name}</dt>
+                        <dd>{item.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+              ))}
+            </div>
+          </article>
+        )}
+
+        {project.kind === "ct" && activeSection === "flowchart" && (
+          <article className="ct-flowchart-view">
+            <div className="pattern-intro">
+              <p className="eyebrow">Flowchart</p>
+              <h2>플로우차트</h2>
+              <p>{project.flowchart.overview}</p>
+            </div>
+
+            <div className="flowchart-meta-grid">
+              <section>
+                <h3>UI 상태</h3>
+                <dl className="term-list compact">
+                  {project.flowchart.states.map((state) => (
+                    <div key={state.name}>
+                      <dt>{state.name}</dt>
+                      <dd>{state.text}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </section>
+
+              <section>
+                <h3>상태 전환 시나리오</h3>
+                <ol className="flow-scenario-list">
+                  {project.flowchart.scenarios.map((scenario) => (
+                    <li key={scenario}>{scenario}</li>
+                  ))}
+                </ol>
+              </section>
+            </div>
+
+            <div className="ct-flowchart-diagram">
+              <MermaidDiagram chart={project.flowchart.chart} fit="compact" title="플로우차트" />
+            </div>
+          </article>
+        )}
+
         {activeSection === "prototype" && (
           <article className="prototype-view">
             <div className="prototype-heading">
@@ -202,7 +419,9 @@ function App() {
                     ? "채팅 안의 자연어 정정이 저장 가능한 번역 기준으로 바뀌고, 새 채팅에서 다시 적용되는 과정을 확인합니다."
                     : project.kind === "routine"
                       ? "작업지시서를 고정하고, 각 입력을 독립 실행으로 처리한 뒤 완료된 실행을 기록으로 보관하는 흐름을 확인합니다."
-                    : "뒤집기, 일시정지, 재개 트리거와 이동 완료 조건을 실제 queue 움직임으로 확인합니다."}
+                      : project.kind === "ct"
+                        ? project.prototypeNote
+                        : "뒤집기, 일시정지, 재개 트리거와 이동 완료 조건을 실제 queue 움직임으로 확인합니다."}
                 </p>
               </div>
               <Play size={22} />
@@ -210,6 +429,7 @@ function App() {
             {project.kind === "glossary" && <GlossaryChatPrototype />}
             {project.kind === "routine" && <RepeatRunPrototype />}
             {project.kind === "queue" && <QueuePrototype />}
+            {project.kind === "ct" && <BowScoreMazePrototype />}
           </article>
         )}
       </section>

@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>태엽식 오르골 분해 플로우차트</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f7fb;
+        --ink: #142033;
+        --muted: #5f6b7a;
+        --panel: #ffffff;
+        --line: #d6deea;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 1280px;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+      }
+
+      main {
+        width: 1280px;
+        margin: 0 auto;
+        padding: 34px 28px 42px;
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: 34px;
+        line-height: 1.2;
+        letter-spacing: 0;
+      }
+
+      .overview {
+        margin: 0 0 22px;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.6;
+      }
+
+      .meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+
+      section {
+        padding: 18px 20px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      h2 {
+        margin: 0 0 12px;
+        font-size: 20px;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 20px;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.7;
+      }
+
+      .diagram-wrap {
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        overflow: auto;
+      }
+
+      .mermaid {
+        display: flex;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>태엽식 오르골 분해 플로우차트</h1>
+      <p class="overview">
+        태엽식 오르골은 감긴 태엽이 풀리는 힘으로 실린더를 돌리고,
+        실린더에 박힌 핀이 금속 빗살을 차례대로 튕기면서 정해진 음악을 재생한다.
+      </p>
+
+      <div class="meta">
+        <section>
+          <h2>상위 작동 흐름</h2>
+          <ul>
+            <li>태엽을 감아 재생될 시간을 정한다</li>
+            <li>태엽이 풀리면서 실린더가 돌고, 저장된 음의 순서를 읽는다</li>
+            <li>핀이 금속 빗살을 튕겨 소리를 낸다</li>
+            <li>태엽이 다 풀리면 재생이 끝난다</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>수치화 기준</h2>
+          <ul>
+            <li>사용자 입력: 회전 횟수, 회전 각도, 회전 방향</li>
+            <li>재생 진행: 태엽 감김 정도, 실린더 각도, 곡 진행률</li>
+            <li>음 발생: 핀 위치, 빗살 번호, 주파수, 음량</li>
+            <li>종료 조건: 남은 재생 시간, 회전 속도, 종료 여부</li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="diagram-wrap">
+        <pre class="mermaid">
+flowchart TB
+  root["고수준<br/>감긴 태엽이 풀리는 힘으로 실린더를 돌리고,<br/>실린더의 핀이 금속 빗살을 차례대로 튕겨<br/>정해진 음악을 재생한다"]
+
+  root --> wind["1. 태엽을 감아<br/>재생될 시간을 정한다"]
+  root --> read["2. 태엽이 풀리면서 실린더가 돌고,<br/>저장된 음의 순서를 읽는다"]
+  root --> sound["3. 핀이 금속 빗살을 튕겨<br/>소리를 낸다"]
+  root --> finish["4. 태엽이 다 풀리면<br/>재생이 끝난다"]
+
+  wind --> handle["1-1. 손잡이를 돌려<br/>태엽을 감는다"]
+  handle --> handleTurns["손잡이 회전 횟수<br/>n회"]
+  handle --> handleAngle["손잡이 회전 각도<br/>theta_handle"]
+  handle --> handleDirection["손잡이 회전 방향<br/>1 / -1"]
+
+  wind --> windLevelChange["1-2. 손잡이를 돌린 만큼<br/>태엽 감김 정도가 올라간다"]
+  windLevelChange --> windPerTurn["회전 1회당 감김 증가량<br/>wind_per_turn"]
+  windLevelChange --> windLevel["현재 태엽 감김 정도<br/>wind_level, 0~100%"]
+  windLevelChange --> maxWind["최대 감김 정도<br/>max_wind = 100%"]
+
+  wind --> durationMap["1-3. 감긴 정도가<br/>오르골이 돌아갈 수 있는 시간으로 남는다"]
+  durationMap --> secPerWind["감김 1%당 재생 시간<br/>sec_per_wind"]
+  durationMap --> expectedDuration["예상 재생 시간<br/>expected_duration_sec"]
+  durationMap --> remainingDurationA["남은 재생 시간<br/>remaining_duration_sec"]
+
+  read --> unwind["2-1. 감긴 태엽이 풀리며<br/>회전 운동을 만든다"]
+  unwind --> unwindLevel["태엽 풀림 정도<br/>unwind_level"]
+  unwind --> unwindRate["태엽 풀림 속도<br/>unwind_rate"]
+  unwind --> outputRpm["출력 회전 속도<br/>output_rpm"]
+
+  read --> gearTransfer["2-2. 회전이 기어를 지나<br/>실린더에 전달된다"]
+  gearTransfer --> gearRatio["기어비<br/>gear_ratio"]
+  gearTransfer --> cylinderRpm["실린더 회전 속도<br/>cylinder_rpm"]
+  gearTransfer --> cylinderDirection["실린더 회전 방향<br/>1 / -1"]
+
+  read --> cylinderPosition["2-3. 실린더의 현재 위치가<br/>곡의 진행 위치가 된다"]
+  cylinderPosition --> cylinderAngle["실린더 현재 각도<br/>cylinder_angle, 0~360도"]
+  cylinderPosition --> turnCount["실린더 회전 완료 횟수<br/>cylinder_turn_count"]
+  cylinderPosition --> musicProgress["곡 진행률<br/>music_progress, 0~100%"]
+
+  read --> pinRead["2-4. 실린더 위의 핀이 읽기 위치를 지나가며<br/>다음 음을 정한다"]
+  pinRead --> pinCount["핀 개수<br/>pin_count"]
+  pinRead --> pinAngle["각 핀의 각도 위치<br/>pin_angle"]
+  pinRead --> pinXRead["각 핀의 가로 위치<br/>pin_x"]
+  pinRead --> readDistance["현재 읽기 위치와 핀의 거리<br/>read_distance"]
+  pinRead --> pinPassed["핀 통과 여부<br/>0 / 1"]
+
+  sound --> tineSelect["3-1. 지나간 핀의 위치가<br/>어떤 빗살을 칠지 정한다"]
+  tineSelect --> pinXSound["핀 가로 위치<br/>pin_x"]
+  tineSelect --> tineIndex["빗살 번호<br/>tine_index"]
+  tineSelect --> frequency["해당 빗살의 음 높이<br/>frequency_hz"]
+
+  sound --> pluck["3-2. 핀이 금속 빗살을<br/>밀고 지나간다"]
+  pluck --> contact["핀 접촉 여부<br/>contact, 0 / 1"]
+  pluck --> contactDepth["접촉 깊이<br/>contact_depth_mm"]
+  pluck --> contactDuration["접촉 시간<br/>contact_duration_sec"]
+  pluck --> pluckStrength["튕김 세기<br/>pluck_strength"]
+
+  sound --> vibration["3-3. 밀렸다가 놓인 빗살이<br/>진동한다"]
+  vibration --> tineLength["빗살 길이<br/>tine_length_mm"]
+  vibration --> tineThickness["빗살 두께<br/>tine_thickness_mm"]
+  vibration --> vibrationFrequency["진동 주파수<br/>vibration_frequency_hz"]
+  vibration --> amplitude["진동 세기<br/>amplitude"]
+  vibration --> decayRate["진동 감쇠율<br/>decay_rate"]
+
+  sound --> audibleSound["3-4. 빗살의 진동이<br/>들을 수 있는 소리로 퍼진다"]
+  audibleSound --> volume["음량<br/>volume_db"]
+  audibleSound --> soundDuration["소리 지속 시간<br/>sound_duration_sec"]
+  audibleSound --> activeNotes["현재 울리고 있는 음 개수<br/>active_note_count"]
+
+  finish --> windDecrease["4-1. 재생되는 동안<br/>태엽 감김 정도가 줄어든다"]
+  windDecrease --> currentWind["현재 태엽 감김 정도<br/>wind_level"]
+  windDecrease --> windDecreaseRate["감김 감소 속도<br/>wind_decrease_rate"]
+  windDecrease --> remainingDurationB["남은 재생 시간<br/>remaining_duration_sec"]
+
+  finish --> finishCheck["4-2. 남은 감김 정도로<br/>계속 재생할 수 있는지 판단한다"]
+  finishCheck --> remainingDurationC["남은 재생 시간<br/>remaining_duration_sec"]
+  finishCheck --> finishRpm["실린더 회전 속도<br/>cylinder_rpm"]
+  finishCheck --> isFinished["종료 여부<br/>is_finished, 0 / 1"]
+
+  finish --> stop["4-3. 회전이 멈추고<br/>남은 진동도 사라진다"]
+  stop --> stopRpm["실린더 회전 속도<br/>cylinder_rpm = 0"]
+  stop --> stopNotes["현재 울리고 있는 음 개수<br/>active_note_count = 0"]
+  stop --> stopVolume["출력 음량<br/>volume_db ≈ 0"]
+
+  classDef high fill:#ffffff,stroke:#64748b,stroke-width:3px,color:#111827,font-weight:bold;
+  classDef mid fill:#e8f2ff,stroke:#2563eb,stroke-width:3px,color:#0f172a,font-weight:bold;
+  classDef action fill:#e9f9f1,stroke:#16824a,stroke-width:2px,color:#10251a,font-weight:bold;
+  classDef metric fill:#fff8e6,stroke:#b7791f,stroke-width:2px,color:#111827;
+  classDef endState fill:#f5eafe,stroke:#7c3aed,stroke-width:3px,color:#1f133a,font-weight:bold;
+
+  class root high;
+  class wind,read,sound mid;
+  class finish endState;
+  class handle,windLevelChange,durationMap,unwind,gearTransfer,cylinderPosition,pinRead,tineSelect,pluck,vibration,audibleSound,windDecrease,finishCheck,stop action;
+  class handleTurns,handleAngle,handleDirection,windPerTurn,windLevel,maxWind,secPerWind,expectedDuration,remainingDurationA,unwindLevel,unwindRate,outputRpm,gearRatio,cylinderRpm,cylinderDirection,cylinderAngle,turnCount,musicProgress,pinCount,pinAngle,pinXRead,readDistance,pinPassed,pinXSound,tineIndex,frequency,contact,contactDepth,contactDuration,pluckStrength,tineLength,tineThickness,vibrationFrequency,amplitude,decayRate,volume,soundDuration,activeNotes,currentWind,windDecreaseRate,remainingDurationB,remainingDurationC,finishRpm,isFinished,stopRpm,stopNotes,stopVolume metric;
+        </pre>
+      </div>
+    </main>
+
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+      mermaid.initialize({
+        startOnLoad: true,
+        securityLevel: "loose",
+        flowchart: {
+          htmlLabels: true,
+          curve: "basis",
+          nodeSpacing: 36,
+          rankSpacing: 64
+        },
+        theme: "base",
+        themeVariables: {
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif',
+          primaryTextColor: "#111827",
+          lineColor: "#64748b"
+        }
+      });
+    </script>
+  </body>
+</html>
