@@ -124,6 +124,10 @@ function bulbColor(midi: number, alpha = 1) {
   return `hsla(${hue}, 88%, 62%, ${alpha})`;
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
 function statusText(status: RunStatus, litCount: number, targetCount: number) {
   if (status === "running") return "전개 중";
   if (status === "charging") return "에너지 설정 중";
@@ -367,11 +371,16 @@ export function BowScoreMazePrototype() {
         const dy = target.y - orb.position.y;
         const distance = Math.hypot(dx, dy);
         const speed = Math.hypot(orb.velocity.x, orb.velocity.y);
-        const forceScale = 0.000034 * (1 + current.pull / MAX_PULL);
+        const pullRatio = clamp(current.pull / MAX_PULL, 0, 1);
+        const remainingRunRatio = clamp(1 - current.activeIndex / Math.max(1, current.targetCount), 0, 1);
+        const fatigue = 0.28 + remainingRunRatio * 0.72;
+        const forceScale = 0.00003 * (0.42 + pullRatio * 0.95) * fatigue;
+        const maxSpeed = 4.2 + 13.8 * pullRatio * (0.38 + remainingRunRatio * 0.62);
         Matter.Body.applyForce(orb, orb.position, { x: dx * forceScale, y: dy * forceScale });
 
-        if (speed > 18) {
-          Matter.Body.setVelocity(orb, { x: orb.velocity.x * 0.94, y: orb.velocity.y * 0.94 });
+        if (speed > maxSpeed) {
+          const damping = maxSpeed / speed;
+          Matter.Body.setVelocity(orb, { x: orb.velocity.x * damping, y: orb.velocity.y * damping });
         }
 
         if (distance < 18 || (distance < 34 && speed < 2.2)) {
@@ -413,7 +422,7 @@ export function BowScoreMazePrototype() {
 
     drawStars(ctx, current.litCount);
     drawTree(ctx);
-    drawMaze(ctx, points, current.litCount);
+    drawMaze(ctx, points, current);
     drawOrb(ctx, current);
     drawBow(ctx, current.pull, current.status === "charging");
     drawHud(ctx, current);
@@ -465,7 +474,8 @@ export function BowScoreMazePrototype() {
     ctx.restore();
   }
 
-  function drawMaze(ctx: CanvasRenderingContext2D, points: MazePoint[], litCount: number) {
+  function drawMaze(ctx: CanvasRenderingContext2D, points: MazePoint[], current: typeof stateRef.current) {
+    const { litCount } = current;
     ctx.save();
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -494,17 +504,47 @@ export function BowScoreMazePrototype() {
 
     points.forEach((point, index) => {
       const lit = index < litCount;
+      const active = current.status === "running" && index === current.activeIndex;
       ctx.beginPath();
-      ctx.arc(point.x, point.y, lit ? 8.4 : 5.3, 0, Math.PI * 2);
-      ctx.fillStyle = lit ? bulbColor(point.midi, 0.95) : "rgba(174, 197, 218, 0.32)";
-      ctx.shadowColor = lit ? bulbColor(point.midi, 0.9) : "transparent";
-      ctx.shadowBlur = lit ? 18 : 0;
+      ctx.arc(point.x, point.y, active ? 9.6 : lit ? 8.4 : 5.3, 0, Math.PI * 2);
+      ctx.fillStyle = active ? "#fff7cf" : lit ? bulbColor(point.midi, 0.95) : "rgba(174, 197, 218, 0.32)";
+      ctx.shadowColor = active ? "rgba(255, 244, 180, 1)" : lit ? bulbColor(point.midi, 0.9) : "transparent";
+      ctx.shadowBlur = active ? 24 : lit ? 18 : 0;
       ctx.fill();
       ctx.shadowBlur = 0;
-      ctx.strokeStyle = lit ? "rgba(255,255,255,0.88)" : "rgba(255,255,255,0.22)";
+      ctx.strokeStyle = active ? "rgba(255,255,255,0.98)" : lit ? "rgba(255,255,255,0.88)" : "rgba(255,255,255,0.22)";
       ctx.lineWidth = 1.4;
       ctx.stroke();
+      drawNoteLabel(ctx, point, index, lit, active);
     });
+    ctx.restore();
+  }
+
+  function drawNoteLabel(ctx: CanvasRenderingContext2D, point: MazePoint, index: number, lit: boolean, active: boolean) {
+    const rowOffset = index % 2 === 0 ? -15 : 20;
+    const y = point.y + rowOffset;
+
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = active
+      ? "800 12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
+      : "700 9.5px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+
+    if (active) {
+      const width = ctx.measureText(point.pitch).width + 16;
+      ctx.fillStyle = "rgba(255, 248, 217, 0.9)";
+      ctx.strokeStyle = "rgba(255, 221, 120, 0.8)";
+      ctx.lineWidth = 1;
+      roundRect(ctx, point.x - width / 2, y - 10, width, 20, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#4a2f00";
+    } else {
+      ctx.fillStyle = lit ? "rgba(255, 244, 205, 0.86)" : "rgba(216, 228, 240, 0.38)";
+    }
+
+    ctx.fillText(point.pitch, point.x, y);
     ctx.restore();
   }
 
