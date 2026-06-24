@@ -189,6 +189,48 @@ flowchart TB
   class handle,windLevelChange,durationMap,unwind,gearTransfer,cylinderPosition,pinRead,tineSelect,pluck,vibration,audibleSound,windDecrease,finishCheck,stop action;
 `;
 
+export const mechanicalStopwatchDecompositionChart = `
+flowchart TB
+  root["고수준<br/>크라운을 돌려 측정할 수 있는 시간을 확보하고,<br/>버튼으로 측정을 시작하고 멈춘 뒤,<br/>지나간 시간을 바늘과 눈금으로 보여준다"]
+
+  root --> wind["1. 크라운을 돌려<br/>측정할 수 있는 시간을 확보한다"]
+  root --> startMeasure["2. 버튼을 눌러<br/>측정을 시작한다"]
+  root --> showTime["3. 바늘이 일정하게 움직이며<br/>지난 시간을 보여준다"]
+  root --> stopMeasure["4. 버튼을 눌러<br/>측정을 멈춘다"]
+  root --> resetDisplay["5. 다음 측정을 위해<br/>표시를 0으로 되돌린다"]
+
+  wind --> turnCrown["1-1. 사용자가 크라운을<br/>손으로 돌린다<br/><br/>[변수] 크라운을 돌린 정도: wound_amount"]
+  wind --> windSpring["1-2. 크라운을 돌린 만큼<br/>안쪽 스프링이 감긴다<br/><br/>[변수] 스프링 감김 정도: wind_level<br/>[상수] 최대 감김 정도: max_wind"]
+  wind --> availableTime["1-3. 감긴 정도만큼<br/>스톱워치가 움직일 수 있는 시간이 생긴다<br/><br/>[변수] 작동 가능 시간: available_run_time"]
+
+  startMeasure --> pressStart["2-1. 사용자가 시작 버튼을 누른다<br/><br/>[변수] 현재 상태: state"]
+  startMeasure --> moveInside["2-2. 멈춰 있던 내부 장치가<br/>움직이기 시작한다<br/><br/>[변수] 작동 여부: is_running"]
+  startMeasure --> handFromZero["2-3. 바늘이 0 위치에서<br/>움직이기 시작한다<br/><br/>[변수] 바늘 위치: needle_position<br/>[상수] 0 위치: zero_position"]
+
+  showTime --> unwind["3-1. 감겨 있던 스프링이<br/>조금씩 풀린다<br/><br/>[변수] 남은 감김 정도: remaining_wind<br/>[변수] 남은 작동 가능 시간: remaining_run_time"]
+  showTime --> steadyMove["3-2. 내부 장치가 바늘을<br/>일정하게 움직인다<br/><br/>[상수] 기준 속도: standard_speed"]
+  showTime --> displayTime["3-3. 바늘 위치가<br/>지난 시간으로 보인다<br/><br/>[변수] 바늘 위치: needle_position<br/>[변수] 경과 시간: elapsed_time<br/>[변수] 표시된 시간: displayed_time"]
+
+  stopMeasure --> pressStop["4-1. 사용자가 정지 버튼을 누른다<br/><br/>[변수] 현재 상태: state"]
+  stopMeasure --> handStops["4-2. 움직이던 바늘이 멈춘다<br/><br/>[변수] 작동 여부: is_running<br/>[변수] 멈춘 바늘 위치: stopped_needle_position"]
+  stopMeasure --> resultStays["4-3. 멈춘 바늘 위치가<br/>측정 결과로 남는다<br/><br/>[변수] 측정 결과: measured_time"]
+
+  resetDisplay --> resetInput["5-1. 사용자가 리셋 조작을 한다<br/><br/>[변수] 현재 상태: state"]
+  resetDisplay --> handReturns["5-2. 바늘이 0 위치로 돌아간다<br/><br/>[변수] 바늘 위치: needle_position<br/>[상수] 0 위치: zero_position"]
+  resetDisplay --> timeZero["5-3. 표시된 시간이<br/>0으로 초기화된다<br/><br/>[변수] 표시된 시간: displayed_time<br/>[변수] 측정 결과: measured_time"]
+  resetDisplay --> windRemains["5-4. 감겨 있는 힘은 남아 있어<br/>다시 측정에 사용할 수 있다<br/><br/>[변수] 남은 감김 정도: remaining_wind<br/>[변수] 남은 작동 가능 시간: remaining_run_time"]
+
+  classDef high fill:#ffffff,stroke:#64748b,stroke-width:3px,color:#111827,font-weight:bold;
+  classDef mid fill:#e8f2ff,stroke:#2563eb,stroke-width:3px,color:#0f172a,font-weight:bold;
+  classDef action fill:#e9f9f1,stroke:#16824a,stroke-width:2px,color:#10251a,font-weight:bold;
+  classDef endState fill:#f5eafe,stroke:#7c3aed,stroke-width:3px,color:#1f133a,font-weight:bold;
+
+  class root high;
+  class wind,startMeasure,showTime mid;
+  class stopMeasure,resetDisplay endState;
+  class turnCrown,windSpring,availableTime,pressStart,moveInside,handFromZero,unwind,steadyMove,displayTime,pressStop,handStops,resultStays,resetInput,handReturns,timeZero,windRemains action;
+`;
+
 export const sensoryUnfoldingFlowChart = `
 flowchart TD
   idle["대기<br/>사전 정의된 결과 패턴 준비됨<br/>작동 가능량 입력 대기"]
@@ -300,7 +342,11 @@ type CtProject = {
     title: string;
     oneLine: string;
     description: string;
-    elements: Array<{ key: string; text: string }>;
+    elements: Array<{
+      key: string;
+      text: string;
+      tagGroups?: Array<{ label: string; items: string[] }>;
+    }>;
     variables: Array<{ name: string; text: string }>;
     constants: Array<{ name: string; text: string }>;
     events: Array<{ condition: string; result: string }>;
@@ -315,9 +361,411 @@ type CtProject = {
   prototypeNote: string;
 };
 
-export type Project = QueueProject | GlossaryProject | CtProject;
+type CtBriefProject = {
+  id: string;
+  kind: "ct-brief";
+  title: string;
+  status: string;
+  summary: string;
+  decomposition: Array<{
+    title: string;
+    brief: string;
+    chart: string;
+  }>;
+  patternRecognition: {
+    overview: string;
+    rows: Array<{
+      property: string;
+      hourglass: {
+        text: string;
+        metrics: string[];
+      };
+      musicBox: {
+        text: string;
+        metrics: string[];
+      };
+      stopwatch: {
+        text: string;
+        metrics: string[];
+      };
+    }>;
+    commonSummary: string;
+    differenceSummary: string;
+  };
+  abstraction: {
+    title: string;
+    oneLine: string;
+    description: string;
+    elements: Array<{
+      key: string;
+      text: string;
+      tagGroups?: Array<{ label: string; items: string[] }>;
+    }>;
+    variables: Array<{ name: string; text: string }>;
+    constants: Array<{ name: string; text: string }>;
+    events: Array<{ condition: string; result: string }>;
+    examples: Array<{ title: string; mappings: Array<{ name: string; value: string }> }>;
+  };
+};
+
+export type Project = QueueProject | GlossaryProject | CtProject | CtBriefProject;
 
 export const projects: Project[] = [
+  {
+    id: "engineering-ct-week-3-stopwatch",
+    kind: "ct-brief",
+    title: "Engineering CT 3주차: 기계식 스톱워치",
+    status: "3주차 분해안",
+    summary: "기계식 스톱워치를 작동 준비, 측정 시작, 시간 표시, 정지, 리셋 흐름으로 분해한 Mermaid 플로우차트",
+    decomposition: [
+      {
+        title: "기계식 스톱워치 분해안",
+        brief:
+          "기계식 스톱워치는 크라운을 돌려 측정할 수 있는 시간을 확보하고, 버튼으로 측정을 시작하고 멈춘 뒤, 지나간 시간을 바늘과 눈금으로 보여주는 도구이다.",
+        chart: mechanicalStopwatchDecompositionChart,
+      },
+    ],
+    patternRecognition: {
+      overview:
+        "세 사물을 같은 기준에 억지로 맞추기보다, 분해안에서 보이는 작동 패턴을 먼저 뽑았다. 어떤 패턴은 세 사물 모두에 있고, 어떤 패턴은 한두 사물에만 강하게 나타난다.",
+      rows: [
+        {
+          property: "작동 전에 쓸 수 있는 양을 마련한다",
+          hourglass: {
+            text: "위쪽에 모래가 놓여 있어야 시간이 흐르는 모습을 만들 수 있다.",
+            metrics: ["top_sand_amount"],
+          },
+          musicBox: {
+            text: "태엽을 감아야 실린더가 돌고 음악이 재생된다.",
+            metrics: ["wind_level"],
+          },
+          stopwatch: {
+            text: "크라운을 돌려 스프링을 감아야 측정을 시작할 수 있다.",
+            metrics: ["wind_level", "available_run_time"],
+          },
+        },
+        {
+          property: "작동 가능량이 탄성 에너지로 저장된다",
+          hourglass: {
+            text: "X",
+            metrics: [],
+          },
+          musicBox: {
+            text: "감긴 태엽에 재생할 힘이 저장된다.",
+            metrics: ["wind_level", "remaining_duration_sec"],
+          },
+          stopwatch: {
+            text: "감긴 스프링에 측정 중 바늘을 움직일 힘이 저장된다.",
+            metrics: ["wind_level", "remaining_run_time"],
+          },
+        },
+        {
+          property: "작동 가능량이 물질의 위치로 바로 보인다",
+          hourglass: {
+            text: "위쪽과 아래쪽 모래의 위치를 보면 얼마나 진행됐는지 바로 알 수 있다.",
+            metrics: ["top_sand_amount", "bottom_sand_amount"],
+          },
+          musicBox: {
+            text: "X",
+            metrics: [],
+          },
+          stopwatch: {
+            text: "X",
+            metrics: [],
+          },
+        },
+        {
+          property: "결과가 사물 안에 미리 정해져 있다",
+          hourglass: {
+            text: "전체 모래 양과 통로 조건이 대략적인 시간 길이를 정한다.",
+            metrics: ["target_duration_sec"],
+          },
+          musicBox: {
+            text: "실린더의 핀과 빗살 배열이 재생될 음악을 정한다.",
+            metrics: ["pin_count", "tine_index", "frequency_hz"],
+          },
+          stopwatch: {
+            text: "X",
+            metrics: [],
+          },
+        },
+        {
+          property: "사용자가 끝나는 순간을 직접 정한다",
+          hourglass: {
+            text: "X",
+            metrics: [],
+          },
+          musicBox: {
+            text: "X",
+            metrics: [],
+          },
+          stopwatch: {
+            text: "사용자가 정지 버튼을 눌러 측정을 멈춘다.",
+            metrics: ["state", "measured_time", "stopped_needle_position"],
+          },
+        },
+        {
+          property: "진행 속도를 제한하는 구조가 있다",
+          hourglass: {
+            text: "좁은 통로가 모래가 떨어지는 속도를 제한한다.",
+            metrics: ["flow_rate"],
+          },
+          musicBox: {
+            text: "기어와 회전 구조가 실린더가 도는 속도를 조절한다.",
+            metrics: ["cylinder_rpm", "gear_ratio"],
+          },
+          stopwatch: {
+            text: "내부 장치가 바늘이 일정하게 움직이도록 속도를 잡아준다.",
+            metrics: ["standard_speed"],
+          },
+        },
+        {
+          property: "시각적으로 시간을 확인한다",
+          hourglass: {
+            text: "모래 양과 위치의 변화로 시간이 지나는 것을 본다.",
+            metrics: ["top_sand_amount", "bottom_sand_amount"],
+          },
+          musicBox: {
+            text: "X",
+            metrics: [],
+          },
+          stopwatch: {
+            text: "바늘과 눈금을 보고 지난 시간을 확인한다.",
+            metrics: ["needle_position", "displayed_time"],
+          },
+        },
+        {
+          property: "청각적으로 결과가 나타난다",
+          hourglass: {
+            text: "X",
+            metrics: [],
+          },
+          musicBox: {
+            text: "빗살이 울리며 음악이 들린다.",
+            metrics: ["volume_db", "active_note_count"],
+          },
+          stopwatch: {
+            text: "X",
+            metrics: [],
+          },
+        },
+        {
+          property: "표시값과 작동 가능량이 분리된다",
+          hourglass: {
+            text: "X",
+            metrics: [],
+          },
+          musicBox: {
+            text: "X",
+            metrics: [],
+          },
+          stopwatch: {
+            text: "리셋해도 감긴 힘은 남고, 표시된 시간만 0으로 돌아갈 수 있다.",
+            metrics: ["remaining_wind", "displayed_time"],
+          },
+        },
+        {
+          property: "측정 결과를 멈춘 상태로 보존한다",
+          hourglass: {
+            text: "X",
+            metrics: [],
+          },
+          musicBox: {
+            text: "X",
+            metrics: [],
+          },
+          stopwatch: {
+            text: "정지 버튼을 누르면 바늘 위치가 멈춰 측정 결과로 남는다.",
+            metrics: ["stopped_needle_position", "measured_time"],
+          },
+        },
+      ],
+      commonSummary:
+        "세 사물은 모두 작동 전에 쓸 수 있는 양을 마련하고, 그 양이 한 번에 풀리지 않도록 진행 속도를 제한하는 구조를 가진다.",
+      differenceSummary:
+        "모래시계는 물질의 위치 변화로 시간이 드러나고, 오르골은 감긴 힘을 소리로 바꾸며, 스톱워치는 사용자가 시작과 정지를 조작해 측정 결과를 만든다.",
+    },
+    abstraction: {
+      title: "Elastic Rhythm Output Model",
+      oneLine:
+        "탄성 에너지를 저장하고, 그 에너지가 풀리는 속도를 제한해 일정한 리듬의 출력으로 바꾸는 모델.",
+      description:
+        "이 모델은 세 사물을 모두 억지로 포함하지 않는다. 패턴 인식에서 나온 감김, 탄성 에너지, 속도 제한, 일정한 출력 패턴을 선택해 오르골과 기계식 스톱워치에 더 가까운 작동 모델로 추상화한다.",
+      elements: [
+        {
+          key: "A",
+          text: "사용자의 입력으로 탄성 에너지가 저장된다.",
+          tagGroups: [
+            { label: "변수", items: ["stored_energy"] },
+            { label: "상수", items: ["max_energy"] },
+            { label: "트리거", items: ["charge_input"] },
+          ],
+        },
+        {
+          key: "B",
+          text: "저장된 에너지는 바로 출력되지 않고, 내부에 남아 있는 작동 가능량이 된다.",
+          tagGroups: [
+            { label: "변수", items: ["stored_energy", "remaining_energy", "state"] },
+            { label: "상수", items: [] },
+            { label: "트리거", items: [] },
+          ],
+        },
+        {
+          key: "C",
+          text: "시작 입력이 들어오면 저장된 에너지가 풀리기 시작한다.",
+          tagGroups: [
+            { label: "변수", items: ["stored_energy", "state"] },
+            { label: "상수", items: [] },
+            { label: "트리거", items: ["start_input"] },
+          ],
+        },
+        {
+          key: "D",
+          text: "속도 제한 구조가 에너지가 한 번에 풀리지 않도록 조절한다.",
+          tagGroups: [
+            { label: "변수", items: [] },
+            { label: "상수", items: ["rate_limiter", "release_rate"] },
+            { label: "트리거", items: ["time_tick"] },
+          ],
+        },
+        {
+          key: "E",
+          text: "조절된 에너지의 풀림이 일정한 리듬을 만든다.",
+          tagGroups: [
+            { label: "변수", items: ["remaining_energy", "release_progress"] },
+            { label: "상수", items: ["rhythm_unit"] },
+            { label: "트리거", items: ["time_tick"] },
+          ],
+        },
+        {
+          key: "F",
+          text: "일정한 리듬은 소리, 바늘 움직임, 빛, 화면 변화 같은 출력으로 나타난다.",
+          tagGroups: [
+            { label: "변수", items: ["release_progress", "output_value"] },
+            { label: "상수", items: ["output_mapping_rule"] },
+            { label: "트리거", items: [] },
+          ],
+        },
+        {
+          key: "G",
+          text: "에너지가 다 풀리면 출력도 멈춘다.",
+          tagGroups: [
+            { label: "변수", items: ["remaining_energy", "state"] },
+            { label: "상수", items: ["completion_threshold"] },
+            { label: "트리거", items: [] },
+          ],
+        },
+      ],
+      variables: [
+        {
+          name: "stored_energy",
+          text: "저장된 탄성 에너지의 양. 사용자가 감거나 당기는 입력으로 증가한다.",
+        },
+        {
+          name: "remaining_energy",
+          text: "아직 풀리지 않고 남아 있는 에너지의 양. 출력이 진행될수록 줄어든다.",
+        },
+        {
+          name: "release_progress",
+          text: "저장된 에너지가 얼마나 풀렸는지를 나타내는 진행값.",
+        },
+        {
+          name: "output_value",
+          text: "현재 사용자에게 보이거나 들리거나 느껴지는 출력 상태.",
+        },
+        {
+          name: "state",
+          text: "시스템의 현재 상태. 예: idle, charged, running, stopped, finished.",
+        },
+      ],
+      constants: [
+        {
+          name: "max_energy",
+          text: "저장할 수 있는 최대 에너지 양.",
+        },
+        {
+          name: "release_rate",
+          text: "에너지가 풀리는 기본 속도.",
+        },
+        {
+          name: "rate_limiter",
+          text: "에너지가 한 번에 풀리지 않도록 속도를 제한하는 구조.",
+        },
+        {
+          name: "rhythm_unit",
+          text: "출력이 한 번 갱신되는 기본 단위.",
+        },
+        {
+          name: "output_mapping_rule",
+          text: "에너지의 풀림 정도를 어떤 출력으로 바꿀지 정하는 규칙.",
+        },
+        {
+          name: "completion_threshold",
+          text: "에너지가 다 풀렸다고 판단하는 기준값.",
+        },
+      ],
+      events: [
+        {
+          condition: "if charge_input occurs",
+          result: "stored_energy가 max_energy까지 증가한다.",
+        },
+        {
+          condition: "if start_input occurs and stored_energy > 0",
+          result: "state가 running이 된다.",
+        },
+        {
+          condition: "if state is running and time_tick occurs",
+          result: "remaining_energy가 rate_limiter를 거쳐 release_rate만큼 줄어든다.",
+        },
+        {
+          condition: "if remaining_energy decreases",
+          result: "release_progress가 증가한다.",
+        },
+        {
+          condition: "if release_progress changes",
+          result: "output_mapping_rule에 따라 output_value가 갱신된다.",
+        },
+        {
+          condition: "if stop_input occurs",
+          result: "state가 stopped가 되고 output_value가 현재 상태로 유지된다.",
+        },
+        {
+          condition: "if reset_input occurs",
+          result: "output_value가 초기값으로 돌아간다.",
+        },
+        {
+          condition: "if remaining_energy <= 0",
+          result: "state가 finished가 되고 출력이 멈춘다.",
+        },
+      ],
+      examples: [
+        {
+          title: "태엽식 오르골에 대입",
+          mappings: [
+            { name: "stored_energy", value: "감긴 태엽" },
+            { name: "rate_limiter", value: "기어 구조" },
+            { name: "rhythm_unit", value: "실린더가 핀을 읽는 간격" },
+            { name: "output_value", value: "들리는 음과 멜로디" },
+          ],
+        },
+        {
+          title: "기계식 스톱워치에 대입",
+          mappings: [
+            { name: "stored_energy", value: "감긴 스프링" },
+            { name: "rate_limiter", value: "내부 시간 조절 장치" },
+            { name: "rhythm_unit", value: "바늘이 일정하게 움직이는 단위" },
+            { name: "output_value", value: "바늘 위치와 표시된 시간" },
+          ],
+        },
+        {
+          title: "모래시계 제외",
+          mappings: [
+            { name: "reason", value: "탄성 에너지를 저장하지 않고, 물질의 위치와 중력으로 작동하기 때문" },
+          ],
+        },
+      ],
+    },
+  },
   {
     id: "hourglass-music-box",
     kind: "ct",

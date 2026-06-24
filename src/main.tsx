@@ -39,12 +39,14 @@ function getRoute() {
 
 function defaultSection(project: Project) {
   if (project.kind === "queue") return "brief";
+  if (project.kind === "ct-brief") return "brief";
   if (project.kind === "ct") return "brief";
   return "onepager";
 }
 
 function projectSections(project: Project) {
   if (project.kind === "queue") return queueSections;
+  if (project.kind === "ct-brief") return [ctSections[0], ctSections[1], ctSections[2]];
   if (project.kind === "ct") return ctSections;
   return glossarySections;
 }
@@ -53,11 +55,13 @@ function PatternMetricCell({ text, metrics }: { text: string; metrics: string[] 
   return (
     <div className="metric-cell">
       <p>{text}</p>
-      <div className="metric-chip-list" aria-label="분해안 저수준 값">
-        {metrics.map((metric) => (
-          <code key={metric}>{metric}</code>
-        ))}
-      </div>
+      {metrics.length > 0 && (
+        <div className="metric-chip-list" aria-label="분해안 저수준 값">
+          {metrics.map((metric) => (
+            <code key={metric}>{metric}</code>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -172,14 +176,15 @@ function App() {
           </article>
         )}
 
-        {project.kind === "ct" && activeSection === "brief" && (
+        {(project.kind === "ct" || project.kind === "ct-brief") && activeSection === "brief" && (
           <article className="ct-decomposition-view">
             <div className="pattern-intro">
               <p className="eyebrow">Decomposition</p>
               <h2>분해안</h2>
               <p>
-                두 사물을 각각 먼저 분해한 뒤, 패턴 인식 단계에서 저수준 값의 역할을 비교 분해 속성으로
-                묶는다.
+                {project.kind === "ct"
+                  ? "두 사물을 각각 먼저 분해한 뒤, 패턴 인식 단계에서 저수준 값의 역할을 비교 분해 속성으로 묶는다."
+                  : "사물의 목적에서 시작해 주요 작동 흐름을 나누고, 각 단계에서 바뀌는 값과 고정된 값을 함께 확인한다."}
               </p>
             </div>
 
@@ -291,7 +296,57 @@ function App() {
           </article>
         )}
 
-        {project.kind === "ct" && activeSection === "abstraction" && (
+        {project.kind === "ct-brief" && activeSection === "pattern" && (
+          <article className="pattern-view">
+            <div className="pattern-intro">
+              <p className="eyebrow">Pattern Recognition</p>
+              <h2>패턴 인식</h2>
+              <p>{project.patternRecognition.overview}</p>
+            </div>
+
+            <div className="comparison-table-wrap">
+              <table className="comparison-table">
+                <thead>
+                  <tr>
+                    <th>패턴 / 속성</th>
+                    <th>모래시계</th>
+                    <th>태엽식 오르골</th>
+                    <th>기계식 스톱워치</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {project.patternRecognition.rows.map((row) => (
+                    <tr key={row.property}>
+                      <th scope="row">{row.property}</th>
+                      <td>
+                        <PatternMetricCell text={row.hourglass.text} metrics={row.hourglass.metrics} />
+                      </td>
+                      <td>
+                        <PatternMetricCell text={row.musicBox.text} metrics={row.musicBox.metrics} />
+                      </td>
+                      <td>
+                        <PatternMetricCell text={row.stopwatch.text} metrics={row.stopwatch.metrics} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="pattern-summary-grid">
+              <section>
+                <h3>공통 패턴</h3>
+                <p>{project.patternRecognition.commonSummary}</p>
+              </section>
+              <section>
+                <h3>차이 패턴</h3>
+                <p>{project.patternRecognition.differenceSummary}</p>
+              </section>
+            </div>
+          </article>
+        )}
+
+        {(project.kind === "ct" || project.kind === "ct-brief") && activeSection === "abstraction" && (
           <article className="ct-abstraction-view">
             <div className="pattern-intro">
               <p className="eyebrow">Abstraction</p>
@@ -310,7 +365,27 @@ function App() {
                 {project.abstraction.elements.map((item) => (
                   <li key={item.key}>
                     <span>{item.key}</span>
-                    <p>{item.text}</p>
+                    <div>
+                      <p>{item.text}</p>
+                      {item.tagGroups && item.tagGroups.length > 0 && (
+                        <div className="abstraction-tag-list" aria-label={`${item.key} 관련 변수, 상수, 트리거`}>
+                          {item.tagGroups.map((group) => (
+                            <div className="abstraction-tag-row" key={group.label}>
+                              <strong>{group.label}</strong>
+                              {group.items.length > 0 ? (
+                                <div className="metric-chip-list">
+                                  {group.items.map((tag) => (
+                                    <code key={tag}>{tag}</code>
+                                  ))}
+                                </div>
+                              ) : (
+                                <span className="empty-tag">X</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </li>
                 ))}
               </ol>

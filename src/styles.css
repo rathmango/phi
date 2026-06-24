@@ -254,6 +254,32 @@ button:disabled {
   color: var(--ink);
 }
 
+.abstraction-list .abstraction-tag-list {
+  display: grid;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.abstraction-tag-row {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+  gap: 8px;
+  align-items: start;
+}
+
+.abstraction-tag-row strong {
+  padding-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.empty-tag {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 24px;
+}
+
 .diagram-view {
   overflow: hidden;
 }
