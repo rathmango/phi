@@ -1,0 +1,138 @@
+{
+  "version": "0.1",
+  "title": "Elastic Rhythm Output Model",
+  "direction": "TD",
+  "nodes": [
+    {
+      "id": "start",
+      "symbol": "terminal",
+      "terminal": "start",
+      "label": "시작"
+    },
+    {
+      "id": "initialize",
+      "symbol": "preparation",
+      "label": "초기값 설정\nstate = idle\nstored_energy = 0\nremaining_energy = 0\nrelease_progress = 0\noutput_value = initial"
+    },
+    {
+      "id": "charge_input",
+      "symbol": "input-output",
+      "io": "input",
+      "label": "charge_input\n탄성 에너지 저장 입력"
+    },
+    {
+      "id": "store_energy",
+      "symbol": "process",
+      "label": "stored_energy 증가\nremaining_energy 갱신\nstate = charged"
+    },
+    {
+      "id": "start_input",
+      "symbol": "input-output",
+      "io": "input",
+      "label": "start_input\n출력 시작 입력"
+    },
+    {
+      "id": "has_energy",
+      "symbol": "decision",
+      "label": "stored_energy가\n0보다 큰가?"
+    },
+    {
+      "id": "start_release",
+      "symbol": "process",
+      "label": "state = running\n저장된 에너지 풀림 시작"
+    },
+    {
+      "id": "wait_for_charge",
+      "symbol": "connector",
+      "label": "충전 필요"
+    },
+    {
+      "id": "time_tick",
+      "symbol": "input-output",
+      "io": "input",
+      "label": "time_tick\n시간 경과"
+    },
+    {
+      "id": "release_energy",
+      "symbol": "process",
+      "label": "rate_limiter를 거쳐\nremaining_energy 감소\nrelease_progress 증가"
+    },
+    {
+      "id": "update_output",
+      "symbol": "input-output",
+      "io": "output",
+      "label": "output_mapping_rule에 따라\noutput_value 갱신"
+    },
+    {
+      "id": "stop_input",
+      "symbol": "decision",
+      "label": "stop_input이\n발생했는가?"
+    },
+    {
+      "id": "hold_output",
+      "symbol": "process",
+      "label": "state = stopped\noutput_value 현재 상태 유지"
+    },
+    {
+      "id": "resume_input",
+      "symbol": "decision",
+      "label": "start_input으로\n다시 시작하는가?"
+    },
+    {
+      "id": "reset_input",
+      "symbol": "decision",
+      "label": "reset_input이\n발생했는가?"
+    },
+    {
+      "id": "reset_output",
+      "symbol": "process",
+      "label": "출력만 초기화\noutput_value = initial\nrelease_progress = 0\nremaining_energy 유지"
+    },
+    {
+      "id": "is_finished",
+      "symbol": "decision",
+      "label": "remaining_energy가\ncompletion_threshold 이하인가?"
+    },
+    {
+      "id": "finish_output",
+      "symbol": "terminal",
+      "terminal": "end",
+      "label": "완료\nstate = finished\n출력 멈춤"
+    }
+  ],
+  "edges": [
+    { "from": "start", "to": "initialize" },
+    { "from": "initialize", "to": "charge_input" },
+    { "from": "charge_input", "to": "store_energy" },
+    { "from": "store_energy", "to": "start_input" },
+    { "from": "start_input", "to": "has_energy" },
+    { "from": "has_energy", "to": "start_release", "label": "예" },
+    { "from": "has_energy", "to": "wait_for_charge", "label": "아니오" },
+    { "from": "wait_for_charge", "to": "charge_input" },
+    { "from": "start_release", "to": "time_tick" },
+    { "from": "time_tick", "to": "release_energy" },
+    { "from": "release_energy", "to": "update_output" },
+    { "from": "update_output", "to": "stop_input" },
+    { "from": "stop_input", "to": "hold_output", "label": "예" },
+    { "from": "stop_input", "to": "reset_input", "label": "아니오" },
+    { "from": "hold_output", "to": "resume_input" },
+    { "from": "resume_input", "to": "time_tick", "label": "예" },
+    { "from": "resume_input", "to": "reset_input", "label": "아니오" },
+    { "from": "reset_input", "to": "reset_output", "label": "예" },
+    { "from": "reset_input", "to": "is_finished", "label": "아니오" },
+    { "from": "reset_output", "to": "start_input" },
+    { "from": "is_finished", "to": "finish_output", "label": "예" },
+    { "from": "is_finished", "to": "time_tick", "label": "아니오" }
+  ],
+  "groups": [
+    {
+      "id": "release_loop",
+      "kind": "loop",
+      "label": "출력 진행 반복",
+      "condition": "state = running, remaining_energy > completion_threshold",
+      "nodes": ["time_tick", "release_energy", "update_output", "stop_input", "reset_input", "is_finished"],
+      "entry": "time_tick",
+      "exit": "is_finished"
+    }
+  ]
+}

@@ -46,7 +46,7 @@ function defaultSection(project: Project) {
 
 function projectSections(project: Project) {
   if (project.kind === "queue") return queueSections;
-  if (project.kind === "ct-brief") return [ctSections[0], ctSections[1], ctSections[2]];
+  if (project.kind === "ct-brief") return [ctSections[0], ctSections[1], ctSections[2], ctSections[3]];
   if (project.kind === "ct") return ctSections;
   return glossarySections;
 }
@@ -447,7 +447,7 @@ function App() {
           </article>
         )}
 
-        {project.kind === "ct" && activeSection === "flowchart" && (
+        {(project.kind === "ct" || project.kind === "ct-brief") && activeSection === "flowchart" && (
           <article className="ct-flowchart-view">
             <div className="pattern-intro">
               <p className="eyebrow">Flowchart</p>
