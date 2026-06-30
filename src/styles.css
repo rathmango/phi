@@ -2274,6 +2274,10 @@ button:disabled {
   background: #fbfbfb;
 }
 
+.pinned-chat-card.dragging {
+  opacity: 0.58;
+}
+
 .pinned-chat-card-header {
   display: grid;
   grid-template-columns: 30px minmax(0, 1fr) 34px;

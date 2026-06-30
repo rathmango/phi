@@ -199,13 +199,16 @@ function HomeGrid({
   onUnpin,
   onDraftChange,
   onSubmitPanel,
+  onReorderPinned,
 }: {
   sessions: Session[];
   interactive: boolean;
   onUnpin?: (id: string) => void;
   onDraftChange?: (id: string, value: string) => void;
   onSubmitPanel?: (id: string) => void;
+  onReorderPinned?: (draggedId: string, targetId: string) => void;
 }) {
+  const [draggingId, setDraggingId] = useState<string | null>(null);
   const pinnedSessions = sessions.filter((session) => session.pinned).slice(0, 4);
 
   return (
@@ -217,7 +220,32 @@ function HomeGrid({
 
         <div className="pinned-card-grid">
           {pinnedSessions.map((session, index) => (
-            <article className="pinned-chat-card" key={session.id}>
+            <article
+              className={draggingId === session.id ? "pinned-chat-card dragging" : "pinned-chat-card"}
+              draggable={interactive}
+              key={session.id}
+              onDragStart={(event) => {
+                if (!interactive) return;
+                setDraggingId(session.id);
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", session.id);
+              }}
+              onDragOver={(event) => {
+                if (!interactive || !draggingId || draggingId === session.id) return;
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "move";
+              }}
+              onDrop={(event) => {
+                if (!interactive) return;
+                event.preventDefault();
+                const draggedId = event.dataTransfer.getData("text/plain") || draggingId;
+                if (draggedId && draggedId !== session.id) {
+                  onReorderPinned?.(draggedId, session.id);
+                }
+                setDraggingId(null);
+              }}
+              onDragEnd={() => setDraggingId(null)}
+            >
               <header className="pinned-chat-card-header">
                 <button type="button" className="panel-grip" aria-label={`${session.title} 위치 바꾸기`}>
                   <Grip size={15} />
@@ -379,6 +407,21 @@ export function PinnedSessionHomePrototype() {
     );
   }
 
+  function reorderPinned(draggedId: string, targetId: string) {
+    setSessions((current) => {
+      const draggedIndex = current.findIndex((session) => session.id === draggedId && session.pinned);
+      const targetIndex = current.findIndex((session) => session.id === targetId && session.pinned);
+      if (draggedIndex < 0 || targetIndex < 0 || draggedIndex === targetIndex) return current;
+
+      const next = [...current];
+      const [dragged] = next.splice(draggedIndex, 1);
+      const adjustedTargetIndex = next.findIndex((session) => session.id === targetId);
+      const insertIndex = draggedIndex < targetIndex ? adjustedTargetIndex + 1 : adjustedTargetIndex;
+      next.splice(insertIndex, 0, dragged);
+      return next;
+    });
+  }
+
   function openSession(id: string) {
     setActiveSessionId(id);
     setActiveView("chat");
@@ -402,6 +445,7 @@ export function PinnedSessionHomePrototype() {
           onUnpin={togglePin}
           onDraftChange={updateDraft}
           onSubmitPanel={submitPanel}
+          onReorderPinned={reorderPinned}
         />
       ) : (
         <ChatView session={activeSession} interactive onTogglePin={togglePin} />
