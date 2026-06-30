@@ -196,6 +196,7 @@ function SessionButton({
 function HomeGrid({
   sessions,
   interactive,
+  draggablePanels,
   onUnpin,
   onDraftChange,
   onSubmitPanel,
@@ -203,13 +204,26 @@ function HomeGrid({
 }: {
   sessions: Session[];
   interactive: boolean;
+  draggablePanels?: boolean;
   onUnpin?: (id: string) => void;
   onDraftChange?: (id: string, value: string) => void;
   onSubmitPanel?: (id: string) => void;
   onReorderPinned?: (draggedId: string, targetId: string) => void;
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const canDragPanels = draggablePanels ?? interactive;
   const pinnedSessions = sessions.filter((session) => session.pinned).slice(0, 4);
+
+  function finishPanelDrag(clientX: number, clientY: number) {
+    if (!draggingId) return;
+
+    const target = document.elementFromPoint(clientX, clientY)?.closest<HTMLElement>("[data-pinned-card-id]");
+    const targetId = target?.dataset.pinnedCardId;
+    if (targetId && targetId !== draggingId) {
+      onReorderPinned?.(draggingId, targetId);
+    }
+    setDraggingId(null);
+  }
 
   return (
       <main className="chatgpt-main home-main">
@@ -221,33 +235,32 @@ function HomeGrid({
         <div className="pinned-card-grid">
           {pinnedSessions.map((session, index) => (
             <article
+              data-pinned-card-id={session.id}
               className={draggingId === session.id ? "pinned-chat-card dragging" : "pinned-chat-card"}
-              draggable={interactive}
               key={session.id}
-              onDragStart={(event) => {
-                if (!interactive) return;
-                setDraggingId(session.id);
-                event.dataTransfer.effectAllowed = "move";
-                event.dataTransfer.setData("text/plain", session.id);
-              }}
-              onDragOver={(event) => {
-                if (!interactive || !draggingId || draggingId === session.id) return;
-                event.preventDefault();
-                event.dataTransfer.dropEffect = "move";
-              }}
-              onDrop={(event) => {
-                if (!interactive) return;
-                event.preventDefault();
-                const draggedId = event.dataTransfer.getData("text/plain") || draggingId;
-                if (draggedId && draggedId !== session.id) {
-                  onReorderPinned?.(draggedId, session.id);
-                }
-                setDraggingId(null);
-              }}
-              onDragEnd={() => setDraggingId(null)}
             >
               <header className="pinned-chat-card-header">
-                <button type="button" className="panel-grip" aria-label={`${session.title} 위치 바꾸기`}>
+                <button
+                  type="button"
+                  className="panel-grip"
+                  aria-label={`${session.title} 위치 바꾸기`}
+                  onPointerDown={(event) => {
+                    if (!canDragPanels) return;
+                    event.preventDefault();
+                    setDraggingId(session.id);
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                  }}
+                  onPointerUp={(event) => {
+                    if (!canDragPanels) return;
+                    finishPanelDrag(event.clientX, event.clientY);
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                      event.currentTarget.releasePointerCapture(event.pointerId);
+                    }
+                  }}
+                  onPointerCancel={() => {
+                    setDraggingId(null);
+                  }}
+                >
                   <Grip size={15} />
                 </button>
                 <div>

@@ -2299,6 +2299,11 @@ button:disabled {
   width: 30px;
   height: 30px;
   cursor: grab;
+  touch-action: none;
+}
+
+.panel-grip:active {
+  cursor: grabbing;
 }
 
 .panel-pin-button {
