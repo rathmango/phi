@@ -1,8 +1,12 @@
 import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { ArrowLeft, FileText, FlaskConical, GitBranch, ListTree, Play } from "lucide-react";
+import { ArrowLeft, FileText, FlaskConical, GitBranch, Home, ListTree, Play } from "lucide-react";
 import { GlossaryChatPrototype } from "./projects/glossary-chat/GlossaryChatPrototype";
 import { MermaidDiagram } from "./shared/MermaidDiagram";
+import {
+  PinnedSessionHomeKeyScreen,
+  PinnedSessionHomePrototype,
+} from "./projects/pinned-session-home/PinnedSessionHomePrototype";
 import { QueuePrototype } from "./projects/queue-flow/QueuePrototype";
 import { RepeatRunPrototype } from "./projects/repeat-run/RepeatRunPrototype";
 import { BowScoreMazePrototype } from "./projects/score-maze/BowScoreMazePrototype";
@@ -18,6 +22,12 @@ const queueSections: Array<{ id: ProjectSectionId; label: string; icon: React.Co
 
 const glossarySections: Array<{ id: ProjectSectionId; label: string; icon: React.ComponentType<{ size?: number }> }> = [
   { id: "onepager", label: "1 Pager", icon: FileText },
+  { id: "prototype", label: "프로토타입", icon: FlaskConical },
+];
+
+const pinnedHomeSections: Array<{ id: ProjectSectionId; label: string; icon: React.ComponentType<{ size?: number }> }> = [
+  { id: "onepager", label: "1 Pager", icon: FileText },
+  { id: "keyscreen", label: "키스크린", icon: Home },
   { id: "prototype", label: "프로토타입", icon: FlaskConical },
 ];
 
@@ -38,6 +48,7 @@ function getRoute() {
 }
 
 function defaultSection(project: Project) {
+  if (project.kind === "pinned-home") return "onepager";
   if (project.kind === "queue") return "brief";
   if (project.kind === "ct-brief") return "brief";
   if (project.kind === "ct") return "brief";
@@ -45,6 +56,7 @@ function defaultSection(project: Project) {
 }
 
 function projectSections(project: Project) {
+  if (project.kind === "pinned-home") return pinnedHomeSections;
   if (project.kind === "queue") return queueSections;
   if (project.kind === "ct-brief") return [ctSections[0], ctSections[1], ctSections[2], ctSections[3]];
   if (project.kind === "ct") return ctSections;
@@ -200,7 +212,7 @@ function App() {
           </article>
         )}
 
-        {(project.kind === "glossary" || project.kind === "routine") && activeSection === "onepager" && (
+        {(project.kind === "glossary" || project.kind === "routine" || project.kind === "pinned-home") && activeSection === "onepager" && (
           <article className="onepager-view">
             <div className="onepager-layout">
               <section className="onepager-panel primary">
@@ -484,6 +496,18 @@ function App() {
           </article>
         )}
 
+        {project.kind === "pinned-home" && activeSection === "keyscreen" && (
+          <article className="prototype-view">
+            <div className="prototype-heading">
+              <div>
+                <h2>키스크린</h2>
+                <p>반복해서 쓰는 채팅 세션을 홈에 고정하고, 4분할 패널에서 바로 입력하는 화면입니다.</p>
+              </div>
+            </div>
+            <PinnedSessionHomeKeyScreen />
+          </article>
+        )}
+
         {activeSection === "prototype" && (
           <article className="prototype-view">
             <div className="prototype-heading">
@@ -492,6 +516,8 @@ function App() {
                 <p>
                   {project.kind === "glossary"
                     ? "채팅 안의 자연어 정정이 저장 가능한 번역 기준으로 바뀌고, 새 채팅에서 다시 적용되는 과정을 확인합니다."
+                    : project.kind === "pinned-home"
+                      ? "반복해서 쓰는 세션을 핀으로 Home에 고정하고, 고정된 패널에서 바로 입력하는 흐름을 확인합니다."
                     : project.kind === "routine"
                       ? "작업지시서를 고정하고, 각 입력을 독립 실행으로 처리한 뒤 완료된 실행을 기록으로 보관하는 흐름을 확인합니다."
                       : project.kind === "ct"
@@ -502,6 +528,7 @@ function App() {
               <Play size={22} />
             </div>
             {project.kind === "glossary" && <GlossaryChatPrototype />}
+            {project.kind === "pinned-home" && <PinnedSessionHomePrototype />}
             {project.kind === "routine" && <RepeatRunPrototype />}
             {project.kind === "queue" && <QueuePrototype />}
             {project.kind === "ct" && <BowScoreMazePrototype />}
