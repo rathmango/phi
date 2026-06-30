@@ -211,8 +211,10 @@ function HomeGrid({
   onReorderPinned?: (draggedId: string, targetId: string) => void;
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragPoint, setDragPoint] = useState<{ x: number; y: number } | null>(null);
   const canDragPanels = draggablePanels ?? interactive;
   const pinnedSessions = sessions.filter((session) => session.pinned).slice(0, 4);
+  const draggingSession = pinnedSessions.find((session) => session.id === draggingId);
 
   function finishPanelDrag(clientX: number, clientY: number) {
     if (!draggingId) return;
@@ -223,6 +225,7 @@ function HomeGrid({
       onReorderPinned?.(draggingId, targetId);
     }
     setDraggingId(null);
+    setDragPoint(null);
   }
 
   return (
@@ -248,7 +251,12 @@ function HomeGrid({
                     if (!canDragPanels) return;
                     event.preventDefault();
                     setDraggingId(session.id);
+                    setDragPoint({ x: event.clientX, y: event.clientY });
                     event.currentTarget.setPointerCapture(event.pointerId);
+                  }}
+                  onPointerMove={(event) => {
+                    if (!canDragPanels || draggingId !== session.id) return;
+                    setDragPoint({ x: event.clientX, y: event.clientY });
                   }}
                   onPointerUp={(event) => {
                     if (!canDragPanels) return;
@@ -259,6 +267,7 @@ function HomeGrid({
                   }}
                   onPointerCancel={() => {
                     setDraggingId(null);
+                    setDragPoint(null);
                   }}
                 >
                   <Grip size={15} />
@@ -311,6 +320,17 @@ function HomeGrid({
             </article>
           ))}
         </div>
+
+        {draggingSession && dragPoint && (
+          <div
+            className="pinned-drag-preview"
+            style={{ left: dragPoint.x, top: dragPoint.y }}
+            aria-hidden="true"
+          >
+            <Grip size={14} />
+            <span>{draggingSession.title}</span>
+          </div>
+        )}
       </section>
     </main>
   );
