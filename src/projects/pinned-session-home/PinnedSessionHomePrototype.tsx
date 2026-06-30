@@ -1,11 +1,8 @@
 import { useMemo, useState } from "react";
 import {
   ArrowUp,
-  Box,
   Grip,
   Home,
-  Library,
-  MessageSquareText,
   Mic,
   PanelLeft,
   Pin,
@@ -141,18 +138,6 @@ function Sidebar({
         <button type="button" className={activeView === "home" ? "selected" : ""} onClick={onOpenHome}>
           <Home size={20} />
           <span>Home</span>
-        </button>
-        <button type="button">
-          <MessageSquareText size={20} />
-          <span>ChatGPT</span>
-        </button>
-        <button type="button">
-          <Library size={20} />
-          <span>라이브러리</span>
-        </button>
-        <button type="button">
-          <Box size={20} />
-          <span>GPT</span>
         </button>
       </nav>
 
