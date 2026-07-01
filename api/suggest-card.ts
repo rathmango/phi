@@ -1,4 +1,4 @@
-import { listCardsFromFirestore } from "./_google";
+import { listCardsFromFirestore } from "./_google.js";
 
 const GEMINI_MODEL = "gemini-3.1-flash-lite";
 

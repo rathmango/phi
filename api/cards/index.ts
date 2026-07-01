@@ -1,4 +1,4 @@
-import { listCardsFromFirestore, saveCardToFirestore, uploadCardImages } from "../_google";
+import { listCardsFromFirestore, saveCardToFirestore, uploadCardImages } from "../_google.js";
 
 export default async function handler(req: any, res: any) {
   try {

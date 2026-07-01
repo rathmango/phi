@@ -1,4 +1,4 @@
-import { downloadStorageObject } from "../_google";
+import { downloadStorageObject } from "../_google.js";
 
 export default async function handler(req: any, res: any) {
   const path = Array.isArray(req.query.path) ? req.query.path.join("/") : String(req.query.path || "");
