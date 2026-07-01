@@ -340,28 +340,6 @@ function App() {
               </table>
             </div>
 
-            <section className="process-pattern-doc">
-              <h3>발견한 반복 패턴</h3>
-              <ol>
-                {project.patternRecognition.findings.map((finding) => (
-                  <li key={finding.title}>
-                    <strong>{finding.title}</strong>
-                    <p>{finding.text}</p>
-                  </li>
-                ))}
-              </ol>
-            </section>
-
-            <section className="process-pattern-doc">
-              <h3>패턴 인식 결론</h3>
-              <p>{project.patternRecognition.conclusion}</p>
-              <ol className="prototype-flow-list">
-                {project.patternRecognition.flow.map((step) => (
-                  <li key={step}>{step}</li>
-                ))}
-              </ol>
-            </section>
-
             <div className="pattern-summary-grid">
               <section>
                 <h3>공통 패턴</h3>
