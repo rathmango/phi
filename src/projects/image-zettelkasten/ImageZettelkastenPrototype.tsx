@@ -2,7 +2,7 @@ import { ArrowLeft, ChevronRight, Library, MoreHorizontal, RotateCcw, Search, Sp
 import * as exifr from "exifr";
 import { toPng } from "html-to-image";
 import JSZip from "jszip";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Cropper from "react-easy-crop";
 import type { Area, Point } from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
@@ -554,6 +554,7 @@ export function ImageZettelkastenPrototype() {
   const [cropFrameSize, setCropFrameSize] = useState(() => (typeof window === "undefined" ? 500 : Math.min(500, Math.max(280, window.innerWidth - 48))));
   const addImageInputRef = useRef<HTMLInputElement | null>(null);
   const cardExportRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const lastSuggestionRequestKey = useRef("");
   const [exporting, setExporting] = useState(false);
   const [llmSuggestion, setLlmSuggestion] = useState<SuggestionResult | null>(null);
   const [suggestionStatus, setSuggestionStatus] = useState<"idle" | "loading" | "error">("idle");
@@ -571,6 +572,21 @@ export function ImageZettelkastenPrototype() {
   const suggestedTags = llmSuggestion?.tags.length ? llmSuggestion.tags : fallbackTags;
   const finalTitle = draft.title.trim() || suggestedTitle;
   const finalTopicTags = draft.tags.topic.length > 0 ? draft.tags.topic : suggestedTags;
+  const suggestionRequestKey = useMemo(() => JSON.stringify({
+    observation: observationBody(draft.observation),
+    insight: insightBody(draft.observation),
+    collectedAt: draft.collectedAt,
+    collectedTime: draft.collectedTime,
+    collectedPlace: draft.collectedPlace,
+  }), [draft.collectedAt, draft.collectedPlace, draft.collectedTime, draft.observation]);
+
+  useEffect(() => {
+    if (addStep !== "suggest") return;
+    if (lastSuggestionRequestKey.current === suggestionRequestKey) return;
+    lastSuggestionRequestKey.current = suggestionRequestKey;
+    void requestCardSuggestion();
+  }, [addStep, suggestionRequestKey]);
+
   function updateDraft(next: Partial<DraftCard>) {
     setDraft((current) => ({ ...current, ...next }));
   }
@@ -600,6 +616,7 @@ export function ImageZettelkastenPrototype() {
         setLlmSuggestion(null);
         setSuggestionStatus("idle");
         setSuggestionError("");
+        lastSuggestionRequestKey.current = "";
         setEditingCardId(null);
         setCropZoomInitialized(false);
         setCropFrameSize(typeof window === "undefined" ? 500 : Math.min(500, Math.max(280, window.innerWidth - 48)));
@@ -734,6 +751,7 @@ export function ImageZettelkastenPrototype() {
     setLlmSuggestion(null);
     setSuggestionStatus("idle");
     setSuggestionError("");
+    lastSuggestionRequestKey.current = "";
     setEditingCardId(card.id);
     setAddStep("metadata");
     setMode("add");
@@ -952,7 +970,7 @@ export function ImageZettelkastenPrototype() {
 
           {addStep === "suggest" && (
             <section className="grid grid-cols-1 gap-4 lg:min-h-[680px] lg:grid-cols-[1fr_1fr] lg:gap-6">
-              <div className="rounded-[28px] bg-black p-5 text-white lg:rounded-[36px] lg:p-8"><Sparkles className="text-[#0A84FF]" size={28} /><p className="mt-5 text-xs font-semibold uppercase text-[#0A84FF] lg:mt-8 lg:text-sm">제안</p><h2 className="mt-3 text-2xl font-semibold lg:text-5xl">제안은 확정값이 아니다.</h2><div className="mt-6 rounded-[24px] bg-white p-5 text-black lg:mt-10 lg:rounded-[30px] lg:p-6"><div className="flex items-center justify-between gap-3"><span className="text-xs font-semibold text-[#6e6e73]">제안 제목</span><button className="rounded-full border border-black/10 px-3 py-1.5 text-xs font-semibold disabled:opacity-40" disabled={suggestionStatus === "loading"} onClick={requestCardSuggestion} type="button">{suggestionStatus === "loading" ? "생성 중" : "다시 제안"}</button></div><p className="mt-3 text-xl font-semibold lg:text-3xl">{suggestedTitle}</p>{suggestionError && <p className="mt-3 text-xs font-semibold text-[#ff3b30]">{suggestionError}</p>}</div><div className="mt-5 flex flex-wrap gap-2">{suggestedTags.map((tag) => <span className="rounded-full bg-[#0A84FF] px-3 py-2 text-xs font-semibold text-white lg:text-sm" key={tag}>{tag}</span>)}</div></div>
+              <div className="rounded-[28px] bg-black p-5 text-white lg:rounded-[36px] lg:p-8"><Sparkles className="text-[#0A84FF]" size={28} /><p className="mt-5 text-xs font-semibold text-[#0A84FF] lg:mt-8 lg:text-sm">제안</p><div className="mt-6 rounded-[24px] bg-white p-5 text-black lg:mt-10 lg:rounded-[30px] lg:p-6"><div className="flex items-center justify-between gap-3"><span className="text-xs font-semibold text-[#6e6e73]">제안 제목</span><button className="rounded-full border border-black/10 px-3 py-1.5 text-xs font-semibold disabled:opacity-40" disabled={suggestionStatus === "loading"} onClick={requestCardSuggestion} type="button">{suggestionStatus === "loading" ? "생성 중" : "다시 제안"}</button></div><p className="mt-3 text-xl font-semibold lg:text-3xl">{suggestedTitle}</p>{suggestionError && <p className="mt-3 text-xs font-semibold text-[#ff3b30]">{suggestionError}</p>}</div><div className="mt-5 flex flex-wrap gap-2">{suggestedTags.map((tag) => <span className="rounded-full bg-[#0A84FF] px-3 py-2 text-xs font-semibold text-white lg:text-sm" key={tag}>{tag}</span>)}</div></div>
               <div className="grid content-center gap-5 rounded-[28px] bg-white p-5 lg:rounded-[36px] lg:p-8">
                 <Field label="확정 제목" value={draft.title} onChange={(value) => updateDraft({ title: value })} placeholder={suggestedTitle} />
                 <label className="grid gap-2 text-sm font-black text-black">
