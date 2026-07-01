@@ -434,6 +434,28 @@ async function createSuggestionImage(imageSrc: string) {
   }
 }
 
+async function createStoredImage(imageSrc: string) {
+  if (!imageSrc || !imageSrc.startsWith("data:image/")) return imageSrc;
+  try {
+    const image = await createImage(imageSrc);
+    const maxSide = 1800;
+    const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+    const width = Math.max(1, Math.round(image.width * scale));
+    const height = Math.max(1, Math.round(image.height * scale));
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return imageSrc;
+    canvas.width = width;
+    canvas.height = height;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(image, 0, 0, width, height);
+    return canvas.toDataURL("image/jpeg", 0.86);
+  } catch {
+    return imageSrc;
+  }
+}
+
 function SampleVisual({ tone = "warm" }: { tone?: "warm" | "cool" | "dark" | "paper" }) {
   const palettes = {
     warm: "from-[#e7d4a7] via-[#ad5538] to-[#2a2d21]",
@@ -566,7 +588,7 @@ function ExportCardSpread({ card }: { card: ImageCard }) {
 
 export function ImageZettelkastenPrototype() {
   const [mode, setMode] = useState<AppMode>("library");
-  const [cards, setCards] = useState<ImageCard[]>(sampleCards);
+  const [cards, setCards] = useState<ImageCard[]>([]);
   const [groupBy, setGroupBy] = useState<GroupField>("topic");
   const [selectedGroupValue, setSelectedGroupValue] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -584,6 +606,7 @@ export function ImageZettelkastenPrototype() {
   const [llmSuggestion, setLlmSuggestion] = useState<SuggestionResult | null>(null);
   const [suggestionStatus, setSuggestionStatus] = useState<"idle" | "loading" | "error">("idle");
   const [suggestionError, setSuggestionError] = useState("");
+  const [cardsLoading, setCardsLoading] = useState(true);
 
   const filteredCards = useMemo(() => cards.filter((card) => cardMatchesQuery(card, query)), [cards, query]);
   const groups = useMemo(() => groupCards(filteredCards, groupBy), [filteredCards, groupBy]);
@@ -611,6 +634,24 @@ export function ImageZettelkastenPrototype() {
     lastSuggestionRequestKey.current = suggestionRequestKey;
     void requestCardSuggestion();
   }, [addStep, suggestionRequestKey]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/cards")
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("load failed")))
+      .then((data) => {
+        if (!cancelled) setCards(Array.isArray(data.cards) ? data.cards : []);
+      })
+      .catch(() => {
+        if (!cancelled) setCards(sampleCards);
+      })
+      .finally(() => {
+        if (!cancelled) setCardsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function updateDraft(next: Partial<DraftCard>) {
     setDraft((current) => ({ ...current, ...next }));
@@ -675,12 +716,6 @@ export function ImageZettelkastenPrototype() {
           collectedPlace: draft.collectedPlace,
           existingTags: cards.flatMap((card) => card.tags.topic),
           image: suggestionImage,
-          relatedCards: cards.map((card) => ({
-            title: card.title,
-            observation: observationBody(card.observation),
-            insight: insightBody(card.observation),
-            tags: card.tags.topic,
-          })),
         }),
       });
       if (!response.ok) throw new Error("suggestion request failed");
@@ -730,12 +765,15 @@ export function ImageZettelkastenPrototype() {
 
   async function saveDraftAsCard() {
     const committedImageUrl = addStep === "refine" ? await commitCrop() : draft.imageUrl;
+    const storedImageUrl = await createStoredImage(committedImageUrl || draft.imageUrl);
     if (editingCardId) {
-      setCards((current) => current.map((card) => card.id === editingCardId ? {
-        ...card,
+      const updatedCard = {
+        ...(cards.find((card) => card.id === editingCardId) as ImageCard),
+        id: editingCardId,
+        number: cards.find((card) => card.id === editingCardId)?.number || "1",
         title: finalTitle,
-        imageUrl: committedImageUrl || draft.imageUrl,
-        originalImageUrl: draft.originalImageUrl,
+        imageUrl: storedImageUrl,
+        originalImageUrl: storedImageUrl,
         collectedAt: draft.collectedAt,
         collectedTime: draft.collectedTime,
         collectedPlace: draft.collectedPlace || "미기록",
@@ -745,6 +783,20 @@ export function ImageZettelkastenPrototype() {
         crop: draft.crop,
         observation: draft.observation,
         tags: { ...draft.tags, topic: finalTopicTags },
+      };
+      const response = await fetch(`/api/cards/${encodeURIComponent(editingCardId)}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ card: updatedCard }),
+      });
+      if (!response.ok) {
+        window.alert("카드를 저장하지 못했다.");
+        return;
+      }
+      const data = await response.json();
+      setCards((current) => current.map((card) => card.id === editingCardId ? {
+        ...card,
+        ...data.card,
       } : card));
       setSelectedGroupValue(null);
       setEditingCardId(null);
@@ -757,8 +809,8 @@ export function ImageZettelkastenPrototype() {
       id: `card-${Date.now()}`,
       number: nextNumber,
       title: finalTitle,
-      imageUrl: committedImageUrl || draft.imageUrl,
-      originalImageUrl: draft.originalImageUrl,
+      imageUrl: storedImageUrl,
+      originalImageUrl: storedImageUrl,
       collectedAt: draft.collectedAt,
       collectedTime: draft.collectedTime,
       collectedPlace: draft.collectedPlace || "미기록",
@@ -769,7 +821,17 @@ export function ImageZettelkastenPrototype() {
       observation: draft.observation,
       tags: { ...draft.tags, topic: finalTopicTags },
     };
-    setCards((current) => [newCard, ...current]);
+    const response = await fetch("/api/cards", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ card: newCard }),
+    });
+    if (!response.ok) {
+      window.alert("카드를 저장하지 못했다.");
+      return;
+    }
+    const data = await response.json();
+    setCards((current) => [data.card, ...current]);
     setSelectedGroupValue(null);
     setMode("library");
   }
@@ -801,6 +863,7 @@ export function ImageZettelkastenPrototype() {
 
   function confirmDeleteCard() {
     if (!deleteTarget) return;
+    void fetch(`/api/cards/${encodeURIComponent(deleteTarget.id)}`, { method: "DELETE" });
     setCards((current) => current.filter((card) => card.id !== deleteTarget.id));
     setDeleteTarget(null);
   }

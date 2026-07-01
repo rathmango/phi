@@ -1,3 +1,5 @@
+import { listCardsFromFirestore } from "./_google";
+
 const GEMINI_MODEL = "gemini-3.1-flash-lite";
 
 type SuggestCardRequest = {
@@ -65,13 +67,20 @@ export default async function handler(req: any, res: any) {
     const imageMimeType = cleanText(body.image?.mimeType);
     const imageData = cleanText(body.image?.data);
     const image = imageMimeType.startsWith("image/") && imageData ? { mimeType: imageMimeType, data: imageData } : null;
-    const relatedCards = Array.isArray(body.relatedCards) ? body.relatedCards.slice(0, 40).map((card, index) => ({
+    const storedCards = await listCardsFromFirestore();
+    const sourceCards = storedCards.length > 0 ? storedCards : (Array.isArray(body.relatedCards) ? body.relatedCards : []);
+    const relatedCards = sourceCards.slice(0, 40).map((card: any, index: number) => ({
       index: index + 1,
       title: cleanText(card?.title),
-      observation: cleanText(card?.observation),
-      insight: cleanText(card?.insight),
-      tags: cleanTags(card?.tags),
-    })).filter((card) => card.title || card.observation || card.insight || card.tags.length) : [];
+      observation: cleanText(typeof card?.observation === "string" ? card.observation : [
+        card?.observation?.element,
+        card?.observation?.composition,
+        card?.observation?.condition,
+        card?.observation?.context,
+      ].filter(Boolean).join(" ")),
+      insight: cleanText(typeof card?.insight === "string" ? card.insight : card?.observation?.insight || card?.observation?.effect),
+      tags: cleanTags(Array.isArray(card?.tags) ? card.tags : card?.tags?.topic),
+    })).filter((card: any) => card.title || card.observation || card.insight || card.tags.length);
     const relatedCardText = relatedCards.length > 0 ? relatedCards.map((card) => [
       `${card.index}. ${card.title || "제목 없음"}`,
       `관찰: ${card.observation || "없음"}`,
@@ -81,9 +90,11 @@ export default async function handler(req: any, res: any) {
 
     const prompt = [
       "너는 미감 훈련용 이미지 제텔카스텐 앱의 제목/주제 태그 제안기다.",
-      "이미지가 함께 제공되면 이미지를 가장 먼저 보고, 관찰과 인사이트는 이미지를 이해하기 위한 보조 설명으로만 사용한다.",
-      "사용자가 직접 쓴 관찰과 인사이트는 이미지에 대한 설명이다. 이 설명문 자체가 아니라, 실제 이미지 장면의 제목과 주제 태그를 제안한다.",
-      "제목은 이미지 안의 조형, 물성, 빛, 색, 배치, 리듬, 밀도, 여백, 대비, 맥락을 이름 붙이는 방식으로 쓴다.",
+      "사용자가 직접 쓴 관찰과 인사이트를 해석의 중심으로 삼고, 이미지는 그 해석을 시각적으로 확인하고 보강하는 근거로 사용한다.",
+      "이미지만 보고 단순 캡션을 만들지 않는다. 관찰과 인사이트에 적힌 사용자의 관점, 주목 지점, 감각적 판단이 제목과 태그에 반드시 반영되어야 한다.",
+      "이미지와 관찰/인사이트가 다르게 보일 때는 사용자의 관찰/인사이트를 우선하고, 이미지는 조형적 세부를 보완하는 데 사용한다.",
+      "사용자가 직접 쓴 관찰과 인사이트는 이미지에 대한 설명이다. 이 설명문 자체가 아니라, 그 설명이 가리키는 실제 이미지 장면의 제목과 주제 태그를 제안한다.",
+      "제목은 사용자의 관찰/인사이트와 이미지 안의 조형, 물성, 빛, 색, 배치, 리듬, 밀도, 여백, 대비, 맥락을 합쳐 이름 붙이는 방식으로 쓴다.",
       "제목에서 언어, 텍스트, 문장, 설명, 기록, 비어 있음, 의미, 무의미 같은 단어를 쓰지 않는다. 이미지 안에 실제 글자나 타이포그래피가 관찰 대상인 경우에도, 그 글자의 내용보다 시각적 상태와 조형 효과를 제목화한다.",
       "제목은 8~18자 정도의 짧은 한국어 문장 또는 명사구로 쓴다.",
       "태그는 단순히 현재 카드만 요약하지 않는다. 전체 카드의 관찰/인사이트/기존 태그를 함께 보고, 여러 카드 사이에서 반복되는 조형적 기준이나 감각적 패턴을 끌어낸다.",
