@@ -352,6 +352,170 @@ flowchart TD
   style release_loop fill:#dcfce7,stroke:#22c55e,stroke-width:2px,color:#0f172a;
 `;
 
+export const imageZettelkastenDecompositionChart = `
+flowchart TB
+  root["고수준<br/>오프라인 또는 온라인에서 발견한<br/>디자인/조형 이미지를<br/>이미지 제텔카스텐 관찰 카드로 제작한다"]
+
+  root --> discover["1. 발견"]
+  discover --> discoverTarget["1-1. 눈에 띄는 디자인/조형을 마주친다<br/><br/>데이터: 발견 대상"]
+  discover --> discoverReason["1-2. 왜 눈에 띄었는지 순간적으로 판단한다<br/><br/>데이터: 첫인상, 관심 이유"]
+
+  root --> collect["2. 이미지 수집"]
+  collect --> collectOffline["2-1. 오프라인이면 카메라 앱을 열고 촬영한다<br/><br/>데이터: 원본 사진, 촬영 날짜, 촬영 위치"]
+  collect --> collectOnline["2-2. 온라인이면 이미지를 저장하거나 스크린샷한다<br/><br/>데이터: 원본 이미지, 발견 날짜, 출처 링크, 저장 위치"]
+
+  root --> prepare["3. 작업 환경 준비"]
+  prepare --> moveWork["3-1. 오프라인 수집이면 컴퓨터 작업 환경으로 이동한다<br/><br/>데이터: 컴퓨터 작업 가능 상태"]
+  prepare --> prepareFile["3-2. 이미지 파일을 작업 가능한 위치로 옮기거나 연다<br/><br/>데이터: 이미지 파일, 파일 위치"]
+  prepare --> openTools["3-3. Figma/PPT 등 작업 도구를 연다<br/><br/>데이터: 작업 도구, 작업 파일"]
+
+  root --> refine["4. 관찰 이미지화"]
+  refine --> uploadImage["4-1. 이미지를 작업 화면에 올린다<br/><br/>데이터: 작업 중 이미지"]
+  refine --> positionImage["4-2. 관심 있는 조형이 잘 보이도록 위치를 조정한다<br/><br/>데이터: 조정된 이미지 위치"]
+  refine --> cropImage["4-3. 필요 없는 부분을 크롭한다<br/><br/>데이터: 크롭 영역, 정제된 이미지"]
+
+  root --> metadata["5. 정보 확인"]
+  metadata --> photoMeta["5-1. 오프라인 사진의 메타데이터를 확인한다<br/><br/>데이터: 촬영 날짜, 촬영 위치, 파일 정보"]
+  metadata --> webMeta["5-2. 온라인 이미지의 출처와 발견 정보를 확인한다<br/><br/>데이터: 발견 날짜, 출처 링크, 저장 위치"]
+
+  root --> observe["6. 기억 복원 및 관찰 기록"]
+  observe --> recall["6-1. 왜 멈췄는지 또는 왜 저장했는지 떠올린다<br/><br/>데이터: 기억, 판단 근거, 감정"]
+  observe --> writeNote["6-2. 요소, 구성, 상태, 맥락, 효과를 작성한다<br/><br/>데이터: 관찰 문장"]
+
+  root --> classify["7. 제목/주제 부여 및 묶기"]
+  classify --> propose["7-1. 카드 제목과 주제 태그 후보를 만든다<br/><br/>데이터: 제안 제목, 제안 주제 태그"]
+  classify --> confirm["7-2. 사용자가 제목과 주제 태그를 선택하거나 직접 수정한다<br/><br/>데이터: 확정 제목, 확정 주제 태그"]
+  classify --> group["7-3. 선택한 기준 필드 값별로 카드들을 묶는다<br/><br/>데이터: 기준별 카드 묶음"]
+
+  root --> template["8. 출력 템플릿 제작"]
+  template --> placeCard["8-1. 이미지와 메모를 카드 템플릿에 옮긴다<br/><br/>데이터: 카드 구성 요소"]
+  template --> printCard["8-2. 디자인 요소를 배치하고 출력 가능한 형태로 정리한다<br/><br/>데이터: 출력용 관찰 카드"]
+
+  classDef high fill:#ffffff,stroke:#64748b,stroke-width:3px,color:#111827,font-weight:bold;
+  classDef mid fill:#e8f2ff,stroke:#2563eb,stroke-width:3px,color:#0f172a,font-weight:bold;
+  classDef action fill:#e9f9f1,stroke:#16824a,stroke-width:2px,color:#10251a,font-weight:bold;
+  classDef endState fill:#f5eafe,stroke:#7c3aed,stroke-width:3px,color:#1f133a,font-weight:bold;
+
+  class root high;
+  class discover,collect,prepare,refine,metadata,observe,classify mid;
+  class template endState;
+  class discoverTarget,discoverReason,collectOffline,collectOnline,moveWork,prepareFile,openTools,uploadImage,positionImage,cropImage,photoMeta,webMeta,recall,writeNote,propose,confirm,group,placeCard,printCard action;
+`;
+
+export const imageZettelkastenPrototypeFlowChart = `
+flowchart TD
+  outside["사용자 영역<br/>오프라인/온라인에서<br/>눈에 띄는 이미지 발견"]
+  start["프로토타입 시작<br/>수집 모듈"]
+  source{"수집 방식은<br/>무엇인가?"}
+
+  offline["오프라인 이미지<br/>직접 촬영한 사진 업로드"]
+  online["온라인 이미지<br/>저장 이미지 또는 스크린샷 업로드"]
+  sourceInput["출처/발견 정보 입력<br/>URL, 발견 날짜, 저장 위치"]
+  raw["원본 이미지 생성<br/>raw_image"]
+
+  edit["관찰 이미지화 모듈<br/>크롭, 위치 조정,<br/>관찰 영역 선택"]
+  refined["정제된 이미지<br/>refined_image, crop_area"]
+
+  metadata["정보 자동 수집 모듈<br/>파일명, 촬영 날짜, 파일 정보,<br/>출처 링크, 발견 날짜 수집"]
+  info["이미지 정보<br/>collected_at, collected_place,<br/>source_url, capture_date, file_info"]
+
+  observe["관찰 기록 모듈<br/>사용자가 직접 작성"]
+  element["요소"]
+  composition["구성"]
+  condition["상태"]
+  context["맥락"]
+  effect["효과"]
+  note["관찰 문장 묶음<br/>observation_note"]
+
+  suggest["제목/주제 제안 모듈<br/>관찰 문장과 기존 카드를 비교해<br/>제목과 주제 태그 후보 생성"]
+  proposal["제안값<br/>suggested_title,<br/>suggested_topic_tags,<br/>similar_card_candidates"]
+  confirm{"사용자가 제안을<br/>확정하는가?"}
+  accept["제안 선택"]
+  editText["직접 수정 또는 새로 입력"]
+  confirmed["확정값<br/>title, topic_tags"]
+
+  cardData["카드 데이터 생성<br/>정제 이미지 + 메타데이터 + 관찰 문장<br/>+ 제목 + 여러 태그"]
+  template["템플릿 배치 모듈<br/>정해진 카드 템플릿에<br/>이미지와 텍스트 자동 배치"]
+  card["출력용 관찰 카드<br/>저장 또는 출력"]
+
+  groupChoice["카드 묶음 기준 선택<br/>사용자가 필드를 선택"]
+  field{"묶기 기준 필드"}
+  byTopic["주제 태그 기준"]
+  byTime["수집 시간 기준"]
+  byPlace["수집 공간 기준"]
+  byMethod["수집 방식 기준"]
+  byOther["요소/구성/상태/맥락/효과 태그 기준"]
+  grouping["카드 그룹핑<br/>선택한 필드의 값별로 분류<br/>여러 값을 가진 카드는 중복 포함"]
+  groupedView["기준별 카드 묶음 보기"]
+
+  outside --> start
+  start --> source
+  source -->|오프라인| offline
+  source -->|온라인| online
+  online --> sourceInput
+  offline --> raw
+  sourceInput --> raw
+  raw --> edit
+  edit --> refined
+  refined --> metadata
+  raw --> metadata
+  sourceInput --> metadata
+  metadata --> info
+  refined --> observe
+  info --> observe
+  observe --> element
+  observe --> composition
+  observe --> condition
+  observe --> context
+  observe --> effect
+  element --> note
+  composition --> note
+  condition --> note
+  context --> note
+  effect --> note
+  note --> suggest
+  info --> suggest
+  suggest --> proposal
+  proposal --> confirm
+  confirm -->|예| accept
+  confirm -->|아니오| editText
+  accept --> confirmed
+  editText --> confirmed
+  refined --> cardData
+  info --> cardData
+  note --> cardData
+  confirmed --> cardData
+  cardData --> template
+  template --> card
+  cardData --> groupChoice
+  groupChoice --> field
+  field --> byTopic
+  field --> byTime
+  field --> byPlace
+  field --> byMethod
+  field --> byOther
+  byTopic --> grouping
+  byTime --> grouping
+  byPlace --> grouping
+  byMethod --> grouping
+  byOther --> grouping
+  grouping --> groupedView
+
+  classDef external fill:#f8fafc,stroke:#64748b,stroke-width:3px,color:#111827,font-weight:bold;
+  classDef module fill:#e7f0ff,stroke:#2563eb,stroke-width:3px,color:#0f172a,font-weight:bold;
+  classDef decision fill:#fff6db,stroke:#b7791f,stroke-width:3px,color:#111827,font-weight:bold;
+  classDef action fill:#e9f9f1,stroke:#16824a,stroke-width:2px,color:#10251a,font-weight:bold;
+  classDef data fill:#fff8e6,stroke:#b7791f,stroke-width:2px,color:#111827;
+  classDef output fill:#f5eafe,stroke:#7c3aed,stroke-width:3px,color:#1f133a,font-weight:bold;
+
+  class outside external;
+  class start,edit,metadata,observe,suggest,template,groupChoice,grouping module;
+  class source,confirm,field decision;
+  class offline,online,sourceInput,element,composition,condition,context,effect,accept,editText,byTopic,byTime,byPlace,byMethod,byOther action;
+  class raw,refined,info,note,proposal,confirmed,cardData data;
+  class card,groupedView output;
+`;
+
 export type ProjectSectionId = "brief" | "abstraction" | "flowchart" | "onepager" | "pattern" | "prototype" | "keyscreen";
 
 type QueueProject = {
@@ -506,9 +670,403 @@ type CtBriefProject = {
   };
 };
 
-export type Project = QueueProject | GlossaryProject | PinnedHomeProject | CtProject | CtBriefProject;
+type CtProcessProject = {
+  id: string;
+  kind: "ct-process";
+  title: string;
+  status: string;
+  summary: string;
+  document: {
+    subject: {
+      title: string;
+      body: string;
+      shortName: string;
+    };
+    records: Array<{
+      title: string;
+      body: string[];
+    }>;
+    automationProblem: string;
+    prototypeDescription: {
+      paragraphs: string[];
+      flow: string[];
+    };
+  };
+  decomposition: Array<{
+    title: string;
+    brief: string;
+    chart: string;
+  }>;
+  patternRecognition: {
+    overview: string;
+    rows: Array<{
+      task: string;
+      offline: string;
+      online: string;
+      input: string;
+      output: string;
+    }>;
+    findings: Array<{ title: string; text: string }>;
+    conclusion: string;
+    flow: string[];
+    commonSummary: string;
+    differenceSummary: string;
+  };
+  abstraction: {
+    title: string;
+    oneLine: string;
+    description: string;
+    elements: Array<{
+      key: string;
+      text: string;
+      tagGroups?: Array<{ label: string; items: string[] }>;
+    }>;
+    variables: Array<{ name: string; text: string }>;
+    constants: Array<{ name: string; text: string }>;
+    events: Array<{ condition: string; result: string }>;
+    examples: Array<{ title: string; mappings: Array<{ name: string; value: string }> }>;
+  };
+  flowchart: {
+    overview: string;
+    states: Array<{ name: string; text: string }>;
+    scenarios: Array<string>;
+    chart: string;
+  };
+  prototypeNote: string;
+};
+
+export type Project = QueueProject | GlossaryProject | PinnedHomeProject | CtProject | CtBriefProject | CtProcessProject;
 
 export const projects: Project[] = [
+  {
+    id: "engineering-ct-week-4-image-zettelkasten",
+    kind: "ct-process",
+    title: "Engineering CT 4주차: 이미지 제텔카스텐 관찰 카드",
+    status: "4주차 자동화 프로토타입",
+    summary:
+      "오프라인/온라인에서 발견한 디자인 이미지를 수집하고, 직접 관찰 기록을 쓴 뒤, 제목/태그 제안과 템플릿 배치까지 이어지는 자동화 공정",
+    document: {
+      subject: {
+        title: "대상 주제 선정",
+        body:
+          "평소 오프라인이나 온라인에서 눈에 띄는 디자인/조형 이미지를 수집하고, 크롭/조정한 뒤, 메타데이터 또는 출처 정보와 관찰 내용을 기록하여 정해진 시각 템플릿에 배치하는 과정을 자동화한다.",
+        shortName: "이미지 제텔카스텐 관찰 카드 제작 자동화",
+      },
+      records: [
+        {
+          title: "수행 기록 1",
+          body: [
+            "길을 가다가 인상적인 재질 위에 페인트로 로고를 그린 간판을 마주했다. 멈춰서 휴대폰 기본 카메라 앱을 켜고, 로고와 재질이 잘 보이도록 줌해서 사진을 찍었다. 집으로 돌아온 뒤 컴퓨터를 켜고, 휴대폰에서 에어드랍으로 사진을 옮겼다. 옮긴 사진을 Figma에 올리고, 원하는 조형이 잘 보이도록 위치를 조정하고 크롭했다. 그 옆에 메모를 작성했다. 촬영 날짜는 기억이 헷갈려 이미지 메타데이터를 확인했고, 당시 어떤 인상을 받았는지 기억을 더듬어 요소, 구성, 상태, 맥락, 효과를 기록했다. 이후 작성된 메모와 사진을 프린트 가능한 PPT 템플릿에 다시 옮기고, 디자인 요소들을 배치했다.",
+          ],
+        },
+        {
+          title: "수행 기록 2",
+          body: [
+            "핀터레스트를 보다가 색 조합과 여백 배치가 마음에 드는 그래픽 이미지를 발견했다. 이미지를 그냥 넘기면 다시 찾기 어려울 것 같아 저장하거나 스크린샷을 찍었다. 이후 컴퓨터에서 해당 이미지를 열고 Figma에 올렸다. 이미지 안에서 내가 관찰하고 싶은 조형 요소가 잘 보이도록 위치를 조정하고 크롭했다. 이미지가 온라인에서 발견된 것이기 때문에 촬영 날짜 대신 발견 날짜, 출처 링크, 저장 위치를 기록했다. 그리고 왜 이 이미지가 눈에 들어왔는지, 어떤 요소와 구성 때문에 좋게 느껴졌는지, 어떤 맥락에서 참고할 수 있을지 메모를 작성했다. 마지막으로 사진과 메모를 프린트 가능한 PPT 템플릿에 다시 배치했다.",
+            "이 과정에서도 수행 기록 1과 비슷한 문제가 있었다. 이미지를 발견한 순간에는 인상이 선명하지만, 저장한 뒤 나중에 정리하려고 하면 왜 저장했는지 흐려진다. 또한 핀터레스트, 스크린샷/저장 폴더, Figma, PPT를 오가며 같은 이미지를 반복해서 옮기고 다시 배치해야 했다.",
+          ],
+        },
+      ],
+      automationProblem:
+        "이미지를 발견한 순간부터 템플릿 카드가 완성되기까지, 앱 전환, 파일 저장/전달, 크롭, 메타데이터 또는 출처 확인, 메모 작성, PPT 재배치가 반복된다.",
+      prototypeDescription: {
+        paragraphs: [
+          "이 프로토타입은 오프라인 또는 온라인에서 발견한 디자인/조형 이미지를 이미지 제텔카스텐 관찰 카드로 만드는 도구이다. 사용자는 먼저 직접 촬영한 사진이나 온라인에서 저장한 이미지를 업로드한다. 이미지를 업로드하면 시스템은 원본 이미지를 화면에 보여주고, 사용자가 관찰하고 싶은 부분이 잘 보이도록 크롭하거나 위치를 조정할 수 있게 한다.",
+          "이미지가 관찰 가능한 형태로 정리되면, 시스템은 이미지 파일에서 확인 가능한 정보를 자동으로 불러온다. 오프라인에서 촬영한 사진이라면 촬영 날짜나 파일 정보를 가져오고, 온라인에서 저장한 이미지라면 사용자가 입력한 출처 링크나 발견 날짜를 함께 기록한다. 이 정보는 나중에 왜 이 이미지를 수집했는지 다시 확인할 수 있는 기본 메타데이터가 된다.",
+          "다음으로 사용자는 이미지에 대한 관찰 기록을 직접 작성한다. 기록 항목은 요소, 구성, 상태, 맥락, 효과로 나뉜다. 사용자는 각 항목에 대해 짧은 문장을 입력하고, 시스템은 이 내용을 하나의 관찰 메모로 묶는다. 이 단계의 목적은 이미지를 단순히 저장하는 것이 아니라, 사용자가 무엇을 보고 어떤 판단을 했는지 스스로 언어화하는 것이다. 따라서 관찰 기록은 시스템이 대신 작성하지 않는다.",
+          "관찰 기록이 작성되면, 시스템은 기록된 문장에서 반복되는 키워드나 조형적 특징을 찾아 카드 제목과 주제 태그를 제안한다. 제목과 주제 태그는 확정값이 아니라 제안값이다. 사용자는 제안된 제목과 태그를 선택할 수도 있고, 선택하지 않을 수도 있으며, 직접 수정하거나 새로 입력할 수도 있다. 최종 카드에는 제목, 수집 시간, 수집 공간, 수집 방식, 출처, 요소 태그, 구성 태그, 상태 태그, 맥락 태그, 효과 태그, 주제 태그, 관찰 문장 같은 정보가 함께 저장된다.",
+          "이렇게 쌓인 카드들은 고정된 폴더에 들어가는 것이 아니라, 사용자가 선택한 기준에 따라 다르게 묶여 보인다. 예를 들어 사용자가 묶기 기준으로 주제 태그를 선택하면, 시스템은 카드들을 주제 태그 값별로 묶어 보여준다. 사용자가 수집 공간을 선택하면 장소별로, 수집 방식을 선택하면 오프라인/온라인 수집 방식별로 카드가 묶인다. 하나의 카드가 여러 태그나 메타데이터 값을 가지고 있다면, 그 카드는 여러 그룹에 동시에 포함된다. 즉 카드 묶기는 하나의 위치에 고정되는 폴더 방식이 아니라, 태그와 메타데이터를 기준으로 바뀌는 다중 분류 보기 방식이다.",
+          "마지막으로 시스템은 정제된 이미지, 메타데이터, 관찰 기록, 제목, 주제 태그를 정해진 시각 템플릿에 자동으로 배치한다. 사용자는 템플릿 안에서 이미지와 텍스트가 카드 형태로 정리된 결과물을 확인하고, 필요하면 간단히 수정한 뒤 저장하거나 출력용 이미지로 내보낼 수 있다.",
+          "이 프로토타입이 자동화하는 핵심은 미감 판단 자체가 아니다. 사용자가 이미지를 발견하고 느끼는 일, 그리고 관찰 내용을 직접 쓰는 일은 사용자의 몫으로 남긴다. 대신 이미지 수집 이후 반복되는 크롭, 정보 확인, 관찰 항목 정리, 제목/주제 태그 제안, 태그 기반 카드 묶기, 템플릿 배치 과정을 하나의 공정으로 묶어, 미감 훈련 기록이 계속 쌓이고 다시 탐색될 수 있게 한다.",
+        ],
+        flow: [
+          "이미지 업로드",
+          "크롭/위치 조정",
+          "메타데이터/출처 정보 기록",
+          "요소·구성·상태·맥락·효과 직접 작성",
+          "제목/주제 태그 제안",
+          "사용자가 제목/주제 태그 선택 또는 직접 수정",
+          "유사 카드 묶기",
+          "카드 템플릿 자동 배치",
+          "저장/출력",
+        ],
+      },
+    },
+    decomposition: [
+      {
+        title: "이미지 제텔카스텐 관찰 카드 제작 분해안",
+        brief:
+          "발견 자체는 사용자가 수행하고, 이후 이미지 수집부터 관찰 이미지화, 정보 확인, 직접 관찰 기록, 제목/주제 태그 확정, 기준별 카드 묶음, 출력 템플릿 제작까지의 반복 과업을 분해한다.",
+        chart: imageZettelkastenDecompositionChart,
+      },
+    ],
+    patternRecognition: {
+      overview:
+        "오프라인 간판 촬영 사례와 온라인 이미지 저장 사례는 출발점이 다르지만, 원본 이미지를 수집한 뒤 관찰 가능한 이미지와 기록 카드로 변환한다는 후반 구조가 반복된다.",
+      rows: [
+        {
+          task: "이미지 발견",
+          offline: "길에서 재질과 페인트 로고가 인상적인 간판을 발견한다.",
+          online: "핀터레스트에서 색 조합과 여백 배치가 좋은 그래픽 이미지를 발견한다.",
+          input: "주변 환경 또는 온라인 피드",
+          output: "발견 대상, 첫인상",
+        },
+        {
+          task: "이미지 수집",
+          offline: "휴대폰 카메라로 조형이 잘 보이도록 촬영한다.",
+          online: "이미지를 저장하거나 스크린샷한다.",
+          input: "발견 대상",
+          output: "원본 이미지",
+        },
+        {
+          task: "작업 환경으로 이동",
+          offline: "현장에서 집 또는 컴퓨터가 있는 장소로 이동한다.",
+          online: "이미 컴퓨터/온라인 작업 환경에 있으므로 생략된다.",
+          input: "현장 상황, 휴대폰 속 원본 사진",
+          output: "컴퓨터 작업 가능 상태",
+        },
+        {
+          task: "작업 파일 준비",
+          offline: "휴대폰 사진을 컴퓨터로 에어드랍한다.",
+          online: "저장 파일이나 스크린샷을 컴퓨터에서 확인한다.",
+          input: "원본 이미지",
+          output: "작업 가능한 이미지 파일",
+        },
+        {
+          task: "관찰 이미지화",
+          offline: "Figma에서 조형이 잘 보이도록 위치를 조정하고 크롭한다.",
+          online: "Figma에서 조형 요소가 잘 보이도록 위치를 조정하고 크롭한다.",
+          input: "작업 가능한 이미지 파일",
+          output: "정제된 이미지",
+        },
+        {
+          task: "정보 확인",
+          offline: "이미지 메타데이터로 촬영 날짜와 파일 정보를 확인한다.",
+          online: "발견 날짜, 출처 링크, 저장 위치를 확인한다.",
+          input: "이미지 파일 또는 출처",
+          output: "날짜, 출처, 파일 정보",
+        },
+        {
+          task: "관찰 기록",
+          offline: "당시 어떤 인상을 받았는지 떠올리고 요소, 구성, 상태, 맥락, 효과를 직접 기록한다.",
+          online: "왜 저장했는지 떠올리고 요소, 구성, 상태, 맥락, 효과를 직접 기록한다.",
+          input: "정제된 이미지, 정보, 판단 근거",
+          output: "관찰 문장",
+        },
+        {
+          task: "제목/주제 제안",
+          offline: "관찰 문장에서 반복 특징을 찾아 제목과 주제 태그 후보를 만든다.",
+          online: "관찰 문장에서 반복 특징을 찾아 제목과 주제 태그 후보를 만든다.",
+          input: "관찰 문장, 기존 카드 목록",
+          output: "제안 제목, 제안 주제 태그, 유사 카드 후보",
+        },
+        {
+          task: "제목/주제 확정",
+          offline: "제안값을 선택하거나 직접 수정한다.",
+          online: "제안값을 선택하거나 직접 수정한다.",
+          input: "제안 제목, 제안 주제 태그, 사용자의 판단",
+          output: "확정 제목, 확정 주제 태그",
+        },
+        {
+          task: "기준별 카드 묶기",
+          offline: "사용자가 선택한 필드 값별로 카드를 묶어 본다.",
+          online: "사용자가 선택한 필드 값별로 카드를 묶어 본다.",
+          input: "카드 목록, 카드별 태그/메타데이터, 묶기 기준 필드",
+          output: "기준별 카드 묶음",
+        },
+        {
+          task: "출력 템플릿 배치",
+          offline: "사진, 메모, 제목, 태그를 카드 템플릿에 배치한다.",
+          online: "이미지, 메모, 제목, 태그를 카드 템플릿에 배치한다.",
+          input: "정제된 이미지, 정보, 관찰 문장, 확정 제목, 확정 주제 태그",
+          output: "출력용 관찰 카드",
+        },
+      ],
+      findings: [
+        {
+          title: "이미지를 발견한 순간에는 인상이 선명하지만, 기록은 나중에 이루어진다.",
+          text: "이 간격 때문에 왜 이 이미지를 찍었는지 또는 저장했는지가 흐려진다.",
+        },
+        {
+          title: "이미지 원본은 항상 관찰 가능한 이미지로 한 번 정제된다.",
+          text: "원본 그대로 쓰는 것이 아니라, 관심 있는 조형 요소가 보이도록 크롭하거나 위치를 조정한다.",
+        },
+        {
+          title: "이미지에는 항상 부가 정보가 붙는다.",
+          text: "오프라인 이미지는 촬영 날짜 같은 메타데이터가 필요하고, 온라인 이미지는 발견 날짜, 출처 링크, 저장 위치가 필요하다.",
+        },
+        {
+          title: "관찰 기록은 같은 질문 구조를 반복한다.",
+          text: "요소, 구성, 상태, 맥락, 효과라는 같은 항목을 반복해서 작성한다.",
+        },
+        {
+          title: "관찰 기록이 쌓이면 비슷한 이미지끼리 제목과 주제 태그를 부여하고 묶는 과정이 반복된다.",
+          text: "요소, 구성, 상태, 맥락, 효과 기록에서 반복되는 키워드나 판단 근거를 찾는다. 시스템은 제목과 주제 태그를 제안하고, 사용자는 선택하거나 직접 수정한다. 비슷한 특징을 가진 카드끼리 연결하면 나중에 자신의 미적 기준을 더 쉽게 확인할 수 있다.",
+        },
+        {
+          title: "오프라인에서 발견한 이미지는 작업 환경으로 이동하는 단계가 추가된다.",
+          text: "길거리에서 이미지를 발견하고 촬영하는 순간에는 Figma나 PPT 작업을 할 수 없기 때문에, 집이나 컴퓨터가 있는 장소로 이동하는 과정이 필요하다. 온라인에서 발견한 이미지는 이미 컴퓨터/온라인 작업 환경 안에서 발견되는 경우가 많기 때문에 이 단계가 생략된다.",
+        },
+        {
+          title: "최종 결과물은 항상 정해진 템플릿에 배치된다.",
+          text: "이미지와 텍스트를 따로 관리하는 것이 아니라, 프린트 가능한 카드 형태로 정리한다.",
+        },
+      ],
+      conclusion:
+        "오프라인이든 온라인이든, 눈에 띈 이미지는 원본 이미지로 수집된 뒤, 관찰하기 좋은 형태로 정제되고, 날짜/출처 정보와 관찰 문장이 붙는다. 이후 관찰 기록을 바탕으로 카드 제목과 주제 태그가 제안되고, 사용자가 이를 선택하거나 수정한 뒤, 비슷한 이미지끼리 묶이고 정해진 출력 템플릿 카드로 변환된다.",
+      flow: [
+        "이미지 발견",
+        "이미지 수집",
+        "관찰 이미지화",
+        "정보 확인",
+        "관찰 기록",
+        "제목/주제 태그 제안",
+        "제목/주제 태그 선택 또는 수정",
+        "유사 카드 묶기",
+        "템플릿 배치",
+      ],
+      commonSummary:
+        "두 기록 모두 이미지 수집, 관찰 이미지화, 정보 확인, 관찰 기록, 제목/태그 확정, 템플릿 배치가 반복된다. 관찰 기록은 사용자가 직접 쓰고, 시스템은 반복되는 정리와 배치를 보조한다.",
+      differenceSummary:
+        "오프라인 사례는 현장에서 컴퓨터 작업 환경으로 이동하는 조건부 과업이 추가된다. 온라인 사례는 출처 링크와 저장 위치가 더 중요하다. 두 경우 모두 카드에는 여러 태그/메타데이터가 붙고, 묶음은 선택한 기준 필드의 값별로 생성된다.",
+    },
+    abstraction: {
+      title: "이미지 수집 이후 관찰 카드 제작 공정",
+      oneLine:
+        "사용자가 발견한 이미지를 업로드하면, 시스템은 정제/정보수집/제목·태그 제안/템플릿 배치를 돕고, 사용자는 관찰 기록과 제목·태그 확정을 직접 수행한다.",
+      description:
+        "발견 자체와 관찰 판단은 사용자의 몫으로 남기고, 반복되는 이미지 수집 이후 공정을 모듈화한다. 핵심 자동화 대상은 관찰 이미지화, 메타데이터 수집, 제목/주제 태그 제안, 기준별 카드 묶기, 템플릿 배치이다.",
+      elements: [
+        {
+          key: "수집 모듈",
+          text: "사용자가 발견한 오프라인/온라인 이미지를 업로드하고, 온라인 이미지라면 출처 정보를 함께 입력한다.",
+          tagGroups: [
+            { label: "Input", items: ["discovered_image", "source_url"] },
+            { label: "Output", items: ["raw_image", "temporary_source_info"] },
+          ],
+        },
+        {
+          key: "관찰 이미지화 모듈",
+          text: "원본 이미지에서 관찰하고 싶은 조형이 잘 보이도록 크롭, 위치 조정, 확대/축소를 수행한다.",
+          tagGroups: [
+            { label: "Input", items: ["raw_image"] },
+            { label: "Output", items: ["refined_image", "crop_area"] },
+          ],
+        },
+        {
+          key: "정보 자동 수집 모듈",
+          text: "파일명, 파일 수정일, 촬영 날짜에 해당하는 정보, 발견 날짜, 출처 링크, 저장 위치를 모아 카드 메타데이터로 만든다.",
+          tagGroups: [
+            { label: "Input", items: ["raw_image", "file_info", "source_url"] },
+            { label: "Output", items: ["image_metadata"] },
+          ],
+        },
+        {
+          key: "관찰 기록 모듈",
+          text: "요소, 구성, 상태, 맥락, 효과 질문에 대해 사용자가 직접 관찰 문장을 작성한다. 시스템은 대신 쓰지 않고 입력 구조만 제공한다.",
+          tagGroups: [
+            { label: "Input", items: ["refined_image", "image_metadata", "first_impression"] },
+            { label: "Output", items: ["observation_note"] },
+          ],
+        },
+        {
+          key: "제목/주제 제안 모듈",
+          text: "관찰 문장과 기존 카드 목록을 비교해 카드 제목, 주제 태그, 유사 카드 후보를 제안한다.",
+          tagGroups: [
+            { label: "Input", items: ["observation_note", "existing_cards"] },
+            { label: "Output", items: ["suggested_title", "suggested_topic_tags", "similar_card_candidates"] },
+          ],
+        },
+        {
+          key: "제목/주제 확정 모듈",
+          text: "사용자가 제안된 제목과 태그를 선택하거나, 선택하지 않고 직접 수정 또는 새로 입력한다.",
+          tagGroups: [
+            { label: "Input", items: ["suggested_title", "suggested_topic_tags"] },
+            { label: "Output", items: ["title", "topic_tags"] },
+          ],
+        },
+        {
+          key: "카드 그룹핑 모듈",
+          text: "사용자가 묶기 기준 필드를 선택하면, 해당 필드의 값별로 카드를 묶어 보여준다. 한 카드가 여러 값을 가지면 여러 그룹에 중복 포함된다.",
+          tagGroups: [
+            { label: "Input", items: ["cards", "group_by_field"] },
+            { label: "Output", items: ["grouped_cards"] },
+          ],
+        },
+        {
+          key: "템플릿 배치 모듈",
+          text: "정제된 이미지, 메타데이터, 관찰 문장, 제목, 태그를 정해진 카드 템플릿에 자동 배치한다.",
+          tagGroups: [
+            { label: "Input", items: ["refined_image", "image_metadata", "observation_note", "title", "topic_tags"] },
+            { label: "Output", items: ["printable_card"] },
+          ],
+        },
+      ],
+      variables: [
+        { name: "raw_image", text: "사용자가 업로드한 원본 이미지" },
+        { name: "refined_image", text: "크롭과 위치 조정이 끝난 관찰용 이미지" },
+        { name: "image_metadata", text: "수집 시간, 공간, 방식, 출처, 파일 정보" },
+        { name: "observation_note", text: "요소, 구성, 상태, 맥락, 효과에 대한 사용자 작성 문장" },
+        { name: "title", text: "사용자가 확정한 카드 제목" },
+        { name: "topic_tags", text: "사용자가 확정한 여러 주제 태그" },
+        { name: "group_by_field", text: "사용자가 선택한 카드 묶음 기준 필드" },
+      ],
+      constants: [
+        { name: "observation_fields", text: "요소, 구성, 상태, 맥락, 효과" },
+        { name: "card_template", text: "이미지, 메타데이터, 관찰 기록, 제목, 태그가 들어가는 출력 카드 레이아웃" },
+        { name: "multi_group_rule", text: "한 카드가 선택 기준에서 여러 값을 가지면 여러 그룹에 중복 포함된다" },
+      ],
+      events: [
+        { condition: "image_uploaded", result: "원본 이미지가 생성되고 관찰 이미지화 단계로 이동한다." },
+        { condition: "crop_changed", result: "정제된 이미지와 크롭 영역이 갱신된다." },
+        { condition: "observation_saved", result: "제목과 주제 태그 후보가 제안된다." },
+        { condition: "title_or_tags_confirmed", result: "확정 제목과 확정 주제 태그가 카드 데이터에 저장된다." },
+        { condition: "group_by_field_changed", result: "선택한 필드의 값별로 카드 묶음 보기가 다시 생성된다." },
+      ],
+      examples: [
+        {
+          title: "오프라인 간판 카드",
+          mappings: [
+            { name: "수집 방식", value: "오프라인 촬영" },
+            { name: "메타데이터", value: "촬영 날짜, 촬영 위치, 파일 정보" },
+            { name: "주제 태그", value: "거친 재질, 손으로 그린 로고, 낮은 채도" },
+          ],
+        },
+        {
+          title: "온라인 그래픽 카드",
+          mappings: [
+            { name: "수집 방식", value: "온라인 저장/스크린샷" },
+            { name: "메타데이터", value: "발견 날짜, 출처 링크, 저장 위치" },
+            { name: "주제 태그", value: "여백, 색 대비, 단순한 구성" },
+          ],
+        },
+      ],
+    },
+    flowchart: {
+      overview:
+        "프로토타입은 이미지 수집 모듈에서 시작한다. 관찰 기록은 사용자가 직접 쓰고, 시스템은 제목/주제 태그 제안, 기준별 그룹핑, 템플릿 배치를 수행한다.",
+      states: [
+        { name: "수집 중", text: "사용자가 원본 이미지와 출처 정보를 입력하는 상태" },
+        { name: "관찰 이미지화", text: "이미지를 크롭하고 관찰 영역을 조정하는 상태" },
+        { name: "관찰 기록", text: "사용자가 요소, 구성, 상태, 맥락, 효과를 직접 작성하는 상태" },
+        { name: "제안/확정", text: "시스템이 제목과 주제 태그를 제안하고 사용자가 확정하는 상태" },
+        { name: "카드 보기", text: "템플릿 카드와 기준별 카드 묶음을 확인하는 상태" },
+      ],
+      scenarios: [
+        "사용자가 오프라인 촬영 사진 또는 온라인 저장 이미지를 업로드한다.",
+        "사용자는 관찰하고 싶은 부분이 잘 보이도록 크롭과 위치를 조정한다.",
+        "시스템은 파일 정보와 출처 정보를 카드 메타데이터로 모은다.",
+        "사용자는 요소, 구성, 상태, 맥락, 효과를 직접 작성한다.",
+        "시스템은 관찰 문장을 바탕으로 제목과 주제 태그를 제안한다.",
+        "사용자는 제안값을 선택하거나 직접 수정한다.",
+        "시스템은 카드 템플릿에 이미지와 텍스트를 자동 배치한다.",
+        "사용자가 묶기 기준 필드를 바꾸면 카드들이 해당 필드의 값별로 다시 묶인다.",
+      ],
+      chart: imageZettelkastenPrototypeFlowChart,
+    },
+    prototypeNote:
+      "이미지를 업로드하고 관찰 영역을 조정한 뒤, 사용자가 요소/구성/상태/맥락/효과를 직접 작성한다. 시스템은 제목과 주제 태그를 제안하고, 선택한 기준 필드별로 카드를 중복 허용 그룹으로 묶어 보여준다.",
+  },
   {
     id: "hid-pinned-session-home",
     kind: "pinned-home",

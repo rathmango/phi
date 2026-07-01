@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>이미지 제텔카스텐 프로토타입 플로우차트</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f7fb;
+        --ink: #142033;
+        --muted: #5f6b7a;
+        --panel: #ffffff;
+        --line: #d6deea;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-width: 1280px;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+      }
+
+      main {
+        width: 1280px;
+        margin: 0 auto;
+        padding: 34px 28px 42px;
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: 34px;
+        line-height: 1.2;
+      }
+
+      .overview {
+        margin: 0 0 22px;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.6;
+      }
+
+      .meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+        margin-bottom: 18px;
+      }
+
+      section {
+        padding: 18px 20px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+      }
+
+      h2 {
+        margin: 0 0 12px;
+        font-size: 20px;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 20px;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.7;
+      }
+
+      .diagram-wrap {
+        padding: 24px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--panel);
+        overflow: auto;
+      }
+
+      .mermaid {
+        display: flex;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>이미지 제텔카스텐 프로토타입 플로우차트</h1>
+      <p class="overview">
+        사용자가 발견한 이미지를 업로드하면, 관찰 가능한 이미지로 정제하고 메타데이터를 수집한 뒤,
+        사용자가 직접 쓴 관찰 기록을 바탕으로 제목과 주제 태그를 제안하고 카드 템플릿에 배치한다.
+      </p>
+
+      <div class="meta">
+        <section>
+          <h2>자동화 범위</h2>
+          <ul>
+            <li>발견 자체는 사용자가 수행한다</li>
+            <li>프로토타입은 이미지 수집 모듈부터 시작한다</li>
+            <li>관찰 기록은 사용자가 직접 작성한다</li>
+            <li>제목과 주제 태그는 시스템이 제안하고 사용자가 확정한다</li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>카드 묶음 원칙</h2>
+          <ul>
+            <li>카드는 고정 폴더가 아니라 태그/메타데이터 기준으로 묶인다</li>
+            <li>사용자가 묶기 기준 필드를 선택한다</li>
+            <li>한 카드가 여러 값을 가지면 여러 그룹에 중복 포함된다</li>
+            <li>묶기 기준은 주제 태그, 수집 시간, 수집 공간, 수집 방식 등이 될 수 있다</li>
+          </ul>
+        </section>
+      </div>
+
+      <div class="diagram-wrap">
+        <pre class="mermaid">
+flowchart TD
+  outside["사용자 영역<br/>오프라인/온라인에서<br/>눈에 띄는 이미지 발견"]
+  start["프로토타입 시작<br/>수집 모듈"]
+  source{"수집 방식은<br/>무엇인가?"}
+
+  offline["오프라인 이미지<br/>직접 촬영한 사진 업로드"]
+  online["온라인 이미지<br/>저장 이미지 또는 스크린샷 업로드"]
+  sourceInput["출처/발견 정보 입력<br/>URL, 발견 날짜, 저장 위치"]
+  raw["원본 이미지 생성<br/>raw_image"]
+
+  edit["관찰 이미지화 모듈<br/>크롭, 위치 조정,<br/>관찰 영역 선택"]
+  refined["정제된 이미지<br/>refined_image, crop_area"]
+
+  metadata["정보 자동 수집 모듈<br/>파일명, 촬영 날짜, 파일 정보,<br/>출처 링크, 발견 날짜 수집"]
+  info["이미지 정보<br/>collected_at, collected_place,<br/>source_url, capture_date, file_info"]
+
+  observe["관찰 기록 모듈<br/>사용자가 직접 작성"]
+  element["요소<br/>무엇이 보이는가"]
+  composition["구성<br/>어떻게 배치되어 있는가"]
+  condition["상태<br/>낡음, 새것, 질감, 손상 등"]
+  context["맥락<br/>어디에서 어떻게 쓰이는가"]
+  effect["효과<br/>어떤 인상과 작용을 만드는가"]
+  note["관찰 문장 묶음<br/>observation_note"]
+
+  suggest["제목/주제 제안 모듈<br/>관찰 문장과 기존 카드를 비교해<br/>제목과 주제 태그 후보 생성"]
+  proposal["제안값<br/>suggested_title,<br/>suggested_topic_tags,<br/>similar_card_candidates"]
+  confirm{"사용자가 제안을<br/>확정하는가?"}
+  accept["제안 선택"]
+  editText["직접 수정 또는 새로 입력"]
+  confirmed["확정값<br/>title, topic_tags"]
+
+  cardData["카드 데이터 생성<br/>정제 이미지 + 메타데이터 + 관찰 문장<br/>+ 제목 + 여러 태그"]
+  template["템플릿 배치 모듈<br/>정해진 카드 템플릿에<br/>이미지와 텍스트 자동 배치"]
+  card["출력용 관찰 카드<br/>저장 또는 출력"]
+
+  groupChoice["카드 묶음 기준 선택<br/>사용자가 필드를 선택"]
+  field{"묶기 기준 필드"}
+  byTopic["주제 태그 기준"]
+  byTime["수집 시간 기준"]
+  byPlace["수집 공간 기준"]
+  byMethod["수집 방식 기준"]
+  byOther["요소/구성/상태/맥락/효과 태그 기준"]
+  grouping["카드 그룹핑<br/>선택한 필드의 값별로 분류<br/>여러 값을 가진 카드는 중복 포함"]
+  groupedView["기준별 카드 묶음 보기"]
+
+  outside --> start
+  start --> source
+  source -->|오프라인| offline
+  source -->|온라인| online
+  online --> sourceInput
+  offline --> raw
+  sourceInput --> raw
+
+  raw --> edit
+  edit --> refined
+  refined --> metadata
+  raw --> metadata
+  sourceInput --> metadata
+  metadata --> info
+
+  refined --> observe
+  info --> observe
+  observe --> element
+  observe --> composition
+  observe --> condition
+  observe --> context
+  observe --> effect
+  element --> note
+  composition --> note
+  condition --> note
+  context --> note
+  effect --> note
+
+  note --> suggest
+  info --> suggest
+  suggest --> proposal
+  proposal --> confirm
+  confirm -->|예| accept
+  confirm -->|아니오| editText
+  accept --> confirmed
+  editText --> confirmed
+
+  refined --> cardData
+  info --> cardData
+  note --> cardData
+  confirmed --> cardData
+  cardData --> template
+  template --> card
+
+  cardData --> groupChoice
+  groupChoice --> field
+  field --> byTopic
+  field --> byTime
+  field --> byPlace
+  field --> byMethod
+  field --> byOther
+  byTopic --> grouping
+  byTime --> grouping
+  byPlace --> grouping
+  byMethod --> grouping
+  byOther --> grouping
+  grouping --> groupedView
+
+  classDef external fill:#f8fafc,stroke:#64748b,stroke-width:3px,color:#111827,font-weight:bold;
+  classDef module fill:#e7f0ff,stroke:#2563eb,stroke-width:3px,color:#0f172a,font-weight:bold;
+  classDef decision fill:#fff6db,stroke:#b7791f,stroke-width:3px,color:#111827,font-weight:bold;
+  classDef action fill:#e9f9f1,stroke:#16824a,stroke-width:2px,color:#10251a,font-weight:bold;
+  classDef data fill:#fff8e6,stroke:#b7791f,stroke-width:2px,color:#111827;
+  classDef output fill:#f5eafe,stroke:#7c3aed,stroke-width:3px,color:#1f133a,font-weight:bold;
+
+  class outside external;
+  class start,edit,metadata,observe,suggest,template,groupChoice,grouping module;
+  class source,confirm,field decision;
+  class offline,online,sourceInput,element,composition,condition,context,effect,accept,editText,byTopic,byTime,byPlace,byMethod,byOther action;
+  class raw,refined,info,note,proposal,confirmed,cardData data;
+  class card,groupedView output;
+        </pre>
+      </div>
+    </main>
+
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+      mermaid.initialize({
+        startOnLoad: true,
+        securityLevel: "loose",
+        flowchart: {
+          htmlLabels: true,
+          curve: "basis",
+          nodeSpacing: 44,
+          rankSpacing: 64,
+          wrappingWidth: 220
+        },
+        theme: "base",
+        themeVariables: {
+          fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif',
+          primaryTextColor: "#111827",
+          lineColor: "#64748b"
+        }
+      });
+    </script>
+  </body>
+</html>

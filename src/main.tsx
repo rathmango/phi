@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ArrowLeft, FileText, FlaskConical, GitBranch, Home, ListTree, Play } from "lucide-react";
 import { GlossaryChatPrototype } from "./projects/glossary-chat/GlossaryChatPrototype";
+import { ImageZettelkastenPrototype } from "./projects/image-zettelkasten/ImageZettelkastenPrototype";
 import { MermaidDiagram } from "./shared/MermaidDiagram";
 import {
   PinnedSessionHomeKeyScreen,
@@ -40,8 +41,18 @@ const ctSections: Array<{ id: ProjectSectionId; label: string; icon: React.Compo
 ];
 
 function getRoute() {
+  const [, appId] = window.location.hash.match(/^#\/apps\/([^/]+)/) ?? [];
+  if (appId) {
+    return {
+      appId,
+      projectId: undefined,
+      section: undefined,
+    };
+  }
+
   const [, projectId, section] = window.location.hash.match(/^#\/projects\/([^/]+)\/?([^/]*)?/) ?? [];
   return {
+    appId: undefined,
     projectId,
     section: section as ProjectSectionId | undefined,
   };
@@ -50,6 +61,7 @@ function getRoute() {
 function defaultSection(project: Project) {
   if (project.kind === "pinned-home") return "onepager";
   if (project.kind === "queue") return "brief";
+  if (project.kind === "ct-process") return "brief";
   if (project.kind === "ct-brief") return "brief";
   if (project.kind === "ct") return "brief";
   return "onepager";
@@ -58,6 +70,7 @@ function defaultSection(project: Project) {
 function projectSections(project: Project) {
   if (project.kind === "pinned-home") return pinnedHomeSections;
   if (project.kind === "queue") return queueSections;
+  if (project.kind === "ct-process") return ctSections;
   if (project.kind === "ct-brief") return [ctSections[0], ctSections[1], ctSections[2], ctSections[3]];
   if (project.kind === "ct") return ctSections;
   return glossarySections;
@@ -94,6 +107,10 @@ function App() {
     window.addEventListener("popstate", handlePop);
     return () => window.removeEventListener("popstate", handlePop);
   }, []);
+
+  if (route.appId === "image-zettelkasten") {
+    return <ImageZettelkastenPrototype />;
+  }
 
   if (!project) {
     return (
@@ -188,7 +205,7 @@ function App() {
           </article>
         )}
 
-        {(project.kind === "ct" || project.kind === "ct-brief") && activeSection === "brief" && (
+        {(project.kind === "ct" || project.kind === "ct-brief" || project.kind === "ct-process") && activeSection === "brief" && (
           <article className="ct-decomposition-view">
             <div className="pattern-intro">
               <p className="eyebrow">Decomposition</p>
@@ -196,9 +213,37 @@ function App() {
               <p>
                 {project.kind === "ct"
                   ? "두 사물을 각각 먼저 분해한 뒤, 패턴 인식 단계에서 저수준 값의 역할을 비교 분해 속성으로 묶는다."
-                  : "사물의 목적에서 시작해 주요 작동 흐름을 나누고, 각 단계에서 바뀌는 값과 고정된 값을 함께 확인한다."}
+                  : project.kind === "ct-process"
+                    ? "프로세스 수행 기록을 고수준-중수준-저수준 과업으로 나누고, 가장 낮은 단계에서 추려지는 데이터를 함께 확인한다."
+                    : "사물의 목적에서 시작해 주요 작동 흐름을 나누고, 각 단계에서 바뀌는 값과 고정된 값을 함께 확인한다."}
               </p>
             </div>
+
+            {project.kind === "ct-process" && (
+              <section className="process-source-doc">
+                <div className="process-source-block primary">
+                  <p className="eyebrow">{project.document.subject.title}</p>
+                  <h3>{project.document.subject.shortName}</h3>
+                  <p>{project.document.subject.body}</p>
+                </div>
+
+                <div className="process-record-grid">
+                  {project.document.records.map((record) => (
+                    <section className="process-source-block" key={record.title}>
+                      <h3>{record.title}</h3>
+                      {record.body.map((paragraph) => (
+                        <p key={paragraph}>{paragraph}</p>
+                      ))}
+                    </section>
+                  ))}
+                </div>
+
+                <div className="process-source-block problem">
+                  <h3>현재까지 확인한 자동화 문제</h3>
+                  <p>{project.document.automationProblem}</p>
+                </div>
+              </section>
+            )}
 
             <div className="ct-decomposition-list">
               {project.decomposition.map((item) => (
@@ -295,6 +340,28 @@ function App() {
               </table>
             </div>
 
+            <section className="process-pattern-doc">
+              <h3>발견한 반복 패턴</h3>
+              <ol>
+                {project.patternRecognition.findings.map((finding) => (
+                  <li key={finding.title}>
+                    <strong>{finding.title}</strong>
+                    <p>{finding.text}</p>
+                  </li>
+                ))}
+              </ol>
+            </section>
+
+            <section className="process-pattern-doc">
+              <h3>패턴 인식 결론</h3>
+              <p>{project.patternRecognition.conclusion}</p>
+              <ol className="prototype-flow-list">
+                {project.patternRecognition.flow.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
+            </section>
+
             <div className="pattern-summary-grid">
               <section>
                 <h3>공통 패턴</h3>
@@ -358,7 +425,53 @@ function App() {
           </article>
         )}
 
-        {(project.kind === "ct" || project.kind === "ct-brief") && activeSection === "abstraction" && (
+        {project.kind === "ct-process" && activeSection === "pattern" && (
+          <article className="pattern-view">
+            <div className="pattern-intro">
+              <p className="eyebrow">Pattern Recognition</p>
+              <h2>패턴 인식</h2>
+              <p>{project.patternRecognition.overview}</p>
+            </div>
+
+            <div className="comparison-table-wrap">
+              <table className="comparison-table">
+                <thead>
+                  <tr>
+                    <th>반복 과업</th>
+                    <th>오프라인 이미지</th>
+                    <th>온라인 이미지</th>
+                    <th>입력 데이터</th>
+                    <th>출력 데이터</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {project.patternRecognition.rows.map((row) => (
+                    <tr key={row.task}>
+                      <th scope="row">{row.task}</th>
+                      <td>{row.offline}</td>
+                      <td>{row.online}</td>
+                      <td>{row.input}</td>
+                      <td>{row.output}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="pattern-summary-grid">
+              <section>
+                <h3>공통 패턴</h3>
+                <p>{project.patternRecognition.commonSummary}</p>
+              </section>
+              <section>
+                <h3>차이 패턴</h3>
+                <p>{project.patternRecognition.differenceSummary}</p>
+              </section>
+            </div>
+          </article>
+        )}
+
+        {(project.kind === "ct" || project.kind === "ct-brief" || project.kind === "ct-process") && activeSection === "abstraction" && (
           <article className="ct-abstraction-view">
             <div className="pattern-intro">
               <p className="eyebrow">Abstraction</p>
@@ -459,7 +572,7 @@ function App() {
           </article>
         )}
 
-        {(project.kind === "ct" || project.kind === "ct-brief") && activeSection === "flowchart" && (
+        {(project.kind === "ct" || project.kind === "ct-brief" || project.kind === "ct-process") && activeSection === "flowchart" && (
           <article className="ct-flowchart-view">
             <div className="pattern-intro">
               <p className="eyebrow">Flowchart</p>
@@ -520,13 +633,34 @@ function App() {
                       ? "반복해서 쓰는 세션을 핀으로 Home에 고정하고, 고정된 패널에서 바로 입력하는 흐름을 확인합니다."
                     : project.kind === "routine"
                       ? "작업지시서를 고정하고, 각 입력을 독립 실행으로 처리한 뒤 완료된 실행을 기록으로 보관하는 흐름을 확인합니다."
-                      : project.kind === "ct"
-                        ? project.prototypeNote
-                        : "뒤집기, 일시정지, 재개 트리거와 이동 완료 조건을 실제 queue 움직임으로 확인합니다."}
+                    : project.kind === "ct-process"
+                      ? project.prototypeNote
+                    : project.kind === "ct"
+                      ? project.prototypeNote
+                      : "뒤집기, 일시정지, 재개 트리거와 이동 완료 조건을 실제 queue 움직임으로 확인합니다."}
                 </p>
               </div>
               <Play size={22} />
             </div>
+
+            {project.kind === "ct-process" && (
+              <section className="prototype-description-doc">
+                <p className="eyebrow">Prototype Description</p>
+                <h3>프로토타입 설명 원문</h3>
+                {project.document.prototypeDescription.paragraphs.map((paragraph) => (
+                  <p key={paragraph}>{paragraph}</p>
+                ))}
+                <ol className="prototype-flow-list">
+                  {project.document.prototypeDescription.flow.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ol>
+                <a className="prototype-launch-link" href="#/apps/image-zettelkasten">
+                  프로토타입 열기
+                </a>
+              </section>
+            )}
+
             {project.kind === "glossary" && <GlossaryChatPrototype />}
             {project.kind === "pinned-home" && <PinnedSessionHomePrototype />}
             {project.kind === "routine" && <RepeatRunPrototype />}
