@@ -448,36 +448,10 @@ async function getCroppedImage(imageSrc: string, pixelCrop: Area, rotation = 0) 
   return canvas.toDataURL("image/jpeg", 0.92);
 }
 
-async function createSuggestionImage(imageSrc: string) {
-  if (!imageSrc) return null;
+async function resizeImageDataUrl(imageSrc: string, maxSide: number, quality: number) {
+  if (!imageSrc) return imageSrc;
   try {
     const image = await createImage(imageSrc);
-    const maxSide = 768;
-    const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
-    const width = Math.max(1, Math.round(image.width * scale));
-    const height = Math.max(1, Math.round(image.height * scale));
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
-    canvas.width = width;
-    canvas.height = height;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, width, height);
-    ctx.drawImage(image, 0, 0, width, height);
-    const dataUrl = canvas.toDataURL("image/jpeg", 0.72);
-    const [meta, data] = dataUrl.split(",");
-    const mimeType = meta.match(/^data:(.*);base64$/)?.[1] || "image/jpeg";
-    return data ? { mimeType, data } : null;
-  } catch {
-    return null;
-  }
-}
-
-async function createStoredImage(imageSrc: string) {
-  if (!imageSrc || !imageSrc.startsWith("data:image/")) return imageSrc;
-  try {
-    const image = await createImage(imageSrc);
-    const maxSide = 1800;
     const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
     const width = Math.max(1, Math.round(image.width * scale));
     const height = Math.max(1, Math.round(image.height * scale));
@@ -489,10 +463,27 @@ async function createStoredImage(imageSrc: string) {
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, width, height);
     ctx.drawImage(image, 0, 0, width, height);
-    return canvas.toDataURL("image/jpeg", 0.86);
+    return canvas.toDataURL("image/jpeg", quality);
   } catch {
     return imageSrc;
   }
+}
+
+async function createSuggestionImage(imageSrc: string) {
+  if (!imageSrc) return null;
+  try {
+    const dataUrl = await resizeImageDataUrl(imageSrc, 768, 0.72);
+    const [meta, data] = dataUrl.split(",");
+    const mimeType = meta.match(/^data:(.*);base64$/)?.[1] || "image/jpeg";
+    return data ? { mimeType, data } : null;
+  } catch {
+    return null;
+  }
+}
+
+async function createStoredImage(imageSrc: string) {
+  if (!imageSrc || !imageSrc.startsWith("data:image/")) return imageSrc;
+  return resizeImageDataUrl(imageSrc, 1800, 0.86);
 }
 
 function SampleVisual({ tone = "warm" }: { tone?: "warm" | "cool" | "dark" | "paper" }) {
@@ -714,9 +705,10 @@ export function ImageZettelkastenPrototype() {
     if (!file) return;
     const metadata = await readExifMetadata(file);
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onload = async () => {
       if (typeof reader.result === "string") {
-        setDraft({ ...createDraft(), imageUrl: reader.result, originalImageUrl: reader.result, fileName: "", collectedAt: metadata.collectedAt, collectedTime: metadata.collectedTime, collectedPlace: metadata.collectedPlace });
+        const workingImage = await resizeImageDataUrl(reader.result, 1800, 0.86);
+        setDraft({ ...createDraft(), imageUrl: workingImage, originalImageUrl: workingImage, fileName: "", collectedAt: metadata.collectedAt, collectedTime: metadata.collectedTime, collectedPlace: metadata.collectedPlace });
         setTagInputs(tagMapToInputs(emptyTags));
         setLlmSuggestion(null);
         setSuggestionStatus("idle");
