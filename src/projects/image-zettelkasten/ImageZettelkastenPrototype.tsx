@@ -409,6 +409,31 @@ async function getCroppedImage(imageSrc: string, pixelCrop: Area, rotation = 0) 
   return canvas.toDataURL("image/jpeg", 0.92);
 }
 
+async function createSuggestionImage(imageSrc: string) {
+  if (!imageSrc) return null;
+  try {
+    const image = await createImage(imageSrc);
+    const maxSide = 768;
+    const scale = Math.min(1, maxSide / Math.max(image.width, image.height));
+    const width = Math.max(1, Math.round(image.width * scale));
+    const height = Math.max(1, Math.round(image.height * scale));
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+    canvas.width = width;
+    canvas.height = height;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(image, 0, 0, width, height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.72);
+    const [meta, data] = dataUrl.split(",");
+    const mimeType = meta.match(/^data:(.*);base64$/)?.[1] || "image/jpeg";
+    return data ? { mimeType, data } : null;
+  } catch {
+    return null;
+  }
+}
+
 function SampleVisual({ tone = "warm" }: { tone?: "warm" | "cool" | "dark" | "paper" }) {
   const palettes = {
     warm: "from-[#e7d4a7] via-[#ad5538] to-[#2a2d21]",
@@ -638,6 +663,7 @@ export function ImageZettelkastenPrototype() {
     setSuggestionStatus("loading");
     setSuggestionError("");
     try {
+      const suggestionImage = await createSuggestionImage(draft.imageUrl);
       const response = await fetch("/api/suggest-card", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -648,6 +674,7 @@ export function ImageZettelkastenPrototype() {
           collectedTime: draft.collectedTime,
           collectedPlace: draft.collectedPlace,
           existingTags: cards.flatMap((card) => card.tags.topic),
+          image: suggestionImage,
           relatedCards: cards.map((card) => ({
             title: card.title,
             observation: observationBody(card.observation),

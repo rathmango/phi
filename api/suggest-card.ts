@@ -7,6 +7,10 @@ type SuggestCardRequest = {
   collectedTime?: string;
   collectedPlace?: string;
   existingTags?: string[];
+  image?: {
+    mimeType?: string;
+    data?: string;
+  };
   relatedCards?: Array<{
     title?: string;
     observation?: string;
@@ -58,6 +62,9 @@ export default async function handler(req: any, res: any) {
     const collectedTime = cleanText(body.collectedTime);
     const collectedPlace = cleanText(body.collectedPlace);
     const existingTags = cleanTags(body.existingTags);
+    const imageMimeType = cleanText(body.image?.mimeType);
+    const imageData = cleanText(body.image?.data);
+    const image = imageMimeType.startsWith("image/") && imageData ? { mimeType: imageMimeType, data: imageData } : null;
     const relatedCards = Array.isArray(body.relatedCards) ? body.relatedCards.slice(0, 40).map((card, index) => ({
       index: index + 1,
       title: cleanText(card?.title),
@@ -74,7 +81,8 @@ export default async function handler(req: any, res: any) {
 
     const prompt = [
       "너는 미감 훈련용 이미지 제텔카스텐 앱의 제목/주제 태그 제안기다.",
-      "사용자가 직접 쓴 관찰과 인사이트는 이미지에 대한 설명이다. 이 설명문 자체가 아니라, 그 설명이 가리키는 이미지 장면의 제목과 주제 태그를 제안한다.",
+      "이미지가 함께 제공되면 이미지를 가장 먼저 보고, 관찰과 인사이트는 이미지를 이해하기 위한 보조 설명으로만 사용한다.",
+      "사용자가 직접 쓴 관찰과 인사이트는 이미지에 대한 설명이다. 이 설명문 자체가 아니라, 실제 이미지 장면의 제목과 주제 태그를 제안한다.",
       "제목은 이미지 안의 조형, 물성, 빛, 색, 배치, 리듬, 밀도, 여백, 대비, 맥락을 이름 붙이는 방식으로 쓴다.",
       "제목에서 언어, 텍스트, 문장, 설명, 기록, 비어 있음, 의미, 무의미 같은 단어를 쓰지 않는다. 이미지 안에 실제 글자나 타이포그래피가 관찰 대상인 경우에도, 그 글자의 내용보다 시각적 상태와 조형 효과를 제목화한다.",
       "제목은 8~18자 정도의 짧은 한국어 문장 또는 명사구로 쓴다.",
@@ -90,12 +98,14 @@ export default async function handler(req: any, res: any) {
       `[기존 태그]\n${existingTags.join(", ") || "없음"}`,
       `[전체 카드 기록]\n${relatedCardText}`,
     ].join("\n");
+    const parts: Array<Record<string, unknown>> = [{ text: prompt }];
+    if (image) parts.push({ inlineData: image });
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        contents: [{ role: "user", parts }],
         generationConfig: {
           responseMimeType: "application/json",
           responseSchema: {
