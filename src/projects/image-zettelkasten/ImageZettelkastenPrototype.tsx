@@ -431,7 +431,7 @@ function CardImage({ card }: { card: ImageCard }) {
   return <SampleVisual tone={tones[Math.max(0, index) % tones.length]} />;
 }
 
-function CardSpread({ card, compact = false, exportMode = false, hideActions = false, onEdit, onDelete }: { card: CardLike; compact?: boolean; exportMode?: boolean; hideActions?: boolean; onEdit?: () => void; onDelete?: () => void }) {
+function CardSpread({ card, compact = false, exportMode = false, hideActions = false, onEdit, onDelete, onExport }: { card: CardLike; compact?: boolean; exportMode?: boolean; hideActions?: boolean; onEdit?: () => void; onDelete?: () => void; onExport?: () => void }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const number = card.number || "--";
   const title = card.title || "제목 미정";
@@ -447,7 +447,7 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
 
   return (
     <div className={classNames("relative grid min-w-0 max-w-full", exportMode && "h-[1417px] w-[2362px] grid-cols-2 overflow-hidden border border-[#b8b8bd] bg-white", !exportMode && (compact ? "grid-cols-1 gap-6" : "w-full grid-cols-2 overflow-hidden border border-[#b8b8bd] bg-white shadow-[0_10px_30px_rgba(0,0,0,0.12)]"))}>
-      {!exportMode && !hideActions && (onEdit || onDelete) && (
+      {!exportMode && !hideActions && (onEdit || onDelete || onExport) && (
         <div className="absolute right-3 top-3 z-30">
           <button className="grid h-8 w-8 place-items-center rounded-full bg-white/90 text-black shadow-md shadow-black/10 backdrop-blur" onClick={() => setMenuOpen((current) => !current)} type="button" aria-label="카드 메뉴">
             <MoreHorizontal size={18} />
@@ -455,6 +455,7 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
           {menuOpen && (
             <div className="absolute right-0 mt-2 w-28 overflow-hidden rounded-2xl border border-black/10 bg-white text-sm font-medium shadow-xl shadow-black/15">
               <button className="block w-full px-4 py-3 text-left hover:bg-[#f5f5f7]" onClick={() => { setMenuOpen(false); onEdit?.(); }} type="button">수정</button>
+              <button className="block w-full px-4 py-3 text-left hover:bg-[#f5f5f7]" onClick={() => { setMenuOpen(false); onExport?.(); }} type="button">내보내기</button>
               <button className="block w-full px-4 py-3 text-left text-red-600 hover:bg-red-50" onClick={() => { setMenuOpen(false); onDelete?.(); }} type="button">삭제</button>
             </div>
           )}
@@ -486,6 +487,50 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
           <section>
             <p className={classNames("mb-1.5 font-bold text-black sm:mb-2", exportMode ? "text-[34px] leading-[1.35]" : compact ? "text-[18px] leading-[1.55]" : "text-[10px] leading-[1.38] sm:text-[12px] lg:text-[16px]")}>인사이트</p>
             <p className={classNames("whitespace-pre-line font-medium", exportMode ? "text-[34px] leading-[1.5]" : compact ? "text-[18px] leading-[1.55]" : "text-[10px] leading-[1.42] sm:text-[12px] lg:text-[16px]")}>{insight}</p>
+          </section>
+        </div>
+      </article>
+    </div>
+  );
+}
+
+function ExportCardSpread({ card }: { card: ImageCard }) {
+  const observed = observationBody(card.observation);
+  const insight = insightBody(card.observation);
+  const topicTags = card.tags.topic.length > 0 ? card.tags.topic : ["태그 미정"];
+  const timeLine = [card.collectedAt, card.collectedTime].filter(Boolean).join(" · ");
+  const imageNode = card.imageUrl ? <img className="h-full w-full object-cover" src={card.imageUrl} alt="" /> : <SampleVisual tone="cool" />;
+
+  return (
+    <div className="grid h-[1417px] w-[2362px] grid-cols-2 overflow-hidden border border-[#b8b8bd] bg-white text-black">
+      <article className="relative h-full overflow-hidden border-r border-[#b8b8bd] bg-white p-[46px]">
+        <div>
+          <div className="flex items-center gap-[22px]">
+            <span className="inline-flex h-[92px] w-[92px] shrink-0 items-center justify-center rounded-full bg-black text-[46px] font-bold leading-none text-white">{card.number}</span>
+            <h3 className="text-[74px] font-bold leading-[1.12]">{card.title}</h3>
+          </div>
+          <div className="mt-[14px] text-[36px] font-medium leading-[1.2] text-black">
+            <p>{timeLine}</p>
+            {card.collectedPlace && <p>{card.collectedPlace}</p>}
+          </div>
+        </div>
+        <div className="absolute inset-x-[46px] bottom-[46px] aspect-square overflow-hidden bg-[#dfe0e4]">{imageNode}</div>
+      </article>
+
+      <article className="relative h-full overflow-hidden bg-white px-[58px] py-[58px]">
+        <div className="absolute left-[58px] top-[58px] flex max-w-[920px] flex-wrap gap-[12px]">
+          {topicTags.map((tag) => (
+            <span className="rounded-full border border-black/70 px-[26px] py-[12px] text-[36px] font-semibold leading-none text-black/70" key={tag}>{tag}</span>
+          ))}
+        </div>
+        <div className="flex h-full flex-col gap-[54px] pt-[160px]">
+          <section>
+            <p className="mb-[18px] text-[54px] font-bold leading-[1.38]">관찰</p>
+            <p className="whitespace-pre-line text-[54px] font-medium leading-[1.42]">{observed}</p>
+          </section>
+          <section>
+            <p className="mb-[18px] text-[54px] font-bold leading-[1.38]">인사이트</p>
+            <p className="whitespace-pre-line text-[54px] font-medium leading-[1.42]">{insight}</p>
           </section>
         </div>
       </article>
@@ -664,12 +709,11 @@ export function ImageZettelkastenPrototype() {
       for (const card of cards) {
         const node = cardExportRefs.current[card.id];
         if (!node) continue;
-        const rect = node.getBoundingClientRect();
         const dataUrl = await toPng(node, {
           cacheBust: true,
           pixelRatio: 1,
-          width: rect.width,
-          height: rect.height,
+          width: 2362,
+          height: 1417,
           canvasWidth: 2362,
           canvasHeight: 1417,
         });
@@ -682,6 +726,30 @@ export function ImageZettelkastenPrototype() {
       link.download = "image-zettelkasten-cards.zip";
       link.click();
       URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function exportSingleCard(card: ImageCard) {
+    if (exporting) return;
+    setExporting(true);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    try {
+      const node = cardExportRefs.current[card.id];
+      if (!node) return;
+      const dataUrl = await toPng(node, {
+        cacheBust: true,
+        pixelRatio: 1,
+        width: 2362,
+        height: 1417,
+        canvasWidth: 2362,
+        canvasHeight: 1417,
+      });
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = `card-${card.number}.png`;
+      link.click();
     } finally {
       setExporting(false);
     }
@@ -878,17 +946,17 @@ export function ImageZettelkastenPrototype() {
         <section className="rounded-[24px] bg-[#e8e8eb] p-2 shadow-inner shadow-black/5 sm:rounded-[38px] sm:p-5">
           <div className="mb-3 sm:mb-5">
             <div className="flex max-w-full items-center gap-1.5 overflow-x-auto whitespace-nowrap py-1">
-              <label className="relative flex h-7 shrink-0 items-center gap-1.5 rounded-full bg-white px-2.5 text-[10px] font-medium">
-                <Tags size={13} />
-                <span>정렬</span>
-                <ChevronRight className="rotate-90" size={12} />
+              <label className="relative flex shrink-0 items-center gap-1.5 rounded-full bg-white px-2.5 font-medium" style={{ height: 26, fontSize: 10, lineHeight: 1 }}>
+                <Tags size={12} />
+                <span style={{ fontSize: 10, lineHeight: 1 }}>정렬</span>
+                <ChevronRight className="rotate-90" size={11} />
                 <select className="absolute inset-0 h-full w-full cursor-pointer opacity-0" aria-label="정렬 기준" value={groupBy} onChange={(event) => { setGroupBy(event.target.value as GroupField); setSelectedGroupValue(null); }}>
                   {(Object.keys(groupFieldLabels) as GroupField[]).map((field) => <option key={field} value={field}>{groupFieldLabels[field]}</option>)}
                 </select>
               </label>
-              <button className={classNames("h-7 shrink-0 rounded-full px-2.5 text-[10px] font-medium", selectedGroupValue === null ? "bg-black text-white" : "bg-white text-black")} onClick={() => setSelectedGroupValue(null)} type="button">전체 {filteredCards.length}</button>
+              <button className={classNames("shrink-0 rounded-full px-2.5 font-medium", selectedGroupValue === null ? "bg-black text-white" : "bg-white text-black")} style={{ height: 26, fontSize: 10, lineHeight: 1 }} onClick={() => setSelectedGroupValue(null)} type="button">전체 {filteredCards.length}</button>
               {groups.map((group) => (
-                <button className={classNames("h-7 shrink-0 rounded-full px-2.5 text-[10px] font-medium", selectedGroupValue === group.value ? "bg-[#0A84FF] text-white" : "bg-white text-black")} key={group.value} onClick={() => setSelectedGroupValue(group.value)} type="button">{group.value} {group.cards.length}</button>
+                <button className={classNames("shrink-0 rounded-full px-2.5 font-medium", selectedGroupValue === group.value ? "bg-[#0A84FF] text-white" : "bg-white text-black")} style={{ height: 26, fontSize: 10, lineHeight: 1 }} key={group.value} onClick={() => setSelectedGroupValue(group.value)} type="button">{group.value} {group.cards.length}</button>
               ))}
             </div>
           </div>
@@ -896,8 +964,8 @@ export function ImageZettelkastenPrototype() {
           {visibleCards.length > 0 ? (
             <div className="grid grid-cols-1 gap-3 sm:gap-5 xl:grid-cols-2">
               {visibleCards.map((card) => (
-                <div className="min-w-0" ref={(node) => { cardExportRefs.current[card.id] = node; }} key={card.id}>
-                  <CardSpread card={card} hideActions={exporting} onEdit={() => startEditCard(card)} onDelete={() => setDeleteTarget(card)} />
+                <div className="min-w-0" key={card.id}>
+                  <CardSpread card={card} hideActions={exporting} onEdit={() => startEditCard(card)} onExport={() => exportSingleCard(card)} onDelete={() => setDeleteTarget(card)} />
                 </div>
               ))}
             </div>
@@ -919,6 +987,14 @@ export function ImageZettelkastenPrototype() {
           </div>
         </div>
       )}
+
+      <div className="pointer-events-none fixed -left-[10000px] top-0 opacity-0" aria-hidden="true">
+        {cards.map((card) => (
+          <div ref={(node) => { cardExportRefs.current[card.id] = node; }} key={card.id}>
+            <ExportCardSpread card={card} />
+          </div>
+        ))}
+      </div>
 
     </div>
   );
