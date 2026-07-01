@@ -681,7 +681,6 @@ export function ImageZettelkastenPrototype() {
     const next = addSteps[currentIndex + 1];
     if (next) {
       setAddStep(next.id);
-      if (next.id === "suggest") void requestCardSuggestion();
     }
   }
 
