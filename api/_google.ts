@@ -117,6 +117,19 @@ export async function listPayloadCollection(collection: string, pageSize = 200) 
   }).filter(Boolean) : [];
 }
 
+export async function getPayloadDocument(collection: string, id: string) {
+  const token = await getAccessToken();
+  const response = await fetch(documentUrl(collection, id), {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`Firestore ${collection} get failed: ${await response.text()}`);
+  const data = await response.json();
+  const payload = data?.fields?.payload?.stringValue;
+  if (!payload) return null;
+  return JSON.parse(payload);
+}
+
 export async function saveCardToFirestore(card: any) {
   return savePayloadDocument("cards", card.id, card);
 }
@@ -153,7 +166,8 @@ export async function listTagCategoriesFromFirestore() {
 }
 
 function slugifyTag(value: string) {
-  return value.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^\p{Letter}\p{Number}-]/gu, "");
+  const slug = value.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^\p{Letter}\p{Number}-]/gu, "");
+  return slug || String(Date.now());
 }
 
 export async function seedTagCategories(categories: Array<Record<string, unknown>>) {
@@ -192,6 +206,50 @@ export async function upsertTagsFromCard(tags: Record<string, string[]>) {
   await Promise.all(writes);
 }
 
+export async function syncTagsFromCards() {
+  const cards = await listCardsFromFirestore();
+  const existingTags = await listTagsFromFirestore();
+  const existingMap = new Map(existingTags.map((tag: any) => [`${tag.category}:${tag.label}`, tag]));
+  const counts = new Map<string, { category: string; label: string; count: number }>();
+
+  cards.forEach((card: any) => {
+    Object.entries(card.tags || {}).forEach(([category, labels]) => {
+      if (!Array.isArray(labels)) return;
+      Array.from(new Set(labels.map((label) => (typeof label === "string" ? label.trim() : "")).filter(Boolean))).forEach((label) => {
+        const key = `${category}:${label}`;
+        const current = counts.get(key);
+        counts.set(key, { category, label, count: (current?.count || 0) + 1 });
+      });
+    });
+  });
+
+  const now = new Date().toISOString();
+  const writes: Promise<unknown>[] = [];
+
+  counts.forEach(({ category, label, count }) => {
+    const existing = existingMap.get(`${category}:${label}`);
+    const payload = {
+      id: existing?.id || `${category}-${slugifyTag(label)}`,
+      label,
+      category,
+      aliases: existing?.aliases || [],
+      source: existing?.source || "user",
+      usageCount: count,
+      createdAt: existing?.createdAt || now,
+      updatedAt: now,
+    };
+    writes.push(savePayloadDocument("tags", payload.id, payload));
+  });
+
+  existingTags.forEach((tag: any) => {
+    const key = `${tag.category}:${tag.label}`;
+    if (counts.has(key)) return;
+    writes.push(savePayloadDocument("tags", tag.id || `${tag.category}-${slugifyTag(tag.label)}`, { ...tag, usageCount: 0, updatedAt: now }));
+  });
+
+  await Promise.all(writes);
+}
+
 function parseDataUrl(value: string) {
   const match = value.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
   if (!match) return null;
@@ -200,6 +258,21 @@ function parseDataUrl(value: string) {
 
 function publicObjectUrl(bucket: string, name: string) {
   return `/api/card-images/${name.split("/").map(encodeURIComponent).join("/")}`;
+}
+
+function storageObjectNameFromUrl(value: unknown) {
+  if (typeof value !== "string") return "";
+  const withoutOrigin = value.replace(/^https?:\/\/[^/]+/, "");
+  if (withoutOrigin.startsWith("/api/card-images/")) {
+    return withoutOrigin.slice("/api/card-images/".length).split("?")[0].split("/").map(decodeURIComponent).join("/");
+  }
+
+  const bucket = getBucketName();
+  const publicPrefix = `https://storage.googleapis.com/${bucket}/`;
+  if (value.startsWith(publicPrefix)) {
+    return value.slice(publicPrefix.length).split("?")[0].split("/").map(decodeURIComponent).join("/");
+  }
+  return "";
 }
 
 export async function uploadCardImages(card: any) {
@@ -222,6 +295,29 @@ export async function uploadCardImages(card: any) {
   if (!response.ok) throw new Error(`Storage upload failed: ${await response.text()}`);
   const imageUrl = publicObjectUrl(bucket, objectName);
   return { ...card, imageUrl, originalImageUrl: imageUrl };
+}
+
+export async function deleteStorageObject(objectName: string) {
+  if (!objectName) return;
+  const token = await getAccessToken();
+  const bucket = getBucketName();
+  const response = await fetch(`https://storage.googleapis.com/storage/v1/b/${bucket}/o/${encodeURIComponent(objectName)}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok && response.status !== 404) throw new Error(`Storage delete failed: ${await response.text()}`);
+}
+
+export async function deleteCardAndAssets(id: string) {
+  const card = await getPayloadDocument("cards", id);
+  const objects = new Set<string>();
+  if (card) {
+    objects.add(storageObjectNameFromUrl(card.imageUrl));
+    objects.add(storageObjectNameFromUrl(card.originalImageUrl));
+  }
+  await Promise.all(Array.from(objects).filter(Boolean).map((objectName) => deleteStorageObject(objectName)));
+  await deleteCardFromFirestore(id);
+  await syncTagsFromCards();
 }
 
 export async function downloadStorageObject(objectName: string) {

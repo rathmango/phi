@@ -152,3 +152,24 @@ LLM 규칙:
 - 수집 공간
 
 선택한 카테고리의 태그들이 필터 칩으로 표시되고, 카드는 해당 태그를 가진 경우 중복으로 포함된다.
+
+## 저장/삭제 정합성 정책
+
+카드 저장:
+
+- 이미지 data URL은 Cloud Storage에 업로드한다.
+- 카드 payload는 Firestore `cards` 컬렉션에 저장한다.
+- 저장 후 전체 `cards` 컬렉션을 기준으로 `tags` 컬렉션의 `usageCount`를 재계산한다.
+
+카드 삭제:
+
+- Firestore에서 카드 payload를 먼저 읽는다.
+- 카드의 `imageUrl`과 `originalImageUrl`이 가리키는 Cloud Storage object를 삭제한다.
+- Firestore `cards/{id}` 문서를 삭제한다.
+- 삭제 후 전체 `cards` 컬렉션을 기준으로 `tags` 컬렉션의 `usageCount`를 재계산한다.
+
+태그 삭제:
+
+- 카드 삭제만으로 태그 문서를 바로 삭제하지 않는다.
+- 대신 `usageCount`를 0으로 만든다.
+- 태그 DB는 사용자의 조형 어휘 기록이기도 하므로, 사용 이력이 사라져도 어휘 자체는 보존한다.

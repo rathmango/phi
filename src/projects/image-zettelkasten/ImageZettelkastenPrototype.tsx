@@ -905,9 +905,13 @@ export function ImageZettelkastenPrototype() {
     setMode("add");
   }
 
-  function confirmDeleteCard() {
+  async function confirmDeleteCard() {
     if (!deleteTarget) return;
-    void fetch(`/api/cards/${encodeURIComponent(deleteTarget.id)}`, { method: "DELETE" });
+    const response = await fetch(`/api/cards/${encodeURIComponent(deleteTarget.id)}`, { method: "DELETE" });
+    if (!response.ok) {
+      window.alert("카드를 삭제하지 못했다.");
+      return;
+    }
     setCards((current) => current.filter((card) => card.id !== deleteTarget.id));
     setDeleteTarget(null);
   }
