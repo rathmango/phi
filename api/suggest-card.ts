@@ -7,6 +7,12 @@ type SuggestCardRequest = {
   collectedTime?: string;
   collectedPlace?: string;
   existingTags?: string[];
+  relatedCards?: Array<{
+    title?: string;
+    observation?: string;
+    insight?: string;
+    tags?: string[];
+  }>;
 };
 
 type SuggestCardResponse = {
@@ -52,19 +58,35 @@ export default async function handler(req: any, res: any) {
     const collectedTime = cleanText(body.collectedTime);
     const collectedPlace = cleanText(body.collectedPlace);
     const existingTags = cleanTags(body.existingTags);
+    const relatedCards = Array.isArray(body.relatedCards) ? body.relatedCards.slice(0, 40).map((card, index) => ({
+      index: index + 1,
+      title: cleanText(card?.title),
+      observation: cleanText(card?.observation),
+      insight: cleanText(card?.insight),
+      tags: cleanTags(card?.tags),
+    })).filter((card) => card.title || card.observation || card.insight || card.tags.length) : [];
+    const relatedCardText = relatedCards.length > 0 ? relatedCards.map((card) => [
+      `${card.index}. ${card.title || "제목 없음"}`,
+      `관찰: ${card.observation || "없음"}`,
+      `인사이트: ${card.insight || "없음"}`,
+      `태그: ${card.tags.join(", ") || "없음"}`,
+    ].join("\n")).join("\n\n") : "아직 비교할 카드가 없음";
 
     const prompt = [
       "너는 미감 훈련용 이미지 제텔카스텐 앱의 제목/주제 태그 제안기다.",
       "사용자가 직접 쓴 관찰과 인사이트를 바탕으로만 한국어 제목과 주제 태그를 제안한다.",
       "제목은 8~18자 정도의 짧은 한국어 문장 또는 명사구로 쓴다.",
-      "태그는 3~6개, 짧은 한국어 명사구로 쓴다. 해시태그 기호는 쓰지 않는다.",
-      "이미 있는 태그와 겹쳐도 괜찮지만, 같은 응답 안에서는 중복 태그를 만들지 않는다.",
+      "태그는 단순히 현재 카드만 요약하지 않는다. 전체 카드의 관찰/인사이트/기존 태그를 함께 보고, 여러 카드 사이에서 반복되는 조형적 기준이나 감각적 패턴을 끌어낸다.",
+      "현재 카드와 비슷한 관찰 또는 인사이트를 가진 기존 카드가 있고 그 카드에 적절한 태그가 있으면, 그 태그를 우선 재사용한다.",
+      "비슷한 기존 카드가 없거나 기존 태그로 설명되지 않으면, 현재 카드에서 새롭게 필요한 주제 태그를 제안한다.",
+      "태그는 3~6개, 짧은 한국어 명사구로 쓴다. 해시태그 기호는 쓰지 않는다. 같은 응답 안에서는 중복 태그를 만들지 않는다.",
       "",
       `[관찰]\n${observation || "비어 있음"}`,
       `[인사이트]\n${insight || "비어 있음"}`,
       `[수집 시간]\n${[collectedAt, collectedTime].filter(Boolean).join(" ") || "미기록"}`,
       `[수집 공간]\n${collectedPlace || "미기록"}`,
       `[기존 태그]\n${existingTags.join(", ") || "없음"}`,
+      `[전체 카드 기록]\n${relatedCardText}`,
     ].join("\n");
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${apiKey}`, {

@@ -648,6 +648,12 @@ export function ImageZettelkastenPrototype() {
           collectedTime: draft.collectedTime,
           collectedPlace: draft.collectedPlace,
           existingTags: cards.flatMap((card) => card.tags.topic),
+          relatedCards: cards.map((card) => ({
+            title: card.title,
+            observation: observationBody(card.observation),
+            insight: insightBody(card.observation),
+            tags: card.tags.topic,
+          })),
         }),
       });
       if (!response.ok) throw new Error("suggestion request failed");
