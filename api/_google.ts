@@ -77,6 +77,14 @@ function cardDocumentUrl(id: string) {
   return `${firestoreBaseUrl()}/cards/${encodeURIComponent(id)}`;
 }
 
+function collectionUrl(collection: string) {
+  return `${firestoreBaseUrl()}/${collection}`;
+}
+
+function documentUrl(collection: string, id: string) {
+  return `${collectionUrl(collection)}/${encodeURIComponent(id)}`;
+}
+
 function payloadToFields(payload: unknown) {
   const now = new Date().toISOString();
   return {
@@ -86,14 +94,19 @@ function payloadToFields(payload: unknown) {
 }
 
 export async function listCardsFromFirestore() {
+  const cards = await listPayloadCollection("cards", 200);
+  return cards.sort((a: any, b: any) => (Number.parseInt(b.number, 10) || 0) - (Number.parseInt(a.number, 10) || 0));
+}
+
+export async function listPayloadCollection(collection: string, pageSize = 200) {
   const token = await getAccessToken();
-  const response = await fetch(`${firestoreBaseUrl()}/cards?pageSize=200`, {
+  const response = await fetch(`${collectionUrl(collection)}?pageSize=${pageSize}`, {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (response.status === 404) return [];
-  if (!response.ok) throw new Error(`Firestore list failed: ${await response.text()}`);
+  if (!response.ok) throw new Error(`Firestore ${collection} list failed: ${await response.text()}`);
   const data = await response.json();
-  const cards = Array.isArray(data.documents) ? data.documents.map((document: any) => {
+  return Array.isArray(data.documents) ? data.documents.map((document: any) => {
     const payload = document?.fields?.payload?.stringValue;
     if (!payload) return null;
     try {
@@ -102,21 +115,24 @@ export async function listCardsFromFirestore() {
       return null;
     }
   }).filter(Boolean) : [];
-  return cards.sort((a: any, b: any) => (Number.parseInt(b.number, 10) || 0) - (Number.parseInt(a.number, 10) || 0));
 }
 
 export async function saveCardToFirestore(card: any) {
+  return savePayloadDocument("cards", card.id, card);
+}
+
+export async function savePayloadDocument(collection: string, id: string, payload: any) {
   const token = await getAccessToken();
-  const response = await fetch(cardDocumentUrl(card.id), {
+  const response = await fetch(documentUrl(collection, id), {
     method: "PATCH",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ fields: payloadToFields(card) }),
+    body: JSON.stringify({ fields: payloadToFields(payload) }),
   });
-  if (!response.ok) throw new Error(`Firestore save failed: ${await response.text()}`);
-  return card;
+  if (!response.ok) throw new Error(`Firestore ${collection} save failed: ${await response.text()}`);
+  return payload;
 }
 
 export async function deleteCardFromFirestore(id: string) {
@@ -126,6 +142,54 @@ export async function deleteCardFromFirestore(id: string) {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok && response.status !== 404) throw new Error(`Firestore delete failed: ${await response.text()}`);
+}
+
+export async function listTagsFromFirestore() {
+  return listPayloadCollection("tags", 500);
+}
+
+export async function listTagCategoriesFromFirestore() {
+  return listPayloadCollection("tag_categories", 100);
+}
+
+function slugifyTag(value: string) {
+  return value.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^\p{Letter}\p{Number}-]/gu, "");
+}
+
+export async function seedTagCategories(categories: Array<Record<string, unknown>>) {
+  const existing = await listTagCategoriesFromFirestore();
+  if (existing.length > 0) return existing;
+  await Promise.all(categories.map((category: any) => savePayloadDocument("tag_categories", String(category.id), category)));
+  return categories;
+}
+
+export async function upsertTagsFromCard(tags: Record<string, string[]>) {
+  const existingTags = await listTagsFromFirestore();
+  const existingMap = new Map(existingTags.map((tag: any) => [`${tag.category}:${tag.label}`, tag]));
+  const now = new Date().toISOString();
+  const writes: Promise<unknown>[] = [];
+
+  Object.entries(tags || {}).forEach(([category, labels]) => {
+    if (!Array.isArray(labels)) return;
+    labels.forEach((label) => {
+      const cleanLabel = typeof label === "string" ? label.trim() : "";
+      if (!cleanLabel) return;
+      const existing = existingMap.get(`${category}:${cleanLabel}`);
+      const payload = {
+        id: `${category}-${slugifyTag(cleanLabel)}`,
+        label: cleanLabel,
+        category,
+        aliases: existing?.aliases || [],
+        source: existing?.source || "user",
+        usageCount: Number(existing?.usageCount || 0) + 1,
+        createdAt: existing?.createdAt || now,
+        updatedAt: now,
+      };
+      writes.push(savePayloadDocument("tags", payload.id, payload));
+    });
+  });
+
+  await Promise.all(writes);
 }
 
 function parseDataUrl(value: string) {

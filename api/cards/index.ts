@@ -1,4 +1,4 @@
-import { listCardsFromFirestore, saveCardToFirestore, uploadCardImages } from "../_google.js";
+import { listCardsFromFirestore, saveCardToFirestore, uploadCardImages, upsertTagsFromCard } from "../_google.js";
 
 export default async function handler(req: any, res: any) {
   try {
@@ -12,6 +12,7 @@ export default async function handler(req: any, res: any) {
       if (!body?.card?.id) return res.status(400).json({ error: "card.id is required" });
       const card = await uploadCardImages(body.card);
       await saveCardToFirestore(card);
+      await upsertTagsFromCard(card.tags);
       return res.status(200).json({ card });
     }
 

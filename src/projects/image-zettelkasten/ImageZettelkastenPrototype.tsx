@@ -9,7 +9,8 @@ import "react-easy-crop/react-easy-crop.css";
 
 type AppMode = "library" | "add";
 type AddStep = "refine" | "metadata" | "observe" | "insight" | "suggest";
-type GroupField = "topic" | "collectedAt" | "collectedPlace" | "sourceUrl" | "foundContext" | "element" | "composition" | "condition" | "context" | "effect";
+type TagCategory = "subject" | "form" | "composition" | "color" | "material" | "space" | "light" | "effect";
+type GroupField = TagCategory | "collectedAt" | "collectedPlace";
 
 type Observation = {
   element: string;
@@ -20,14 +21,7 @@ type Observation = {
   insight?: string;
 };
 
-type CardTags = {
-  topic: string[];
-  element: string[];
-  composition: string[];
-  condition: string[];
-  context: string[];
-  effect: string[];
-};
+type CardTags = Record<TagCategory, string[]>;
 
 type CropState = {
   crop: Point;
@@ -55,7 +49,19 @@ type ImageCard = {
 
 type DraftCard = Omit<ImageCard, "id" | "number">;
 type CardLike = (ImageCard | DraftCard) & { number?: string };
-type SuggestionResult = { title: string; tags: string[] };
+type SuggestionResult = { title: string; tags: CardTags; newTags?: Array<{ category: TagCategory; label: string; reason?: string }> };
+
+const tagCategories: Array<{ id: TagCategory; label: string; description: string; examples: string[] }> = [
+  { id: "subject", label: "대상", description: "이미지 속 관찰 대상", examples: ["간판", "타일", "벽면", "계단", "창문", "문", "의자", "조명", "식물"] },
+  { id: "form", label: "형태", description: "점, 선, 면, 덩어리 같은 기본 조형 단위", examples: ["점", "선", "면", "직선", "곡선", "원", "격자", "덩어리"] },
+  { id: "composition", label: "구성", description: "요소들이 조직되는 방식", examples: ["반복", "리듬", "정렬", "균형", "비대칭", "중첩", "분할", "밀도"] },
+  { id: "color", label: "색감", description: "색상, 명도, 채도, 대비의 작동 방식", examples: ["고채도", "저채도", "명도 대비", "색상 대비", "단색", "그라디언트", "무채색"] },
+  { id: "material", label: "재질", description: "표면과 물성", examples: ["거친 표면", "매끈한 표면", "유광", "무광", "반사", "투명", "금속", "유리", "페인트"] },
+  { id: "space", label: "공간", description: "여백, 깊이, 스케일, 거리감", examples: ["여백", "깊이감", "압축감", "평면성", "스케일 대비", "전경과 배경"] },
+  { id: "light", label: "빛", description: "빛, 그림자, 반사, 밝기의 작동 방식", examples: ["그림자", "직사광", "확산광", "역광", "반사광", "하이라이트"] },
+  { id: "effect", label: "효과", description: "조형 요소가 만드는 감각적 인상", examples: ["안정감", "긴장감", "낯섦", "가벼움", "무거움", "차가움", "따뜻함", "유쾌함"] },
+];
+const tagCategoryIds = tagCategories.map((category) => category.id);
 
 const addSteps: Array<{ id: AddStep; label: string }> = [
   { id: "refine", label: "관찰 이미지화" },
@@ -74,16 +80,16 @@ const observationFields: Array<{ key: keyof Observation; label: string; prompt: 
 ];
 
 const groupFieldLabels: Record<GroupField, string> = {
-  topic: "주제 태그",
   collectedAt: "수집 시간",
   collectedPlace: "수집 공간",
-  sourceUrl: "출처",
-  foundContext: "발견 맥락",
-  element: "요소 태그",
-  composition: "구성 태그",
-  condition: "상태 태그",
-  context: "맥락 태그",
-  effect: "효과 태그",
+  subject: "대상",
+  form: "형태",
+  composition: "구성",
+  color: "색감",
+  material: "재질",
+  space: "공간",
+  light: "빛",
+  effect: "효과",
 };
 
 const emptyObservation: Observation = {
@@ -95,11 +101,13 @@ const emptyObservation: Observation = {
 };
 
 const emptyTags: CardTags = {
-  topic: [],
-  element: [],
+  subject: [],
+  form: [],
   composition: [],
-  condition: [],
-  context: [],
+  color: [],
+  material: [],
+  space: [],
+  light: [],
   effect: [],
 };
 
@@ -125,12 +133,14 @@ const sampleCards: ImageCard[] = [
       effect: "깊이와 농도가 생겨 단순한 색 번짐보다 방향성을 가진 그라디언트처럼 느껴진다.",
     },
     tags: {
-      topic: ["시간축", "아침", "그라디언트"],
-      element: ["유약", "표면", "수직선"],
-      composition: ["수직 리듬", "농도 변화"],
-      condition: ["균열", "흐름"],
-      context: ["길거리", "화분"],
-      effect: ["깊이", "방향성"],
+      subject: ["화분"],
+      form: ["수직선"],
+      composition: ["수직 리듬"],
+      color: ["그라디언트"],
+      material: ["유약", "균열"],
+      space: ["깊이감"],
+      light: [],
+      effect: ["방향성"],
     },
   },
   {
@@ -154,11 +164,13 @@ const sampleCards: ImageCard[] = [
       effect: "차분하게 갈라 앉은 그림자가 강렬한 붉은색을 덩어리로 나누어 준다.",
     },
     tags: {
-      topic: ["시간축", "점심", "그림자", "덩어리"],
-      element: ["꽃", "가지", "그림자"],
+      subject: ["화단", "꽃"],
+      form: ["덩어리"],
       composition: ["군집", "분절"],
-      condition: ["강한 햇빛", "고채도"],
-      context: ["화단", "점심"],
+      color: ["고채도"],
+      material: [],
+      space: [],
+      light: ["그림자", "직사광"],
       effect: ["강렬함", "분절감"],
     },
   },
@@ -183,12 +195,14 @@ const sampleCards: ImageCard[] = [
       effect: "복잡한 요소가 사라지고 선과 빈 하늘만 남아 시원하다.",
     },
     tags: {
-      topic: ["직선", "깔끔한", "여백", "점"],
-      element: ["건물", "하늘", "모서리"],
+      subject: ["건물", "하늘"],
+      form: ["직선", "점"],
       composition: ["소실점", "반복선"],
-      condition: ["맑음", "그늘"],
-      context: ["공덕", "건축"],
-      effect: ["시원함", "상승감"],
+      color: [],
+      material: [],
+      space: ["여백", "상승감"],
+      light: ["그늘"],
+      effect: ["시원함"],
     },
   },
 ];
@@ -289,6 +303,38 @@ function tagStringToArray(value: string) {
   return value.split(",").map((item) => item.trim()).filter(Boolean);
 }
 
+function normalizeTags(value: unknown): CardTags {
+  const record = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
+  const next: CardTags = { ...emptyTags };
+  tagCategoryIds.forEach((category) => {
+    next[category] = Array.isArray(record[category]) ? tagStringToArray(record[category].join(",")) : [];
+  });
+  if (Array.isArray(record.topic)) next.effect = [...next.effect, ...tagStringToArray(record.topic.join(","))];
+  if (Array.isArray(record.element)) next.subject = [...next.subject, ...tagStringToArray(record.element.join(","))];
+  if (Array.isArray(record.condition)) next.material = [...next.material, ...tagStringToArray(record.condition.join(","))];
+  if (Array.isArray(record.context)) next.space = [...next.space, ...tagStringToArray(record.context.join(","))];
+  tagCategoryIds.forEach((category) => {
+    next[category] = Array.from(new Set(next[category].map((tag) => tag.trim()).filter(Boolean)));
+  });
+  return next;
+}
+
+function hasAnyTags(tags: CardTags) {
+  return Object.values(tags).some((items) => items.length > 0);
+}
+
+function flattenTags(tags: CardTags) {
+  return tagCategoryIds.flatMap((category) => tags[category].map((tag) => ({ category, label: tag })));
+}
+
+function tagMapToInputs(tags: CardTags) {
+  return Object.fromEntries(tagCategoryIds.map((category) => [category, tags[category].join(", ")])) as Record<TagCategory, string>;
+}
+
+function normalizeCard(card: ImageCard): ImageCard {
+  return { ...card, tags: normalizeTags(card.tags) };
+}
+
 function observationText(observation: Observation) {
   return [...observationFields.map((field) => observation[field.key]), observation.insight].filter(Boolean).join(" ");
 }
@@ -313,25 +359,18 @@ function suggestTitle(observation: Observation) {
 
 function suggestTags(observation: Observation) {
   const text = observationText(observation);
-  const tags = new Set<string>();
-  if (text.includes("그림자")) tags.add("그림자");
-  if (text.includes("재질") || text.includes("질감") || text.includes("표면")) tags.add("질감");
-  if (text.includes("여백") || text.includes("하늘")) tags.add("여백");
-  if (text.includes("색") || text.includes("대비")) tags.add("색");
-  if (text.includes("선") || text.includes("직선")) tags.add("직선");
-  if (text.includes("반복")) tags.add("반복");
-  if (tags.size === 0) tags.add("관찰 필요");
-  return Array.from(tags);
+  const tags = normalizeTags({});
+  if (text.includes("그림자")) tags.light.push("그림자");
+  if (text.includes("재질") || text.includes("질감") || text.includes("표면")) tags.material.push("질감");
+  if (text.includes("여백") || text.includes("하늘")) tags.space.push("여백");
+  if (text.includes("색") || text.includes("대비")) tags.color.push("색상 대비");
+  if (text.includes("선") || text.includes("직선")) tags.form.push("직선");
+  if (text.includes("반복")) tags.composition.push("반복");
+  return tags;
 }
 
 function getGroupValues(card: ImageCard, groupBy: GroupField) {
-  if (groupBy === "topic") return card.tags.topic;
-  if (groupBy === "element") return card.tags.element;
-  if (groupBy === "composition") return card.tags.composition;
-  if (groupBy === "condition") return card.tags.condition;
-  if (groupBy === "context") return card.tags.context;
-  if (groupBy === "effect") return card.tags.effect;
-  if (groupBy === "sourceUrl") return [card.sourceUrl || "출처 미기록"];
+  if (tagCategoryIds.includes(groupBy as TagCategory)) return card.tags[groupBy as TagCategory];
   return [card[groupBy] || "미기록"];
 }
 
@@ -485,7 +524,7 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
   const title = card.title || "제목 미정";
   const observed = observationBody(card.observation);
   const insight = insightBody(card.observation);
-  const topicTags = card.tags.topic.length > 0 ? card.tags.topic : ["태그 미정"];
+  const displayTags = flattenTags(normalizeTags(card.tags)).slice(0, 8);
   const timeLine = [card.collectedAt, card.collectedTime].filter(Boolean).join(" · ");
   const placeLine = card.collectedPlace;
   const imageNode = card.imageUrl ? <img className="h-full w-full object-cover" src={card.imageUrl} alt="" /> : <SampleVisual tone="cool" />;
@@ -525,7 +564,7 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
 
       <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full" : "aspect-[5/6]", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "", textCardPadding)}>
         <div className={classNames("absolute flex flex-wrap", exportMode ? "left-[54px] top-[54px] gap-[12px]" : "left-3 top-3 gap-1 sm:left-4 sm:top-4 lg:left-5 lg:top-5")}>
-          {topicTags.map((tag) => <span className={classNames("rounded-full border border-black/70 font-semibold leading-none text-black/70", exportMode ? "px-[18px] py-[8px] text-[24px]" : "px-1.5 py-0.5 text-[8px] sm:px-2 sm:py-1 sm:text-[10px] lg:text-[11px]")} key={tag}>{tag}</span>)}
+          {(displayTags.length > 0 ? displayTags : [{ category: "effect" as TagCategory, label: "태그 미정" }]).map((tag) => <span className={classNames("rounded-full border border-black/70 font-semibold leading-none text-black/70", exportMode ? "px-[18px] py-[8px] text-[24px]" : "px-1.5 py-0.5 text-[8px] sm:px-2 sm:py-1 sm:text-[10px] lg:text-[11px]")} key={`${tag.category}-${tag.label}`}>{tag.label}</span>)}
         </div>
         <div className={classNames("flex h-full flex-col", exportMode ? "gap-[42px] pt-[150px]" : "gap-3 pt-[40px] sm:gap-5 sm:pt-[54px]")}>
           <section>
@@ -545,7 +584,7 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
 function ExportCardSpread({ card }: { card: ImageCard }) {
   const observed = observationBody(card.observation);
   const insight = insightBody(card.observation);
-  const topicTags = card.tags.topic.length > 0 ? card.tags.topic : ["태그 미정"];
+  const displayTags = flattenTags(normalizeTags(card.tags)).slice(0, 8);
   const timeLine = [card.collectedAt, card.collectedTime].filter(Boolean).join(" · ");
   const imageNode = card.imageUrl ? <img className="h-full w-full object-cover" src={card.imageUrl} alt="" /> : <SampleVisual tone="cool" />;
 
@@ -567,8 +606,8 @@ function ExportCardSpread({ card }: { card: ImageCard }) {
 
       <article className="relative h-full overflow-hidden bg-white px-[58px] py-[58px]">
         <div className="absolute left-[58px] top-[58px] flex max-w-[920px] flex-wrap gap-[12px]">
-          {topicTags.map((tag) => (
-            <span className="rounded-full border border-black/70 px-[26px] py-[12px] text-[36px] font-semibold leading-none text-black/70" key={tag}>{tag}</span>
+          {(displayTags.length > 0 ? displayTags : [{ category: "effect" as TagCategory, label: "태그 미정" }]).map((tag) => (
+            <span className="rounded-full border border-black/70 px-[26px] py-[12px] text-[36px] font-semibold leading-none text-black/70" key={`${tag.category}-${tag.label}`}>{tag.label}</span>
           ))}
         </div>
         <div className="flex h-full flex-col gap-[54px] pt-[160px]">
@@ -589,11 +628,11 @@ function ExportCardSpread({ card }: { card: ImageCard }) {
 export function ImageZettelkastenPrototype() {
   const [mode, setMode] = useState<AppMode>("library");
   const [cards, setCards] = useState<ImageCard[]>([]);
-  const [groupBy, setGroupBy] = useState<GroupField>("topic");
+  const [groupBy, setGroupBy] = useState<GroupField>("subject");
   const [selectedGroupValue, setSelectedGroupValue] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState<DraftCard>(createDraft);
-  const [tagInput, setTagInput] = useState("");
+  const [tagInputs, setTagInputs] = useState<Record<TagCategory, string>>(tagMapToInputs(emptyTags));
   const [addStep, setAddStep] = useState<AddStep>("refine");
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ImageCard | null>(null);
@@ -617,9 +656,9 @@ export function ImageZettelkastenPrototype() {
   const fallbackTitle = useMemo(() => suggestTitle(draft.observation), [draft.observation]);
   const fallbackTags = useMemo(() => suggestTags(draft.observation), [draft.observation]);
   const suggestedTitle = llmSuggestion?.title || fallbackTitle;
-  const suggestedTags = llmSuggestion?.tags.length ? llmSuggestion.tags : fallbackTags;
+  const suggestedTags = llmSuggestion && hasAnyTags(llmSuggestion.tags) ? llmSuggestion.tags : fallbackTags;
   const finalTitle = draft.title.trim() || suggestedTitle;
-  const finalTopicTags = draft.tags.topic.length > 0 ? draft.tags.topic : suggestedTags;
+  const finalTags = hasAnyTags(draft.tags) ? draft.tags : suggestedTags;
   const suggestionRequestKey = useMemo(() => JSON.stringify({
     observation: observationBody(draft.observation),
     insight: insightBody(draft.observation),
@@ -640,7 +679,7 @@ export function ImageZettelkastenPrototype() {
     fetch("/api/cards")
       .then((response) => response.ok ? response.json() : Promise.reject(new Error("load failed")))
       .then((data) => {
-        if (!cancelled) setCards(Array.isArray(data.cards) ? data.cards : []);
+        if (!cancelled) setCards(Array.isArray(data.cards) ? data.cards.map(normalizeCard) : []);
       })
       .catch(() => {
         if (!cancelled) setCards(sampleCards);
@@ -678,7 +717,7 @@ export function ImageZettelkastenPrototype() {
     reader.onload = () => {
       if (typeof reader.result === "string") {
         setDraft({ ...createDraft(), imageUrl: reader.result, originalImageUrl: reader.result, fileName: "", collectedAt: metadata.collectedAt, collectedTime: metadata.collectedTime, collectedPlace: metadata.collectedPlace });
-        setTagInput("");
+        setTagInputs(tagMapToInputs(emptyTags));
         setLlmSuggestion(null);
         setSuggestionStatus("idle");
         setSuggestionError("");
@@ -714,20 +753,20 @@ export function ImageZettelkastenPrototype() {
           collectedAt: draft.collectedAt,
           collectedTime: draft.collectedTime,
           collectedPlace: draft.collectedPlace,
-          existingTags: cards.flatMap((card) => card.tags.topic),
+          existingTags: cards.flatMap((card) => flattenTags(normalizeTags(card.tags)).map((tag) => tag.label)),
           image: suggestionImage,
         }),
       });
       if (!response.ok) throw new Error("suggestion request failed");
       const data = await response.json() as Partial<SuggestionResult>;
       const title = typeof data.title === "string" ? data.title.trim() : "";
-      const tags = Array.isArray(data.tags) ? data.tags.map((tag) => String(tag).trim()).filter(Boolean) : [];
-      if (!title && tags.length === 0) throw new Error("empty suggestion");
+      const tags = normalizeTags(data.tags);
+      if (!title && !hasAnyTags(tags)) throw new Error("empty suggestion");
       const nextTitle = title || fallbackTitle;
-      const nextTags = tags.length ? tags : fallbackTags;
+      const nextTags = hasAnyTags(tags) ? tags : fallbackTags;
       setLlmSuggestion({ title: nextTitle, tags: nextTags });
-      setDraft((current) => ({ ...current, title: nextTitle, tags: { ...current.tags, topic: nextTags } }));
-      setTagInput(nextTags.join(", "));
+      setDraft((current) => ({ ...current, title: nextTitle, tags: nextTags }));
+      setTagInputs(tagMapToInputs(nextTags));
       setSuggestionStatus("idle");
     } catch {
       setLlmSuggestion(null);
@@ -736,10 +775,15 @@ export function ImageZettelkastenPrototype() {
     }
   }
 
-  function removeTopicTag(tagToRemove: string) {
-    const nextTags = draft.tags.topic.filter((tag) => tag !== tagToRemove);
-    updateDraft({ tags: { ...draft.tags, topic: nextTags } });
-    setTagInput(nextTags.join(", "));
+  function updateCategoryTags(category: TagCategory, value: string) {
+    setTagInputs((current) => ({ ...current, [category]: value }));
+    updateDraft({ tags: { ...draft.tags, [category]: tagStringToArray(value) } });
+  }
+
+  function removeCategoryTag(category: TagCategory, tagToRemove: string) {
+    const nextTags = draft.tags[category].filter((tag) => tag !== tagToRemove);
+    updateDraft({ tags: { ...draft.tags, [category]: nextTags } });
+    setTagInputs((current) => ({ ...current, [category]: nextTags.join(", ") }));
   }
 
   async function goNext() {
@@ -782,7 +826,7 @@ export function ImageZettelkastenPrototype() {
         foundContext: draft.foundContext,
         crop: draft.crop,
         observation: draft.observation,
-        tags: { ...draft.tags, topic: finalTopicTags },
+        tags: finalTags,
       };
       const response = await fetch(`/api/cards/${encodeURIComponent(editingCardId)}`, {
         method: "PUT",
@@ -796,7 +840,7 @@ export function ImageZettelkastenPrototype() {
       const data = await response.json();
       setCards((current) => current.map((card) => card.id === editingCardId ? {
         ...card,
-        ...data.card,
+        ...normalizeCard(data.card),
       } : card));
       setSelectedGroupValue(null);
       setEditingCardId(null);
@@ -819,7 +863,7 @@ export function ImageZettelkastenPrototype() {
       foundContext: draft.foundContext || "미기록",
       crop: draft.crop,
       observation: draft.observation,
-      tags: { ...draft.tags, topic: finalTopicTags },
+      tags: finalTags,
     };
     const response = await fetch("/api/cards", {
       method: "POST",
@@ -831,7 +875,7 @@ export function ImageZettelkastenPrototype() {
       return;
     }
     const data = await response.json();
-    setCards((current) => [data.card, ...current]);
+    setCards((current) => [normalizeCard(data.card), ...current]);
     setSelectedGroupValue(null);
     setMode("library");
   }
@@ -849,9 +893,9 @@ export function ImageZettelkastenPrototype() {
       foundContext: card.foundContext,
       crop: card.crop,
       observation: { ...emptyObservation, ...card.observation },
-      tags: { ...emptyTags, ...card.tags },
+      tags: normalizeTags(card.tags),
     });
-    setTagInput(card.tags.topic.join(", "));
+    setTagInputs(tagMapToInputs(normalizeTags(card.tags)));
     setLlmSuggestion(null);
     setSuggestionStatus("idle");
     setSuggestionError("");
@@ -1075,17 +1119,20 @@ export function ImageZettelkastenPrototype() {
 
           {addStep === "suggest" && (
             <section className="grid grid-cols-1 gap-4 lg:min-h-[680px] lg:grid-cols-[1fr_1fr] lg:gap-6">
-              <div className="rounded-[28px] bg-black p-5 text-white lg:rounded-[36px] lg:p-8"><Sparkles className="text-[#0A84FF]" size={28} /><p className="mt-5 text-xs font-semibold text-[#0A84FF] lg:mt-8 lg:text-sm">제안</p><div className="mt-6 rounded-[24px] bg-white p-5 text-black lg:mt-10 lg:rounded-[30px] lg:p-6"><div className="flex items-center justify-between gap-3"><span className="text-xs font-semibold text-[#6e6e73]">이미지 제목과 주제 태그</span><button className="rounded-full border border-black/10 px-3 py-1.5 text-xs font-semibold disabled:opacity-40" disabled={suggestionStatus === "loading"} onClick={requestCardSuggestion} type="button">{suggestionStatus === "loading" ? "생성 중" : "다시 제안"}</button></div>{suggestionStatus === "loading" ? <div className="mt-8 grid place-items-center py-10"><span className="h-8 w-8 animate-spin rounded-full border-2 border-black/15 border-t-black" /></div> : <><p className="mt-3 text-xl font-semibold lg:text-3xl">{draft.title || suggestedTitle}</p><div className="mt-5 flex flex-wrap gap-2">{(draft.tags.topic.length > 0 ? draft.tags.topic : suggestedTags).map((tag) => <span className="rounded-full bg-[#0A84FF] px-3 py-2 text-xs font-semibold text-white lg:text-sm" key={tag}>{tag}</span>)}</div></>}{suggestionError && <p className="mt-3 text-xs font-semibold text-[#ff3b30]">{suggestionError}</p>}</div></div>
+              <div className="rounded-[28px] bg-black p-5 text-white lg:rounded-[36px] lg:p-8"><Sparkles className="text-[#0A84FF]" size={28} /><p className="mt-5 text-xs font-semibold text-[#0A84FF] lg:mt-8 lg:text-sm">제안</p><div className="mt-6 rounded-[24px] bg-white p-5 text-black lg:mt-10 lg:rounded-[30px] lg:p-6"><div className="flex items-center justify-between gap-3"><span className="text-xs font-semibold text-[#6e6e73]">이미지 제목과 조형 태그</span><button className="rounded-full border border-black/10 px-3 py-1.5 text-xs font-semibold disabled:opacity-40" disabled={suggestionStatus === "loading"} onClick={requestCardSuggestion} type="button">{suggestionStatus === "loading" ? "생성 중" : "다시 제안"}</button></div>{suggestionStatus === "loading" ? <div className="mt-8 grid place-items-center py-10"><span className="h-8 w-8 animate-spin rounded-full border-2 border-black/15 border-t-black" /></div> : <><p className="mt-3 text-xl font-semibold lg:text-3xl">{draft.title || suggestedTitle}</p><div className="mt-5 flex flex-wrap gap-2">{flattenTags(hasAnyTags(draft.tags) ? draft.tags : suggestedTags).map((tag) => <span className="rounded-full bg-[#0A84FF] px-3 py-2 text-xs font-semibold text-white lg:text-sm" key={`${tag.category}-${tag.label}`}>{tag.label}</span>)}</div></>}{suggestionError && <p className="mt-3 text-xs font-semibold text-[#ff3b30]">{suggestionError}</p>}</div></div>
               <div className="grid content-center gap-5 rounded-[28px] bg-white p-5 lg:rounded-[36px] lg:p-8">
                 <Field label="제목" value={draft.title} onChange={(value) => updateDraft({ title: value })} />
-                <label className="grid gap-2 text-sm font-black text-black">
-                  <span>주제 태그</span>
-                  <input className="rounded-2xl border border-black/10 bg-white px-4 py-3" value={tagInput} onChange={(event) => { setTagInput(event.target.value); updateDraft({ tags: { ...draft.tags, topic: tagStringToArray(event.target.value) } }); }} placeholder={suggestedTags.join(", ")} />
-                  <small className="text-xs font-medium text-[#6e6e73]">쉼표를 입력하면 새로운 태그로 분리된다.</small>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {draft.tags.topic.map((tag) => <span className="group inline-flex items-center gap-1 rounded-full border border-black/50 px-3 py-1.5 text-xs font-medium text-black/70" key={tag}>{tag}<button className="hidden rounded-full p-0.5 text-black/50 hover:bg-black hover:text-white group-hover:inline-flex" onClick={() => removeTopicTag(tag)} type="button" aria-label={`${tag} 삭제`}><X size={12} /></button></span>)}
-                  </div>
-                </label>
+                <div className="grid gap-3">
+                  {tagCategories.map((category) => (
+                    <label className="grid gap-2 text-sm font-black text-black" key={category.id}>
+                      <span>{category.label}</span>
+                      <input className="rounded-2xl border border-black/10 bg-white px-4 py-3" value={tagInputs[category.id]} onChange={(event) => updateCategoryTags(category.id, event.target.value)} placeholder={category.examples.slice(0, 4).join(", ")} />
+                      <div className="flex flex-wrap gap-2">
+                        {draft.tags[category.id].map((tag) => <span className="group inline-flex items-center gap-1 rounded-full border border-black/50 px-3 py-1.5 text-xs font-medium text-black/70" key={`${category.id}-${tag}`}>{tag}<button className="hidden rounded-full p-0.5 text-black/50 hover:bg-black hover:text-white group-hover:inline-flex" onClick={() => removeCategoryTag(category.id, tag)} type="button" aria-label={`${tag} 삭제`}><X size={12} /></button></span>)}
+                      </div>
+                    </label>
+                  ))}
+                </div>
               </div>
             </section>
           )}
