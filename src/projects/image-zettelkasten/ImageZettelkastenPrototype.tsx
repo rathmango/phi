@@ -505,6 +505,7 @@ export function ImageZettelkastenPrototype() {
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ImageCard | null>(null);
   const [cropZoomInitialized, setCropZoomInitialized] = useState(false);
+  const [cropFrameSize, setCropFrameSize] = useState(() => (typeof window === "undefined" ? 500 : Math.min(500, Math.max(280, window.innerWidth - 48))));
   const addImageInputRef = useRef<HTMLInputElement | null>(null);
   const cardExportRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [exporting, setExporting] = useState(false);
@@ -519,8 +520,6 @@ export function ImageZettelkastenPrototype() {
   const suggestedTags = useMemo(() => suggestTags(draft.observation), [draft.observation]);
   const finalTitle = draft.title.trim() || suggestedTitle;
   const finalTopicTags = draft.tags.topic.length > 0 ? draft.tags.topic : suggestedTags;
-  const cropFrameSize = typeof window === "undefined" ? 500 : Math.min(500, Math.max(280, window.innerWidth - 48));
-
   function updateDraft(next: Partial<DraftCard>) {
     setDraft((current) => ({ ...current, ...next }));
   }
@@ -549,6 +548,7 @@ export function ImageZettelkastenPrototype() {
         setTagInput("");
         setEditingCardId(null);
         setCropZoomInitialized(false);
+        setCropFrameSize(typeof window === "undefined" ? 500 : Math.min(500, Math.max(280, window.innerWidth - 48)));
         setAddStep("refine");
         setMode("add");
       }
@@ -764,12 +764,9 @@ export function ImageZettelkastenPrototype() {
                       onCropComplete={(_, croppedAreaPixels) => updateCrop({ croppedAreaPixels })}
                       onMediaLoaded={(mediaSize) => {
                         if (cropZoomInitialized || editingCardId) return;
-                        const containerWidth = typeof window === "undefined" ? cropFrameSize : Math.min(1280, window.innerWidth);
-                        const containerHeight = typeof window === "undefined" ? cropFrameSize : Math.max(360, window.innerHeight - 212);
-                        const containScale = Math.min(containerWidth / mediaSize.width, containerHeight / mediaSize.height);
-                        const displayedWidth = mediaSize.width * containScale;
-                        const fittedZoom = Math.min(6, Math.max(0.25, cropFrameSize / displayedWidth));
-                        updateCrop({ crop: { x: 0, y: 0 }, zoom: fittedZoom });
+                        const displayedImageWidth = Math.max(280, Math.round(mediaSize.width));
+                        setCropFrameSize(displayedImageWidth);
+                        updateCrop({ crop: { x: 0, y: 0 }, zoom: 1 });
                         setCropZoomInitialized(true);
                       }}
                     />
