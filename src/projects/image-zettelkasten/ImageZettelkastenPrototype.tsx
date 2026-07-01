@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronRight, Library, MoreHorizontal, RotateCcw, Search, Sparkles, Tags } from "lucide-react";
+import { ArrowLeft, ChevronRight, Library, MoreHorizontal, RotateCcw, Search, Sparkles, Tags, X } from "lucide-react";
 import * as exifr from "exifr";
 import { toPng } from "html-to-image";
 import JSZip from "jszip";
@@ -661,13 +661,23 @@ export function ImageZettelkastenPrototype() {
       const title = typeof data.title === "string" ? data.title.trim() : "";
       const tags = Array.isArray(data.tags) ? data.tags.map((tag) => String(tag).trim()).filter(Boolean) : [];
       if (!title && tags.length === 0) throw new Error("empty suggestion");
-      setLlmSuggestion({ title: title || fallbackTitle, tags: tags.length ? tags : fallbackTags });
+      const nextTitle = title || fallbackTitle;
+      const nextTags = tags.length ? tags : fallbackTags;
+      setLlmSuggestion({ title: nextTitle, tags: nextTags });
+      setDraft((current) => ({ ...current, title: nextTitle, tags: { ...current.tags, topic: nextTags } }));
+      setTagInput(nextTags.join(", "));
       setSuggestionStatus("idle");
     } catch {
       setLlmSuggestion(null);
       setSuggestionStatus("error");
       setSuggestionError("제안을 만들지 못했다. 기본 제안을 사용한다.");
     }
+  }
+
+  function removeTopicTag(tagToRemove: string) {
+    const nextTags = draft.tags.topic.filter((tag) => tag !== tagToRemove);
+    updateDraft({ tags: { ...draft.tags, topic: nextTags } });
+    setTagInput(nextTags.join(", "));
   }
 
   async function goNext() {
@@ -975,18 +985,17 @@ export function ImageZettelkastenPrototype() {
 
           {addStep === "suggest" && (
             <section className="grid grid-cols-1 gap-4 lg:min-h-[680px] lg:grid-cols-[1fr_1fr] lg:gap-6">
-              <div className="rounded-[28px] bg-black p-5 text-white lg:rounded-[36px] lg:p-8"><Sparkles className="text-[#0A84FF]" size={28} /><p className="mt-5 text-xs font-semibold text-[#0A84FF] lg:mt-8 lg:text-sm">제안</p><div className="mt-6 rounded-[24px] bg-white p-5 text-black lg:mt-10 lg:rounded-[30px] lg:p-6"><div className="flex items-center justify-between gap-3"><span className="text-xs font-semibold text-[#6e6e73]">제안 제목</span><button className="rounded-full border border-black/10 px-3 py-1.5 text-xs font-semibold disabled:opacity-40" disabled={suggestionStatus === "loading"} onClick={requestCardSuggestion} type="button">{suggestionStatus === "loading" ? "생성 중" : "다시 제안"}</button></div><p className="mt-3 text-xl font-semibold lg:text-3xl">{suggestedTitle}</p>{suggestionError && <p className="mt-3 text-xs font-semibold text-[#ff3b30]">{suggestionError}</p>}</div><div className="mt-5 flex flex-wrap gap-2">{suggestedTags.map((tag) => <span className="rounded-full bg-[#0A84FF] px-3 py-2 text-xs font-semibold text-white lg:text-sm" key={tag}>{tag}</span>)}</div></div>
+              <div className="rounded-[28px] bg-black p-5 text-white lg:rounded-[36px] lg:p-8"><Sparkles className="text-[#0A84FF]" size={28} /><p className="mt-5 text-xs font-semibold text-[#0A84FF] lg:mt-8 lg:text-sm">제안</p><div className="mt-6 rounded-[24px] bg-white p-5 text-black lg:mt-10 lg:rounded-[30px] lg:p-6"><div className="flex items-center justify-between gap-3"><span className="text-xs font-semibold text-[#6e6e73]">이미지 제목과 주제 태그</span><button className="rounded-full border border-black/10 px-3 py-1.5 text-xs font-semibold disabled:opacity-40" disabled={suggestionStatus === "loading"} onClick={requestCardSuggestion} type="button">{suggestionStatus === "loading" ? "생성 중" : "다시 제안"}</button></div>{suggestionStatus === "loading" ? <div className="mt-8 grid place-items-center py-10"><span className="h-8 w-8 animate-spin rounded-full border-2 border-black/15 border-t-black" /></div> : <><p className="mt-3 text-xl font-semibold lg:text-3xl">{draft.title || suggestedTitle}</p><div className="mt-5 flex flex-wrap gap-2">{(draft.tags.topic.length > 0 ? draft.tags.topic : suggestedTags).map((tag) => <span className="rounded-full bg-[#0A84FF] px-3 py-2 text-xs font-semibold text-white lg:text-sm" key={tag}>{tag}</span>)}</div></>}{suggestionError && <p className="mt-3 text-xs font-semibold text-[#ff3b30]">{suggestionError}</p>}</div></div>
               <div className="grid content-center gap-5 rounded-[28px] bg-white p-5 lg:rounded-[36px] lg:p-8">
-                <Field label="확정 제목" value={draft.title} onChange={(value) => updateDraft({ title: value })} placeholder={suggestedTitle} />
+                <Field label="제목" value={draft.title} onChange={(value) => updateDraft({ title: value })} />
                 <label className="grid gap-2 text-sm font-black text-black">
-                  <span>확정 주제 태그</span>
+                  <span>주제 태그</span>
                   <input className="rounded-2xl border border-black/10 bg-white px-4 py-3" value={tagInput} onChange={(event) => { setTagInput(event.target.value); updateDraft({ tags: { ...draft.tags, topic: tagStringToArray(event.target.value) } }); }} placeholder={suggestedTags.join(", ")} />
                   <small className="text-xs font-medium text-[#6e6e73]">쉼표를 입력하면 새로운 태그로 분리된다.</small>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    {(draft.tags.topic.length > 0 ? draft.tags.topic : suggestedTags).map((tag) => <span className="rounded-full border border-black/50 px-3 py-1.5 text-xs font-medium text-black/70" key={tag}>{tag}</span>)}
+                    {draft.tags.topic.map((tag) => <span className="group inline-flex items-center gap-1 rounded-full border border-black/50 px-3 py-1.5 text-xs font-medium text-black/70" key={tag}>{tag}<button className="hidden rounded-full p-0.5 text-black/50 hover:bg-black hover:text-white group-hover:inline-flex" onClick={() => removeTopicTag(tag)} type="button" aria-label={`${tag} 삭제`}><X size={12} /></button></span>)}
                   </div>
                 </label>
-                <button className="rounded-full border border-black/15 bg-[#f5f5f7] px-5 py-3 text-sm font-black" onClick={() => { updateDraft({ title: suggestedTitle, tags: { ...draft.tags, topic: suggestedTags } }); setTagInput(suggestedTags.join(", ")); }} type="button">제안값 사용</button>
               </div>
             </section>
           )}
