@@ -710,7 +710,9 @@ export function ImageZettelkastenPrototype() {
   const importImageInputRef = useRef<HTMLInputElement | null>(null);
   const cardExportRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const lastSuggestionRequestKey = useRef("");
+  const saveInFlightRef = useRef(false);
   const [exporting, setExporting] = useState(false);
+  const [savingCard, setSavingCard] = useState(false);
   const [llmSuggestion, setLlmSuggestion] = useState<SuggestionResult | null>(null);
   const [suggestionStatus, setSuggestionStatus] = useState<"idle" | "loading" | "error">("idle");
   const [suggestionError, setSuggestionError] = useState("");
@@ -943,13 +945,55 @@ export function ImageZettelkastenPrototype() {
   }
 
   async function saveDraftAsCard() {
-    const committedImageUrl = addStep === "refine" ? await commitCrop() : draft.imageUrl;
-    const storedImageUrl = await createStoredImage(committedImageUrl || draft.imageUrl);
-    if (editingCardId) {
-      const updatedCard = {
-        ...(cards.find((card) => card.id === editingCardId) as ImageCard),
-        id: editingCardId,
-        number: cards.find((card) => card.id === editingCardId)?.number || "1",
+    if (saveInFlightRef.current) return;
+    saveInFlightRef.current = true;
+    setSavingCard(true);
+
+    try {
+      const committedImageUrl = addStep === "refine" ? await commitCrop() : draft.imageUrl;
+      const storedImageUrl = await createStoredImage(committedImageUrl || draft.imageUrl);
+      if (editingCardId) {
+        const updatedCard = {
+          ...(cards.find((card) => card.id === editingCardId) as ImageCard),
+          id: editingCardId,
+          number: cards.find((card) => card.id === editingCardId)?.number || "1",
+          title: finalTitle,
+          imageUrl: storedImageUrl,
+          originalImageUrl: storedImageUrl,
+          collectedAt: draft.collectedAt,
+          collectedTime: draft.collectedTime,
+          collectedPlace: draft.collectedPlace || "미기록",
+          sourceUrl: draft.sourceUrl,
+          fileName: draft.fileName,
+          foundContext: draft.foundContext,
+          crop: draft.crop,
+          observation: draft.observation,
+          tags: finalTags,
+        };
+        const response = await fetch(`/api/cards/${encodeURIComponent(editingCardId)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ card: updatedCard }),
+        });
+        if (!response.ok) {
+          window.alert("카드를 저장하지 못했다.");
+          return;
+        }
+        const data = await response.json();
+        if (Array.isArray(data.cards)) {
+          setCards(data.cards.map(normalizeCard));
+        } else {
+          setCards((current) => current.map((card) => card.id === editingCardId ? { ...card, ...normalizeCard(data.card) } : card));
+        }
+        setSelectedGroupValue(null);
+        setEditingCardId(null);
+        setMode("library");
+        return;
+      }
+
+      const newCard: ImageCard = {
+        id: `card-${Date.now()}`,
+        number: "0",
         title: finalTitle,
         imageUrl: storedImageUrl,
         originalImageUrl: storedImageUrl,
@@ -957,16 +1001,16 @@ export function ImageZettelkastenPrototype() {
         collectedTime: draft.collectedTime,
         collectedPlace: draft.collectedPlace || "미기록",
         sourceUrl: draft.sourceUrl,
-        fileName: draft.fileName,
-        foundContext: draft.foundContext,
+        fileName: draft.fileName || "untitled-image",
+        foundContext: draft.foundContext || "미기록",
         crop: draft.crop,
         observation: draft.observation,
         tags: finalTags,
       };
-      const response = await fetch(`/api/cards/${encodeURIComponent(editingCardId)}`, {
-        method: "PUT",
+      const response = await fetch("/api/cards", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ card: updatedCard }),
+        body: JSON.stringify({ card: newCard }),
       });
       if (!response.ok) {
         window.alert("카드를 저장하지 못했다.");
@@ -976,60 +1020,27 @@ export function ImageZettelkastenPrototype() {
       if (Array.isArray(data.cards)) {
         setCards(data.cards.map(normalizeCard));
       } else {
-        setCards((current) => current.map((card) => card.id === editingCardId ? { ...card, ...normalizeCard(data.card) } : card));
+        setCards((current) => [normalizeCard(data.card), ...current]);
       }
       setSelectedGroupValue(null);
-      setEditingCardId(null);
-      setMode("library");
-      return;
-    }
-
-    const newCard: ImageCard = {
-      id: `card-${Date.now()}`,
-      number: "0",
-      title: finalTitle,
-      imageUrl: storedImageUrl,
-      originalImageUrl: storedImageUrl,
-      collectedAt: draft.collectedAt,
-      collectedTime: draft.collectedTime,
-      collectedPlace: draft.collectedPlace || "미기록",
-      sourceUrl: draft.sourceUrl,
-      fileName: draft.fileName || "untitled-image",
-      foundContext: draft.foundContext || "미기록",
-      crop: draft.crop,
-      observation: draft.observation,
-      tags: finalTags,
-    };
-    const response = await fetch("/api/cards", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ card: newCard }),
-    });
-    if (!response.ok) {
-      window.alert("카드를 저장하지 못했다.");
-      return;
-    }
-    const data = await response.json();
-    if (Array.isArray(data.cards)) {
-      setCards(data.cards.map(normalizeCard));
-    } else {
-      setCards((current) => [normalizeCard(data.card), ...current]);
-    }
-    setSelectedGroupValue(null);
-    if (importQueue?.active) {
-      const nextIndex = importQueue.currentIndex + 1;
-      if (nextIndex < importQueue.rows.length) {
-        const nextQueue = { ...importQueue, currentIndex: nextIndex };
-        setImportQueue(nextQueue);
-        void loadImportRow(nextQueue.rows, nextQueue.files, nextIndex);
-      } else {
-        setImportQueue(null);
-        setPendingImportRows([]);
-        setMode("library");
+      if (importQueue?.active) {
+        const nextIndex = importQueue.currentIndex + 1;
+        if (nextIndex < importQueue.rows.length) {
+          const nextQueue = { ...importQueue, currentIndex: nextIndex };
+          setImportQueue(nextQueue);
+          void loadImportRow(nextQueue.rows, nextQueue.files, nextIndex);
+        } else {
+          setImportQueue(null);
+          setPendingImportRows([]);
+          setMode("library");
+        }
+        return;
       }
-      return;
+      setMode("library");
+    } finally {
+      saveInFlightRef.current = false;
+      setSavingCard(false);
     }
-    setMode("library");
   }
 
   function startEditCard(card: ImageCard) {
@@ -1151,7 +1162,12 @@ export function ImageZettelkastenPrototype() {
                   );
                 })}
               </div>
-              {addStep === "suggest" ? <button className="rounded-full bg-[#0A84FF] px-5 py-2 text-sm font-semibold text-white" onClick={saveDraftAsCard} type="button">완료</button> : <button className="rounded-full bg-black px-5 py-2 text-sm font-semibold text-white" onClick={goNext} type="button">다음</button>}
+              {addStep === "suggest" ? (
+                <button className="inline-flex items-center gap-2 rounded-full bg-[#0A84FF] px-5 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45" disabled={savingCard} onClick={saveDraftAsCard} type="button">
+                  {savingCard && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />}
+                  <span>{savingCard ? "저장 중" : "완료"}</span>
+                </button>
+              ) : <button className="rounded-full bg-black px-5 py-2 text-sm font-semibold text-white" onClick={goNext} type="button">다음</button>}
             </div>
           </header>
         )}

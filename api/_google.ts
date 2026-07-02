@@ -334,7 +334,9 @@ export async function uploadCardImages(card: any) {
     body: Buffer.from(parsed.data, "base64"),
   });
   if (!response.ok) throw new Error(`Storage upload failed: ${await response.text()}`);
-  const imageUrl = publicObjectUrl(bucket, objectName);
+  const uploadedObject = await response.json().catch(() => null);
+  const storedObjectName = typeof uploadedObject?.name === "string" && uploadedObject.name ? uploadedObject.name : objectName;
+  const imageUrl = publicObjectUrl(bucket, storedObjectName);
   return { ...card, imageUrl, originalImageUrl: imageUrl };
 }
 
