@@ -522,30 +522,48 @@ function getRadianAngle(degreeValue: number) {
   return (degreeValue * Math.PI) / 180;
 }
 
-async function getCroppedImage(imageSrc: string, cropState: CropState, frameSize: number) {
+function rotateSize(width: number, height: number, rotation: number) {
+  const rotRad = getRadianAngle(rotation);
+  return {
+    width: Math.abs(Math.cos(rotRad) * width) + Math.abs(Math.sin(rotRad) * height),
+    height: Math.abs(Math.sin(rotRad) * width) + Math.abs(Math.cos(rotRad) * height),
+  };
+}
+
+async function getCroppedImage(imageSrc: string, pixelCrop: Area, rotation = 0) {
   const image = await createImage(imageSrc);
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) return imageSrc;
 
-  const outputSize = 1800;
-  const safeFrameSize = Math.max(1, frameSize || outputSize);
-  const outputScale = outputSize / safeFrameSize;
-  const baseScale = Math.max(safeFrameSize / image.width, safeFrameSize / image.height);
-  const renderedWidth = image.width * baseScale * cropState.zoom * outputScale;
-  const renderedHeight = image.height * baseScale * cropState.zoom * outputScale;
+  const rotRad = getRadianAngle(rotation);
+  const { width: bBoxWidth, height: bBoxHeight } = rotateSize(image.width, image.height, rotation);
 
-  canvas.width = outputSize;
-  canvas.height = outputSize;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, outputSize, outputSize);
+  canvas.width = bBoxWidth;
+  canvas.height = bBoxHeight;
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
-  ctx.translate(outputSize / 2 + cropState.crop.x * outputScale, outputSize / 2 + cropState.crop.y * outputScale);
-  ctx.rotate(getRadianAngle(cropState.rotation));
-  ctx.drawImage(image, -renderedWidth / 2, -renderedHeight / 2, renderedWidth, renderedHeight);
+  ctx.translate(bBoxWidth / 2, bBoxHeight / 2);
+  ctx.rotate(rotRad);
+  ctx.translate(-image.width / 2, -image.height / 2);
+  ctx.drawImage(image, 0, 0);
 
-  return canvas.toDataURL("image/jpeg", 0.86);
+  const cropX = Math.max(0, Math.round(pixelCrop.x));
+  const cropY = Math.max(0, Math.round(pixelCrop.y));
+  const cropWidth = Math.max(1, Math.min(Math.round(pixelCrop.width), canvas.width - cropX));
+  const cropHeight = Math.max(1, Math.min(Math.round(pixelCrop.height), canvas.height - cropY));
+  const croppedCanvas = document.createElement("canvas");
+  const croppedCtx = croppedCanvas.getContext("2d");
+  if (!croppedCtx) return imageSrc;
+  croppedCanvas.width = cropWidth;
+  croppedCanvas.height = cropHeight;
+  croppedCtx.fillStyle = "#ffffff";
+  croppedCtx.fillRect(0, 0, cropWidth, cropHeight);
+  croppedCtx.imageSmoothingEnabled = true;
+  croppedCtx.imageSmoothingQuality = "high";
+  croppedCtx.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+
+  return croppedCanvas.toDataURL("image/jpeg", 0.86);
 }
 
 async function resizeImageDataUrl(imageSrc: string, maxSide: number, quality: number) {
@@ -916,8 +934,8 @@ export function ImageZettelkastenPrototype() {
   }
 
   async function commitCrop() {
-    if (!draft.originalImageUrl) return draft.imageUrl;
-    const cropped = await getCroppedImage(draft.originalImageUrl, draft.crop, cropFrameSize);
+    if (!draft.originalImageUrl || !draft.crop.croppedAreaPixels) return draft.imageUrl;
+    const cropped = await getCroppedImage(draft.originalImageUrl, draft.crop.croppedAreaPixels, draft.crop.rotation);
     updateDraft({ imageUrl: cropped });
     return cropped;
   }
@@ -1247,7 +1265,7 @@ export function ImageZettelkastenPrototype() {
                       rotation={draft.crop.rotation}
                       aspect={1}
                       cropShape="rect"
-                      objectFit="cover"
+                      objectFit="contain"
                       showGrid={false}
                       zoomWithScroll={false}
                       minZoom={0.25}
@@ -1269,9 +1287,10 @@ export function ImageZettelkastenPrototype() {
                       onZoomChange={(zoom) => updateCrop({ zoom })}
                       onRotationChange={(rotation) => updateCrop({ rotation })}
                       onCropComplete={(_, croppedAreaPixels) => updateCrop({ croppedAreaPixels })}
-                      onMediaLoaded={() => {
+                      onMediaLoaded={(mediaSize) => {
                         if (cropZoomInitialized || editingCardId) return;
-                        setCropFrameSize(getDefaultCropFrameSize());
+                        const mediaFrameSize = Math.floor(Math.min(mediaSize.width, mediaSize.height));
+                        setCropFrameSize(Math.max(280, Math.min(getDefaultCropFrameSize(), mediaFrameSize)));
                         updateCrop({ crop: { x: 0, y: 0 }, zoom: 1 });
                         setCropZoomInitialized(true);
                       }}
