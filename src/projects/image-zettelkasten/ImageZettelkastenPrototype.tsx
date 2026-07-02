@@ -498,42 +498,29 @@ function getRadianAngle(degreeValue: number) {
   return (degreeValue * Math.PI) / 180;
 }
 
-function rotateSize(width: number, height: number, rotation: number) {
-  const rotRad = getRadianAngle(rotation);
-  return {
-    width: Math.abs(Math.cos(rotRad) * width) + Math.abs(Math.sin(rotRad) * height),
-    height: Math.abs(Math.sin(rotRad) * width) + Math.abs(Math.cos(rotRad) * height),
-  };
-}
-
-async function getCroppedImage(imageSrc: string, pixelCrop: Area, rotation = 0) {
+async function getCroppedImage(imageSrc: string, cropState: CropState, frameSize: number) {
   const image = await createImage(imageSrc);
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) return imageSrc;
 
-  const rotRad = getRadianAngle(rotation);
-  const { width: bBoxWidth, height: bBoxHeight } = rotateSize(image.width, image.height, rotation);
-  canvas.width = bBoxWidth;
-  canvas.height = bBoxHeight;
-  ctx.translate(bBoxWidth / 2, bBoxHeight / 2);
-  ctx.rotate(rotRad);
-  ctx.translate(-image.width / 2, -image.height / 2);
-  ctx.drawImage(image, 0, 0);
+  const outputSize = 1800;
+  const safeFrameSize = Math.max(1, frameSize || outputSize);
+  const outputScale = outputSize / safeFrameSize;
+  const baseScale = Math.min(safeFrameSize / image.width, safeFrameSize / image.height);
+  const renderedWidth = image.width * baseScale * cropState.zoom * outputScale;
+  const renderedHeight = image.height * baseScale * cropState.zoom * outputScale;
 
-  const cropX = Math.min(Math.max(0, Math.round(pixelCrop.x)), canvas.width - 1);
-  const cropY = Math.min(Math.max(0, Math.round(pixelCrop.y)), canvas.height - 1);
-  const safeCrop = {
-    x: cropX,
-    y: cropY,
-    width: Math.max(1, Math.min(Math.round(pixelCrop.width), canvas.width - cropX)),
-    height: Math.max(1, Math.min(Math.round(pixelCrop.height), canvas.height - cropY)),
-  };
+  canvas.width = outputSize;
+  canvas.height = outputSize;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, outputSize, outputSize);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.translate(outputSize / 2 + cropState.crop.x * outputScale, outputSize / 2 + cropState.crop.y * outputScale);
+  ctx.rotate(getRadianAngle(cropState.rotation));
+  ctx.drawImage(image, -renderedWidth / 2, -renderedHeight / 2, renderedWidth, renderedHeight);
 
-  const data = ctx.getImageData(safeCrop.x, safeCrop.y, safeCrop.width, safeCrop.height);
-  canvas.width = safeCrop.width;
-  canvas.height = safeCrop.height;
-  ctx.putImageData(data, 0, 0);
   return canvas.toDataURL("image/jpeg", 0.92);
 }
 
@@ -881,8 +868,8 @@ export function ImageZettelkastenPrototype() {
   }
 
   async function commitCrop() {
-    if (!draft.originalImageUrl || !draft.crop.croppedAreaPixels) return draft.imageUrl;
-    const cropped = await getCroppedImage(draft.originalImageUrl, draft.crop.croppedAreaPixels, draft.crop.rotation);
+    if (!draft.originalImageUrl) return draft.imageUrl;
+    const cropped = await getCroppedImage(draft.originalImageUrl, draft.crop, cropFrameSize);
     updateDraft({ imageUrl: cropped });
     return cropped;
   }
