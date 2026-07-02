@@ -298,12 +298,16 @@ function parseDataUrl(value: string) {
 }
 
 function publicObjectUrl(bucket: string, name: string) {
-  return `/api/card-images/${name.split("/").map(encodeURIComponent).join("/")}`;
+  return `/api/card-image?path=${encodeURIComponent(name)}`;
 }
 
 function storageObjectNameFromUrl(value: unknown) {
   if (typeof value !== "string") return "";
   const withoutOrigin = value.replace(/^https?:\/\/[^/]+/, "");
+  if (withoutOrigin.startsWith("/api/card-image?")) {
+    const path = new URLSearchParams(withoutOrigin.split("?")[1] || "").get("path");
+    return path ? decodeURIComponent(path) : "";
+  }
   if (withoutOrigin.startsWith("/api/card-images/")) {
     return withoutOrigin.slice("/api/card-images/".length).split("?")[0].split("/").map(decodeURIComponent).join("/");
   }

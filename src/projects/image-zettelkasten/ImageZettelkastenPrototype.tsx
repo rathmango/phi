@@ -333,8 +333,24 @@ function tagMapToInputs(tags: CardTags) {
   return Object.fromEntries(tagCategoryIds.map((category) => [category, tags[category].join(", ")])) as Record<TagCategory, string>;
 }
 
+function normalizeCardImageUrl(value: string) {
+  if (!value) return value;
+  const withoutOrigin = value.replace(/^https?:\/\/[^/]+/, "");
+  if (withoutOrigin.startsWith("/api/card-image?")) return withoutOrigin;
+  if (withoutOrigin.startsWith("/api/card-images/")) {
+    const objectName = withoutOrigin.slice("/api/card-images/".length).split("?")[0].split("/").map(decodeURIComponent).join("/");
+    return `/api/card-image?path=${encodeURIComponent(objectName)}`;
+  }
+  return value;
+}
+
 function normalizeCard(card: ImageCard): ImageCard {
-  return { ...card, tags: normalizeTags(card.tags) };
+  return {
+    ...card,
+    imageUrl: normalizeCardImageUrl(card.imageUrl),
+    originalImageUrl: normalizeCardImageUrl(card.originalImageUrl),
+    tags: normalizeTags(card.tags),
+  };
 }
 
 function normalizeFileName(value: string) {
@@ -636,11 +652,11 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
         <div className={classNames("flex h-full flex-col", exportMode ? "gap-[42px] pt-[150px]" : "gap-3 pt-[40px] sm:gap-5 sm:pt-[54px]")}>
           <section>
             <p className={classNames("mb-1.5 font-bold text-black sm:mb-2", exportMode ? "text-[34px] leading-[1.35]" : compact ? "text-[18px] leading-[1.55]" : "text-[10px] leading-[1.38] sm:text-[12px] lg:text-[16px]")}>관찰</p>
-            <p className={classNames("whitespace-pre-line font-medium", exportMode ? "text-[34px] leading-[1.5]" : compact ? "text-[18px] leading-[1.55]" : "text-[10px] leading-[1.42] sm:text-[12px] lg:text-[16px]")}>{observed}</p>
+            <p className={classNames("whitespace-pre-line font-medium", exportMode ? "text-[30px] leading-[1.5]" : compact ? "text-[16px] leading-[1.55]" : "text-[9px] leading-[1.42] sm:text-[11px] lg:text-[14px]")}>{observed}</p>
           </section>
           <section>
             <p className={classNames("mb-1.5 font-bold text-black sm:mb-2", exportMode ? "text-[34px] leading-[1.35]" : compact ? "text-[18px] leading-[1.55]" : "text-[10px] leading-[1.38] sm:text-[12px] lg:text-[16px]")}>인사이트</p>
-            <p className={classNames("whitespace-pre-line font-medium", exportMode ? "text-[34px] leading-[1.5]" : compact ? "text-[18px] leading-[1.55]" : "text-[10px] leading-[1.42] sm:text-[12px] lg:text-[16px]")}>{insight}</p>
+            <p className={classNames("whitespace-pre-line font-medium", exportMode ? "text-[30px] leading-[1.5]" : compact ? "text-[16px] leading-[1.55]" : "text-[9px] leading-[1.42] sm:text-[11px] lg:text-[14px]")}>{insight}</p>
           </section>
         </div>
       </article>
@@ -680,11 +696,11 @@ function ExportCardSpread({ card }: { card: ImageCard }) {
         <div className="flex h-full flex-col gap-[54px] pt-[160px]">
           <section>
             <p className="mb-[18px] text-[54px] font-bold leading-[1.38]">관찰</p>
-            <p className="whitespace-pre-line text-[54px] font-medium leading-[1.42]">{observed}</p>
+            <p className="whitespace-pre-line text-[48px] font-medium leading-[1.42]">{observed}</p>
           </section>
           <section>
             <p className="mb-[18px] text-[54px] font-bold leading-[1.38]">인사이트</p>
-            <p className="whitespace-pre-line text-[54px] font-medium leading-[1.42]">{insight}</p>
+            <p className="whitespace-pre-line text-[48px] font-medium leading-[1.42]">{insight}</p>
           </section>
         </div>
       </article>
