@@ -341,6 +341,23 @@ function normalizeFileName(value: string) {
   return value.trim().split(/[\\/]/).pop()?.toLowerCase() || "";
 }
 
+function normalizeFileStem(value: string) {
+  return normalizeFileName(value).replace(/\.[^.]+$/, "");
+}
+
+function getImportFile(files: Record<string, File>, fileName: string) {
+  return files[normalizeFileName(fileName)] || files[normalizeFileStem(fileName)];
+}
+
+function createImportFileMap(files: File[]) {
+  const entries: Array<[string, File]> = [];
+  files.forEach((file) => {
+    entries.push([normalizeFileName(file.name), file]);
+    entries.push([normalizeFileStem(file.name), file]);
+  });
+  return Object.fromEntries(entries);
+}
+
 function parseCsvRecords(text: string) {
   const rows: string[][] = [];
   let row: string[] = [];
@@ -808,7 +825,7 @@ export function ImageZettelkastenPrototype() {
   async function loadImportRow(rows: ImportRow[], files: Record<string, File>, currentIndex: number) {
     const row = rows[currentIndex];
     if (!row) return;
-    const file = files[normalizeFileName(row.fileName)];
+    const file = getImportFile(files, row.fileName);
     if (!file) {
       window.alert(`이미지 파일을 찾지 못했다: ${row.fileName}`);
       return;
@@ -852,8 +869,8 @@ export function ImageZettelkastenPrototype() {
   function readImportImages(fileList: FileList | null) {
     const files = fileList ? Array.from(fileList) : [];
     if (pendingImportRows.length === 0 || files.length === 0) return;
-    const fileMap = Object.fromEntries(files.map((file) => [normalizeFileName(file.name), file]));
-    const missing = pendingImportRows.filter((row) => !fileMap[normalizeFileName(row.fileName)]);
+    const fileMap = createImportFileMap(files);
+    const missing = pendingImportRows.filter((row) => !getImportFile(fileMap, row.fileName));
     if (missing.length > 0) {
       window.alert(`CSV와 매칭되지 않은 이미지가 있다: ${missing.slice(0, 5).map((row) => row.fileName).join(", ")}${missing.length > 5 ? "..." : ""}`);
       return;
