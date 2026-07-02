@@ -644,10 +644,10 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
   const imageNode = card.imageUrl ? <img className="h-full w-full object-cover" src={card.imageUrl} alt="" /> : <SampleVisual tone="cool" />;
   const imageCardPadding = exportMode ? "p-[44px]" : compact ? "p-5" : "p-3 sm:p-3.5 lg:p-4";
   const textCardPadding = exportMode ? "px-[54px] py-[54px]" : compact ? "px-6 py-6" : "px-4 py-4 sm:px-4 sm:py-4 lg:px-5 lg:py-5";
-  const titleSize = exportMode ? "text-[54px] leading-[1.08]" : compact ? "text-[21px] leading-[1.22]" : "text-[18px] leading-[1.14] sm:text-[16px] lg:text-[19px]";
+  const titleSize = exportMode ? "text-[54px] leading-[1.08]" : compact ? "text-[21px] leading-[1.22]" : "text-[18px] leading-[1.14] sm:text-[16px] lg:text-[18px]";
 
   return (
-    <div className={classNames("relative grid min-w-0 max-w-full", exportMode && "h-[1417px] w-[2362px] grid-cols-2 overflow-hidden border border-[#b8b8bd] bg-white", !exportMode && (compact ? "grid-cols-1 gap-6" : "w-full grid-cols-1 overflow-hidden border border-[#b8b8bd] bg-white shadow-[0_10px_30px_rgba(0,0,0,0.12)] sm:grid-cols-2"))}>
+    <div className={classNames("relative grid min-w-0 max-w-full", exportMode && "h-[1417px] w-[2362px] grid-cols-2 overflow-hidden border border-[#b8b8bd] bg-white", !exportMode && (compact ? "grid-cols-1 gap-6" : "w-full grid-cols-1 overflow-hidden border border-[#b8b8bd] bg-white shadow-[0_10px_30px_rgba(0,0,0,0.12)] lg:grid-cols-2"))}>
       {!exportMode && !hideActions && (onEdit || onDelete || onExport) && (
         <div className="absolute right-3 top-3 z-30">
           <button className="grid h-8 w-8 place-items-center rounded-full bg-white/90 text-black shadow-md shadow-black/10 backdrop-blur" onClick={() => setMenuOpen((current) => !current)} type="button" aria-label="카드 메뉴">
@@ -662,7 +662,7 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
           )}
         </div>
       )}
-      <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full border-r border-[#b8b8bd]" : "min-h-[420px] sm:aspect-[5/6] sm:min-h-0", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "border-b border-[#b8b8bd] sm:border-b-0 sm:border-r", imageCardPadding)}>
+      <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full border-r border-[#b8b8bd]" : "min-h-[420px] lg:aspect-[5/6] lg:min-h-0", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "border-b border-[#b8b8bd] lg:border-b-0 lg:border-r", imageCardPadding)}>
         <div>
           <div className="flex items-center gap-2.5">
             <span className={classNames("inline-flex shrink-0 items-center justify-center rounded-full bg-black font-bold leading-none text-white", exportMode ? "h-[62px] w-[62px] text-[30px]" : compact ? "h-8 w-8 text-[16px]" : "h-7 w-7 text-[14px] sm:h-6 sm:w-6 sm:text-[12px]")}>{number}</span>
@@ -676,18 +676,18 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
         <div className={classNames("absolute aspect-square overflow-hidden bg-[#dfe0e4]", exportMode ? "inset-x-[44px] bottom-[44px]" : "inset-x-3 bottom-3 sm:inset-x-3 sm:bottom-3")}>{imageNode}</div>
       </article>
 
-      <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full" : "min-h-[360px] sm:aspect-[5/6] sm:min-h-0", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "", textCardPadding)}>
-        <div className={classNames("flex flex-wrap", exportMode ? "absolute left-[54px] top-[54px] gap-[12px]" : "gap-1.5 sm:absolute sm:left-4 sm:top-4 sm:gap-1 lg:left-5 lg:top-5")}>
+      <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full" : "min-h-[360px] lg:aspect-[5/6] lg:min-h-0", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "", textCardPadding)}>
+        <div className={classNames("flex flex-wrap", exportMode ? "absolute left-[54px] top-[54px] gap-[12px]" : "gap-1.5 lg:absolute lg:left-5 lg:top-5 lg:gap-1")}>
           {(displayTags.length > 0 ? displayTags : [{ category: "effect" as TagCategory, label: "태그 미정" }]).map((tag) => <span className={classNames("whitespace-nowrap rounded-full border border-black/70 font-semibold leading-none text-black/70", exportMode ? "px-[18px] py-[8px] text-[24px]" : "px-2 py-1 text-[10px] sm:px-2 sm:py-1 sm:text-[10px] lg:text-[11px]")} key={`${tag.category}-${tag.label}`}>{tag.label}</span>)}
         </div>
-        <div className={classNames("flex h-full flex-col", exportMode ? "gap-[42px] pt-[150px]" : "gap-5 pt-5 sm:gap-5 sm:pt-[54px]")}>
+        <div className={classNames("flex h-full flex-col", exportMode ? "gap-[42px] pt-[150px]" : "gap-5 pt-5 lg:pt-[54px]")}>
           <section>
-            <p className={classNames("mb-1.5 font-bold text-black sm:mb-2", exportMode ? "text-[34px] leading-[1.35]" : compact ? "text-[18px] leading-[1.55]" : "text-[15px] leading-[1.38] sm:text-[12px] lg:text-[16px]")}>관찰</p>
-            <p className={classNames("whitespace-pre-line font-medium", exportMode ? "text-[30px] leading-[1.5]" : compact ? "text-[16px] leading-[1.55]" : "text-[14px] leading-[1.5] sm:text-[11px] lg:text-[14px]")}>{observed}</p>
+            <p className={classNames("mb-1.5 font-bold text-black sm:mb-2", exportMode ? "text-[34px] leading-[1.35]" : compact ? "text-[18px] leading-[1.55]" : "text-[15px] leading-[1.38] sm:text-[12px] lg:text-[15px]")}>관찰</p>
+            <p className={classNames("whitespace-pre-line font-medium", exportMode ? "text-[30px] leading-[1.5]" : compact ? "text-[16px] leading-[1.55]" : "text-[14px] leading-[1.5] sm:text-[11px] lg:text-[13px]")}>{observed}</p>
           </section>
           <section>
-            <p className={classNames("mb-1.5 font-bold text-black sm:mb-2", exportMode ? "text-[34px] leading-[1.35]" : compact ? "text-[18px] leading-[1.55]" : "text-[15px] leading-[1.38] sm:text-[12px] lg:text-[16px]")}>인사이트</p>
-            <p className={classNames("whitespace-pre-line font-medium", exportMode ? "text-[30px] leading-[1.5]" : compact ? "text-[16px] leading-[1.55]" : "text-[14px] leading-[1.5] sm:text-[11px] lg:text-[14px]")}>{insight}</p>
+            <p className={classNames("mb-1.5 font-bold text-black sm:mb-2", exportMode ? "text-[34px] leading-[1.35]" : compact ? "text-[18px] leading-[1.55]" : "text-[15px] leading-[1.38] sm:text-[12px] lg:text-[15px]")}>인사이트</p>
+            <p className={classNames("whitespace-pre-line font-medium", exportMode ? "text-[30px] leading-[1.5]" : compact ? "text-[16px] leading-[1.55]" : "text-[14px] leading-[1.5] sm:text-[11px] lg:text-[13px]")}>{insight}</p>
           </section>
         </div>
       </article>
@@ -708,7 +708,7 @@ function ExportCardSpread({ card }: { card: ImageCard }) {
         <div>
           <div className="flex items-center gap-[22px]">
             <span className="inline-flex h-[92px] w-[92px] shrink-0 items-center justify-center rounded-full bg-black text-[46px] font-bold leading-none text-white">{card.number}</span>
-            <h3 className="text-[62px] font-bold leading-[1.12]">{card.title}</h3>
+            <h3 className="text-[56px] font-bold leading-[1.12]">{card.title}</h3>
           </div>
           <div className="mt-[14px] text-[36px] font-medium leading-[1.2] text-black">
             <p>{timeLine}</p>
@@ -726,12 +726,12 @@ function ExportCardSpread({ card }: { card: ImageCard }) {
         </div>
         <div className="flex h-full flex-col gap-[54px] pt-[160px]">
           <section>
-            <p className="mb-[18px] text-[54px] font-bold leading-[1.38]">관찰</p>
-            <p className="whitespace-pre-line text-[48px] font-medium leading-[1.42]">{observed}</p>
+            <p className="mb-[18px] text-[48px] font-bold leading-[1.38]">관찰</p>
+            <p className="whitespace-pre-line text-[42px] font-medium leading-[1.42]">{observed}</p>
           </section>
           <section>
-            <p className="mb-[18px] text-[54px] font-bold leading-[1.38]">인사이트</p>
-            <p className="whitespace-pre-line text-[48px] font-medium leading-[1.42]">{insight}</p>
+            <p className="mb-[18px] text-[48px] font-bold leading-[1.38]">인사이트</p>
+            <p className="whitespace-pre-line text-[42px] font-medium leading-[1.42]">{insight}</p>
           </section>
         </div>
       </article>
@@ -1164,6 +1164,7 @@ export function ImageZettelkastenPrototype() {
         await waitForNodeImages(node);
         const dataUrl = await toPng(node, {
           cacheBust: true,
+          includeQueryParams: true,
           pixelRatio: 1,
           width: 2362,
           height: 1417,
@@ -1194,6 +1195,7 @@ export function ImageZettelkastenPrototype() {
       await waitForNodeImages(node);
       const dataUrl = await toPng(node, {
         cacheBust: true,
+        includeQueryParams: true,
         pixelRatio: 1,
         width: 2362,
         height: 1417,
