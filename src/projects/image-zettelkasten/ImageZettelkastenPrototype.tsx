@@ -662,7 +662,7 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
           )}
         </div>
       )}
-      <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full border-r border-[#b8b8bd]" : "min-h-[420px] lg:aspect-[5/6] lg:min-h-0", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "border-b border-[#b8b8bd] lg:border-b-0 lg:border-r", imageCardPadding)}>
+      <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full border-r border-[#b8b8bd]" : "aspect-[5/6]", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "border-b border-[#b8b8bd] lg:border-b-0 lg:border-r", imageCardPadding)}>
         <div>
           <div className="flex items-center gap-2.5">
             <span className={classNames("inline-flex shrink-0 items-center justify-center rounded-full bg-black font-bold leading-none text-white", exportMode ? "h-[62px] w-[62px] text-[30px]" : compact ? "h-8 w-8 text-[16px]" : "h-7 w-7 text-[14px] sm:h-6 sm:w-6 sm:text-[12px]")}>{number}</span>
@@ -676,7 +676,7 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
         <div className={classNames("absolute aspect-square overflow-hidden bg-[#dfe0e4]", exportMode ? "inset-x-[44px] bottom-[44px]" : "inset-x-3 bottom-3 sm:inset-x-3 sm:bottom-3")}>{imageNode}</div>
       </article>
 
-      <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full" : "min-h-[360px] lg:aspect-[5/6] lg:min-h-0", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "", textCardPadding)}>
+      <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full" : "min-h-[320px] lg:aspect-[5/6] lg:min-h-0", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "", textCardPadding)}>
         <div className={classNames("flex flex-wrap", exportMode ? "absolute left-[54px] top-[54px] gap-[12px]" : "gap-1.5 lg:absolute lg:left-5 lg:top-5 lg:gap-1")}>
           {(displayTags.length > 0 ? displayTags : [{ category: "effect" as TagCategory, label: "태그 미정" }]).map((tag) => <span className={classNames("whitespace-nowrap rounded-full border border-black/70 font-semibold leading-none text-black/70", exportMode ? "px-[18px] py-[8px] text-[24px]" : "px-2 py-1 text-[10px] sm:px-2 sm:py-1 sm:text-[10px] lg:text-[11px]")} key={`${tag.category}-${tag.label}`}>{tag.label}</span>)}
         </div>
