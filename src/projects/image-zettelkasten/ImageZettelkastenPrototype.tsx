@@ -662,7 +662,7 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
           )}
         </div>
       )}
-      <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full border-r border-[#b8b8bd]" : "aspect-[5/6]", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "border-b border-[#b8b8bd] lg:border-b-0 lg:border-r", imageCardPadding)}>
+      <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full border-r border-[#b8b8bd]" : "h-auto lg:aspect-[5/6]", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "border-b border-[#b8b8bd] lg:border-b-0 lg:border-r", imageCardPadding)}>
         <div>
           <div className="flex items-center gap-2.5">
             <span className={classNames("inline-flex shrink-0 items-center justify-center rounded-full bg-black font-bold leading-none text-white", exportMode ? "h-[62px] w-[62px] text-[30px]" : compact ? "h-8 w-8 text-[16px]" : "h-7 w-7 text-[14px] sm:h-6 sm:w-6 sm:text-[12px]")}>{number}</span>
@@ -673,10 +673,10 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
             {placeLine && <p>{placeLine}</p>}
           </div>
         </div>
-        <div className={classNames("absolute aspect-square overflow-hidden bg-[#dfe0e4]", exportMode ? "inset-x-[44px] bottom-[44px]" : "inset-x-3 bottom-3 sm:inset-x-3 sm:bottom-3")}>{imageNode}</div>
+        <div className={classNames("aspect-square overflow-hidden bg-[#dfe0e4]", exportMode ? "absolute inset-x-[44px] bottom-[44px]" : "relative mt-4 w-full lg:absolute lg:inset-x-3 lg:bottom-3 lg:mt-0 lg:w-auto")}>{imageNode}</div>
       </article>
 
-      <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full" : "min-h-[320px] lg:aspect-[5/6] lg:min-h-0", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "", textCardPadding)}>
+      <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full" : "h-auto lg:aspect-[5/6]", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "", textCardPadding)}>
         <div className={classNames("flex flex-wrap", exportMode ? "absolute left-[54px] top-[54px] gap-[12px]" : "gap-1.5 lg:absolute lg:left-5 lg:top-5 lg:gap-1")}>
           {(displayTags.length > 0 ? displayTags : [{ category: "effect" as TagCategory, label: "태그 미정" }]).map((tag) => <span className={classNames("whitespace-nowrap rounded-full border border-black/70 font-semibold leading-none text-black/70", exportMode ? "px-[18px] py-[8px] text-[24px]" : "px-2 py-1 text-[10px] sm:px-2 sm:py-1 sm:text-[10px] lg:text-[11px]")} key={`${tag.category}-${tag.label}`}>{tag.label}</span>)}
         </div>
@@ -1213,7 +1213,7 @@ export function ImageZettelkastenPrototype() {
 
   if (mode === "add") {
     return (
-      <div className="min-h-screen bg-[#f5f5f7] font-sans text-[#1d1d1f]">
+      <div className="min-h-screen overflow-x-hidden bg-[#f5f5f7] font-sans text-[#1d1d1f]">
         {addStep !== "refine" && (
           <header className="sticky top-0 z-20 border-b border-black/10 bg-[#f5f5f7]/90 px-4 py-3 backdrop-blur-xl sm:px-6 sm:py-4">
             <div className="mx-auto flex max-w-7xl items-center justify-between gap-5">
@@ -1402,19 +1402,24 @@ export function ImageZettelkastenPrototype() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f5f7] font-sans text-[#1d1d1f]">
+    <div className="min-h-screen overflow-x-hidden bg-[#f5f5f7] font-sans text-[#1d1d1f]">
       <input ref={addImageInputRef} className="hidden" type="file" accept="image/*" onChange={(event) => { readImage(event.target.files?.[0]); event.currentTarget.value = ""; }} />
       <input ref={importCsvInputRef} className="hidden" type="file" accept=".csv,text/csv" onChange={(event) => { void readImportCsv(event.target.files?.[0]); event.currentTarget.value = ""; }} />
       <input ref={importImageInputRef} className="hidden" type="file" multiple accept="image/*" onChange={(event) => { readImportImages(event.target.files); event.currentTarget.value = ""; }} />
       <header className="sticky top-0 z-30 w-full border-b border-black/10 bg-[#f5f5f7]/95 px-2 py-2 backdrop-blur-xl sm:px-6 sm:py-4">
-        <div className="mx-auto flex w-full max-w-[1540px] items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 sm:gap-5 sm:overflow-visible sm:pb-0">
-          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-black text-white sm:h-12 sm:w-12 sm:rounded-2xl"><Library size={18} /></div>
-          <div className="mr-auto min-w-[140px] sm:min-w-0"><h1 className="truncate text-base font-semibold sm:text-2xl sm:font-black">Image Zettelkasten</h1></div>
+        <div className="mx-auto grid w-full max-w-[1540px] gap-2 sm:flex sm:items-center sm:gap-5">
+          <div className="flex min-w-0 items-center gap-2">
+            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-black text-white sm:h-12 sm:w-12 sm:rounded-2xl"><Library size={18} /></div>
+            <div className="min-w-0 flex-1"><h1 className="truncate text-base font-semibold sm:text-2xl sm:font-black">Image Zettelkasten</h1></div>
+            <button className="shrink-0 rounded-full bg-black px-4 py-2 text-sm font-semibold text-white sm:hidden" onClick={startAddMode} type="button">새 카드</button>
+          </div>
+          <div className="flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 sm:contents sm:overflow-visible sm:pb-0">
           <label className="hidden min-w-[320px] items-center gap-3 rounded-full border border-black/10 bg-white px-4 py-3 md:flex"><Search size={17} className="text-[#6e6e73]" /><input className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-[#8e8e93]" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="제목, 태그, 장소, 관찰 문장 검색" /></label>
           <a className="hidden shrink-0 rounded-full bg-white px-4 py-3 text-sm font-semibold text-black sm:inline-flex" href="/image-zettelkasten-import-template.csv" download>CSV 템플릿</a>
           <button className="shrink-0 rounded-full bg-white px-3 py-2 text-xs font-semibold text-black sm:px-5 sm:py-3 sm:text-sm" onClick={() => importCsvInputRef.current?.click()} type="button">대량 임포트</button>
           <button className="shrink-0 rounded-full bg-white px-3 py-2 text-xs font-semibold text-black disabled:opacity-45 sm:px-5 sm:py-3 sm:text-sm" disabled={exporting} onClick={exportAllCards} type="button">{exporting ? "내보내는 중" : "내보내기"}</button>
-          <button className="shrink-0 rounded-full bg-black px-4 py-2 text-sm font-semibold text-white sm:px-5 sm:py-3 sm:font-black" onClick={startAddMode} type="button">새 카드</button>
+          <button className="hidden shrink-0 rounded-full bg-black px-4 py-2 text-sm font-semibold text-white sm:inline-flex sm:px-5 sm:py-3 sm:font-black" onClick={startAddMode} type="button">새 카드</button>
+          </div>
         </div>
       </header>
 
