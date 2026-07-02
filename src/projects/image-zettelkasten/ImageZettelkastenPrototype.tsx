@@ -357,6 +357,22 @@ function normalizeCardImageUrl(value: string) {
   return value;
 }
 
+function withExportCacheBust(value: string, cardId: string) {
+  if (!value) return value;
+  return `${value}${value.includes("?") ? "&" : "?"}export=${encodeURIComponent(cardId)}`;
+}
+
+async function waitForNodeImages(node: HTMLElement) {
+  const images = Array.from(node.querySelectorAll("img"));
+  await Promise.all(images.map((image) => {
+    if (image.complete && image.naturalWidth > 0) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      image.addEventListener("load", () => resolve(), { once: true });
+      image.addEventListener("error", () => resolve(), { once: true });
+    });
+  }));
+}
+
 function normalizeCard(card: ImageCard): ImageCard {
   return {
     ...card,
@@ -684,7 +700,7 @@ function ExportCardSpread({ card }: { card: ImageCard }) {
   const insight = insightBody(card.observation);
   const displayTags = flattenTags(normalizeTags(card.tags)).slice(0, 8);
   const timeLine = [card.collectedAt, card.collectedTime].filter(Boolean).join(" · ");
-  const imageNode = card.imageUrl ? <img className="h-full w-full object-cover" src={card.imageUrl} alt="" /> : <SampleVisual tone="cool" />;
+  const imageNode = card.imageUrl ? <img className="h-full w-full object-cover" crossOrigin="anonymous" src={withExportCacheBust(card.imageUrl, card.id)} alt="" /> : <SampleVisual tone="cool" />;
 
   return (
     <div className="grid h-[1417px] w-[2362px] grid-cols-2 overflow-hidden border border-[#b8b8bd] bg-white text-black">
@@ -1145,6 +1161,7 @@ export function ImageZettelkastenPrototype() {
       for (const card of cards) {
         const node = cardExportRefs.current[card.id];
         if (!node) continue;
+        await waitForNodeImages(node);
         const dataUrl = await toPng(node, {
           cacheBust: true,
           pixelRatio: 1,
@@ -1174,6 +1191,7 @@ export function ImageZettelkastenPrototype() {
     try {
       const node = cardExportRefs.current[card.id];
       if (!node) return;
+      await waitForNodeImages(node);
       const dataUrl = await toPng(node, {
         cacheBust: true,
         pixelRatio: 1,
