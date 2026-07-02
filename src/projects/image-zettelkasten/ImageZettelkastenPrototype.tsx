@@ -986,20 +986,20 @@ export function ImageZettelkastenPrototype() {
         return;
       }
       const data = await response.json();
-      setCards((current) => current.map((card) => card.id === editingCardId ? {
-        ...card,
-        ...normalizeCard(data.card),
-      } : card));
+      if (Array.isArray(data.cards)) {
+        setCards(data.cards.map(normalizeCard));
+      } else {
+        setCards((current) => current.map((card) => card.id === editingCardId ? { ...card, ...normalizeCard(data.card) } : card));
+      }
       setSelectedGroupValue(null);
       setEditingCardId(null);
       setMode("library");
       return;
     }
 
-    const nextNumber = String(cards.reduce((max, card) => Math.max(max, Number.parseInt(card.number, 10) || 0), 0) + 1);
     const newCard: ImageCard = {
       id: `card-${Date.now()}`,
-      number: nextNumber,
+      number: "0",
       title: finalTitle,
       imageUrl: storedImageUrl,
       originalImageUrl: storedImageUrl,
@@ -1023,7 +1023,11 @@ export function ImageZettelkastenPrototype() {
       return;
     }
     const data = await response.json();
-    setCards((current) => [normalizeCard(data.card), ...current]);
+    if (Array.isArray(data.cards)) {
+      setCards(data.cards.map(normalizeCard));
+    } else {
+      setCards((current) => [normalizeCard(data.card), ...current]);
+    }
     setSelectedGroupValue(null);
     if (importQueue?.active) {
       const nextIndex = importQueue.currentIndex + 1;
@@ -1073,7 +1077,12 @@ export function ImageZettelkastenPrototype() {
       window.alert("카드를 삭제하지 못했다.");
       return;
     }
-    setCards((current) => current.filter((card) => card.id !== deleteTarget.id));
+    const data = await response.json();
+    if (Array.isArray(data.cards)) {
+      setCards(data.cards.map(normalizeCard));
+    } else {
+      setCards((current) => current.filter((card) => card.id !== deleteTarget.id));
+    }
     setDeleteTarget(null);
   }
 

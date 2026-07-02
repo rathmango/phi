@@ -1,4 +1,4 @@
-import { listCardsFromFirestore, saveCardToFirestore, syncTagsFromCards, uploadCardImages } from "../_google.js";
+import { listCardsFromFirestore, renumberCardsByCollectedTime, saveCardToFirestore, syncTagsFromCards, uploadCardImages } from "../_google.js";
 
 export default async function handler(req: any, res: any) {
   try {
@@ -12,8 +12,9 @@ export default async function handler(req: any, res: any) {
       if (!body?.card?.id) return res.status(400).json({ error: "card.id is required" });
       const card = await uploadCardImages(body.card);
       await saveCardToFirestore(card);
+      const cards = await renumberCardsByCollectedTime();
       await syncTagsFromCards();
-      return res.status(200).json({ card });
+      return res.status(200).json({ card: cards.find((item: any) => item.id === card.id) || card, cards });
     }
 
     res.setHeader("Allow", "GET, POST");

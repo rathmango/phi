@@ -95,7 +95,7 @@ function payloadToFields(payload: unknown) {
 
 export async function listCardsFromFirestore() {
   const cards = await listPayloadCollection("cards", 200);
-  return cards.sort((a: any, b: any) => (Number.parseInt(b.number, 10) || 0) - (Number.parseInt(a.number, 10) || 0));
+  return sortCardsByCollectedTime(cards);
 }
 
 export async function listPayloadCollection(collection: string, pageSize = 200) {
@@ -155,6 +155,47 @@ export async function deleteCardFromFirestore(id: string) {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok && response.status !== 404) throw new Error(`Firestore delete failed: ${await response.text()}`);
+}
+
+function parseCollectedDateTime(card: any) {
+  const dateText = typeof card?.collectedAt === "string" ? card.collectedAt : "";
+  const timeText = typeof card?.collectedTime === "string" ? card.collectedTime : "";
+  const dateMatch = dateText.match(/(\d{4})[.-](\d{1,2})[.-](\d{1,2})/);
+  let year = 9999;
+  let month = 12;
+  let day = 31;
+  if (dateMatch) {
+    year = Number(dateMatch[1]);
+    month = Number(dateMatch[2]);
+    day = Number(dateMatch[3]);
+  }
+
+  const timeMatch = timeText.match(/(오전|오후)?\s*(\d{1,2})시(?:\s*(\d{1,2})분)?/);
+  let hour = 23;
+  let minute = 59;
+  if (timeMatch) {
+    hour = Number(timeMatch[2]);
+    minute = Number(timeMatch[3] || 0);
+    if (timeMatch[1] === "오후" && hour < 12) hour += 12;
+    if (timeMatch[1] === "오전" && hour === 12) hour = 0;
+  }
+
+  return Date.UTC(year, month - 1, day, hour, minute);
+}
+
+function sortCardsByCollectedTime(cards: any[]) {
+  return [...cards].sort((a, b) => {
+    const diff = parseCollectedDateTime(a) - parseCollectedDateTime(b);
+    if (diff !== 0) return diff;
+    return String(a.id || "").localeCompare(String(b.id || ""));
+  });
+}
+
+export async function renumberCardsByCollectedTime() {
+  const cards = sortCardsByCollectedTime(await listPayloadCollection("cards", 500));
+  const numberedCards = cards.map((card: any, index) => ({ ...card, number: String(index + 1) }));
+  await Promise.all(numberedCards.map((card: any) => saveCardToFirestore(card)));
+  return numberedCards;
 }
 
 export async function listTagsFromFirestore() {
@@ -317,7 +358,9 @@ export async function deleteCardAndAssets(id: string) {
   }
   await Promise.all(Array.from(objects).filter(Boolean).map((objectName) => deleteStorageObject(objectName)));
   await deleteCardFromFirestore(id);
+  const cards = await renumberCardsByCollectedTime();
   await syncTagsFromCards();
+  return cards;
 }
 
 export async function downloadStorageObject(objectName: string) {

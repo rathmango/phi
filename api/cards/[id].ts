@@ -1,4 +1,4 @@
-import { deleteCardAndAssets, saveCardToFirestore, syncTagsFromCards, uploadCardImages } from "../_google.js";
+import { deleteCardAndAssets, renumberCardsByCollectedTime, saveCardToFirestore, syncTagsFromCards, uploadCardImages } from "../_google.js";
 
 export default async function handler(req: any, res: any) {
   const id = String(req.query.id || "");
@@ -10,13 +10,14 @@ export default async function handler(req: any, res: any) {
       if (!body?.card) return res.status(400).json({ error: "card is required" });
       const card = await uploadCardImages({ ...body.card, id });
       await saveCardToFirestore(card);
+      const cards = await renumberCardsByCollectedTime();
       await syncTagsFromCards();
-      return res.status(200).json({ card });
+      return res.status(200).json({ card: cards.find((item: any) => item.id === id) || card, cards });
     }
 
     if (req.method === "DELETE") {
-      await deleteCardAndAssets(id);
-      return res.status(200).json({ ok: true });
+      const cards = await deleteCardAndAssets(id);
+      return res.status(200).json({ ok: true, cards });
     }
 
     res.setHeader("Allow", "PUT, DELETE");
