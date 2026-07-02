@@ -30,6 +30,11 @@ type CropState = {
   croppedAreaPixels: Area | null;
 };
 
+type CropMediaSize = {
+  width: number;
+  height: number;
+};
+
 type ImageCard = {
   id: string;
   number: string;
@@ -522,48 +527,31 @@ function getRadianAngle(degreeValue: number) {
   return (degreeValue * Math.PI) / 180;
 }
 
-function rotateSize(width: number, height: number, rotation: number) {
-  const rotRad = getRadianAngle(rotation);
-  return {
-    width: Math.abs(Math.cos(rotRad) * width) + Math.abs(Math.sin(rotRad) * height),
-    height: Math.abs(Math.sin(rotRad) * width) + Math.abs(Math.cos(rotRad) * height),
-  };
-}
-
-async function getCroppedImage(imageSrc: string, pixelCrop: Area, rotation = 0) {
+async function getCroppedImage(imageSrc: string, cropState: CropState, frameSize: number, mediaSize: CropMediaSize | null) {
   const image = await createImage(imageSrc);
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) return imageSrc;
 
-  const rotRad = getRadianAngle(rotation);
-  const { width: bBoxWidth, height: bBoxHeight } = rotateSize(image.width, image.height, rotation);
+  const outputSize = 1800;
+  const safeFrameSize = Math.max(1, frameSize || outputSize);
+  const outputScale = outputSize / safeFrameSize;
+  const baseWidth = mediaSize?.width || safeFrameSize;
+  const baseHeight = mediaSize?.height || safeFrameSize;
+  const renderedWidth = baseWidth * cropState.zoom * outputScale;
+  const renderedHeight = baseHeight * cropState.zoom * outputScale;
 
-  canvas.width = bBoxWidth;
-  canvas.height = bBoxHeight;
+  canvas.width = outputSize;
+  canvas.height = outputSize;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, outputSize, outputSize);
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = "high";
-  ctx.translate(bBoxWidth / 2, bBoxHeight / 2);
-  ctx.rotate(rotRad);
-  ctx.translate(-image.width / 2, -image.height / 2);
-  ctx.drawImage(image, 0, 0);
+  ctx.translate(outputSize / 2 + cropState.crop.x * outputScale, outputSize / 2 + cropState.crop.y * outputScale);
+  ctx.rotate(getRadianAngle(cropState.rotation));
+  ctx.drawImage(image, -renderedWidth / 2, -renderedHeight / 2, renderedWidth, renderedHeight);
 
-  const cropX = Math.max(0, Math.round(pixelCrop.x));
-  const cropY = Math.max(0, Math.round(pixelCrop.y));
-  const cropWidth = Math.max(1, Math.min(Math.round(pixelCrop.width), canvas.width - cropX));
-  const cropHeight = Math.max(1, Math.min(Math.round(pixelCrop.height), canvas.height - cropY));
-  const croppedCanvas = document.createElement("canvas");
-  const croppedCtx = croppedCanvas.getContext("2d");
-  if (!croppedCtx) return imageSrc;
-  croppedCanvas.width = cropWidth;
-  croppedCanvas.height = cropHeight;
-  croppedCtx.fillStyle = "#ffffff";
-  croppedCtx.fillRect(0, 0, cropWidth, cropHeight);
-  croppedCtx.imageSmoothingEnabled = true;
-  croppedCtx.imageSmoothingQuality = "high";
-  croppedCtx.drawImage(canvas, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
-
-  return croppedCanvas.toDataURL("image/jpeg", 0.86);
+  return canvas.toDataURL("image/jpeg", 0.86);
 }
 
 async function resizeImageDataUrl(imageSrc: string, maxSide: number, quality: number) {
@@ -749,6 +737,7 @@ export function ImageZettelkastenPrototype() {
   const [deletingCard, setDeletingCard] = useState(false);
   const [cropZoomInitialized, setCropZoomInitialized] = useState(false);
   const [cropFrameSize, setCropFrameSize] = useState(getDefaultCropFrameSize);
+  const [cropMediaSize, setCropMediaSize] = useState<CropMediaSize | null>(null);
   const addImageInputRef = useRef<HTMLInputElement | null>(null);
   const importCsvInputRef = useRef<HTMLInputElement | null>(null);
   const importImageInputRef = useRef<HTMLInputElement | null>(null);
@@ -867,6 +856,7 @@ export function ImageZettelkastenPrototype() {
         lastSuggestionRequestKey.current = "";
         setEditingCardId(null);
         setCropZoomInitialized(false);
+        setCropMediaSize(null);
         setCropFrameSize(getDefaultCropFrameSize());
         setAddStep("refine");
         setMode("add");
@@ -903,6 +893,7 @@ export function ImageZettelkastenPrototype() {
     lastSuggestionRequestKey.current = "";
     setEditingCardId(null);
     setCropZoomInitialized(false);
+    setCropMediaSize(null);
     setCropFrameSize(getDefaultCropFrameSize());
     setAddStep("refine");
     setMode("add");
@@ -934,8 +925,8 @@ export function ImageZettelkastenPrototype() {
   }
 
   async function commitCrop() {
-    if (!draft.originalImageUrl || !draft.crop.croppedAreaPixels) return draft.imageUrl;
-    const cropped = await getCroppedImage(draft.originalImageUrl, draft.crop.croppedAreaPixels, draft.crop.rotation);
+    if (!draft.originalImageUrl) return draft.imageUrl;
+    const cropped = await getCroppedImage(draft.originalImageUrl, draft.crop, cropFrameSize, cropMediaSize);
     updateDraft({ imageUrl: cropped });
     return cropped;
   }
@@ -1118,6 +1109,7 @@ export function ImageZettelkastenPrototype() {
     setSuggestionStatus("idle");
     setSuggestionError("");
     lastSuggestionRequestKey.current = "";
+    setCropMediaSize(null);
     setEditingCardId(card.id);
     setAddStep("metadata");
     setMode("add");
@@ -1288,6 +1280,7 @@ export function ImageZettelkastenPrototype() {
                       onRotationChange={(rotation) => updateCrop({ rotation })}
                       onCropComplete={(_, croppedAreaPixels) => updateCrop({ croppedAreaPixels })}
                       onMediaLoaded={(mediaSize) => {
+                        setCropMediaSize({ width: mediaSize.width, height: mediaSize.height });
                         if (cropZoomInitialized || editingCardId) return;
                         const mediaFrameSize = Math.floor(Math.min(mediaSize.width, mediaSize.height));
                         setCropFrameSize(Math.max(280, Math.min(getDefaultCropFrameSize(), mediaFrameSize)));
