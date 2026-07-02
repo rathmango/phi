@@ -642,12 +642,12 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
   const timeLine = [card.collectedAt, card.collectedTime].filter(Boolean).join(" · ");
   const placeLine = card.collectedPlace;
   const imageNode = card.imageUrl ? <img className="h-full w-full object-cover" src={card.imageUrl} alt="" /> : <SampleVisual tone="cool" />;
-  const imageCardPadding = exportMode ? "p-[44px]" : compact ? "p-5" : "p-2.5 sm:p-3.5 lg:p-4";
-  const textCardPadding = exportMode ? "px-[54px] py-[54px]" : compact ? "px-6 py-6" : "px-3 py-3 sm:px-4 sm:py-4 lg:px-5 lg:py-5";
-  const titleSize = exportMode ? "text-[54px] leading-[1.08]" : compact ? "text-[21px] leading-[1.22]" : "text-[13px] leading-[1.12] sm:text-[16px] lg:text-[19px]";
+  const imageCardPadding = exportMode ? "p-[44px]" : compact ? "p-5" : "p-3 sm:p-3.5 lg:p-4";
+  const textCardPadding = exportMode ? "px-[54px] py-[54px]" : compact ? "px-6 py-6" : "px-4 py-4 sm:px-4 sm:py-4 lg:px-5 lg:py-5";
+  const titleSize = exportMode ? "text-[54px] leading-[1.08]" : compact ? "text-[21px] leading-[1.22]" : "text-[18px] leading-[1.14] sm:text-[16px] lg:text-[19px]";
 
   return (
-    <div className={classNames("relative grid min-w-0 max-w-full", exportMode && "h-[1417px] w-[2362px] grid-cols-2 overflow-hidden border border-[#b8b8bd] bg-white", !exportMode && (compact ? "grid-cols-1 gap-6" : "w-full grid-cols-2 overflow-hidden border border-[#b8b8bd] bg-white shadow-[0_10px_30px_rgba(0,0,0,0.12)]"))}>
+    <div className={classNames("relative grid min-w-0 max-w-full", exportMode && "h-[1417px] w-[2362px] grid-cols-2 overflow-hidden border border-[#b8b8bd] bg-white", !exportMode && (compact ? "grid-cols-1 gap-6" : "w-full grid-cols-1 overflow-hidden border border-[#b8b8bd] bg-white shadow-[0_10px_30px_rgba(0,0,0,0.12)] sm:grid-cols-2"))}>
       {!exportMode && !hideActions && (onEdit || onDelete || onExport) && (
         <div className="absolute right-3 top-3 z-30">
           <button className="grid h-8 w-8 place-items-center rounded-full bg-white/90 text-black shadow-md shadow-black/10 backdrop-blur" onClick={() => setMenuOpen((current) => !current)} type="button" aria-label="카드 메뉴">
@@ -662,32 +662,32 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
           )}
         </div>
       )}
-      <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full border-r border-[#b8b8bd]" : "aspect-[5/6]", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "border-r border-[#b8b8bd]", imageCardPadding)}>
+      <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full border-r border-[#b8b8bd]" : "min-h-[420px] sm:aspect-[5/6] sm:min-h-0", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "border-b border-[#b8b8bd] sm:border-b-0 sm:border-r", imageCardPadding)}>
         <div>
           <div className="flex items-center gap-2.5">
-            <span className={classNames("inline-flex shrink-0 items-center justify-center rounded-full bg-black font-bold leading-none text-white", exportMode ? "h-[62px] w-[62px] text-[30px]" : compact ? "h-8 w-8 text-[16px]" : "h-5 w-5 text-[10px] sm:h-6 sm:w-6 sm:text-[12px]")}>{number}</span>
+            <span className={classNames("inline-flex shrink-0 items-center justify-center rounded-full bg-black font-bold leading-none text-white", exportMode ? "h-[62px] w-[62px] text-[30px]" : compact ? "h-8 w-8 text-[16px]" : "h-7 w-7 text-[14px] sm:h-6 sm:w-6 sm:text-[12px]")}>{number}</span>
             <h3 className={classNames("font-bold", titleSize)}>{title}</h3>
           </div>
-          <div className={classNames("mt-1 font-medium leading-tight text-black", exportMode ? "text-[24px]" : "text-[7px] sm:text-[9px] lg:text-[10px]")}>
+          <div className={classNames("mt-1.5 font-medium leading-tight text-black", exportMode ? "text-[24px]" : "text-[10px] sm:text-[9px] lg:text-[10px]")}>
             <p>{timeLine}</p>
             {placeLine && <p>{placeLine}</p>}
           </div>
         </div>
-        <div className={classNames("absolute aspect-square overflow-hidden bg-[#dfe0e4]", exportMode ? "inset-x-[44px] bottom-[44px]" : "inset-x-2 bottom-2 sm:inset-x-3 sm:bottom-3")}>{imageNode}</div>
+        <div className={classNames("absolute aspect-square overflow-hidden bg-[#dfe0e4]", exportMode ? "inset-x-[44px] bottom-[44px]" : "inset-x-3 bottom-3 sm:inset-x-3 sm:bottom-3")}>{imageNode}</div>
       </article>
 
-      <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full" : "aspect-[5/6]", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "", textCardPadding)}>
-        <div className={classNames("absolute flex flex-wrap", exportMode ? "left-[54px] top-[54px] gap-[12px]" : "left-3 top-3 gap-1 sm:left-4 sm:top-4 lg:left-5 lg:top-5")}>
-          {(displayTags.length > 0 ? displayTags : [{ category: "effect" as TagCategory, label: "태그 미정" }]).map((tag) => <span className={classNames("rounded-full border border-black/70 font-semibold leading-none text-black/70", exportMode ? "px-[18px] py-[8px] text-[24px]" : "px-1.5 py-0.5 text-[8px] sm:px-2 sm:py-1 sm:text-[10px] lg:text-[11px]")} key={`${tag.category}-${tag.label}`}>{tag.label}</span>)}
+      <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full" : "min-h-[360px] sm:aspect-[5/6] sm:min-h-0", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "", textCardPadding)}>
+        <div className={classNames("flex flex-wrap", exportMode ? "absolute left-[54px] top-[54px] gap-[12px]" : "gap-1.5 sm:absolute sm:left-4 sm:top-4 sm:gap-1 lg:left-5 lg:top-5")}>
+          {(displayTags.length > 0 ? displayTags : [{ category: "effect" as TagCategory, label: "태그 미정" }]).map((tag) => <span className={classNames("whitespace-nowrap rounded-full border border-black/70 font-semibold leading-none text-black/70", exportMode ? "px-[18px] py-[8px] text-[24px]" : "px-2 py-1 text-[10px] sm:px-2 sm:py-1 sm:text-[10px] lg:text-[11px]")} key={`${tag.category}-${tag.label}`}>{tag.label}</span>)}
         </div>
-        <div className={classNames("flex h-full flex-col", exportMode ? "gap-[42px] pt-[150px]" : "gap-3 pt-[40px] sm:gap-5 sm:pt-[54px]")}>
+        <div className={classNames("flex h-full flex-col", exportMode ? "gap-[42px] pt-[150px]" : "gap-5 pt-5 sm:gap-5 sm:pt-[54px]")}>
           <section>
-            <p className={classNames("mb-1.5 font-bold text-black sm:mb-2", exportMode ? "text-[34px] leading-[1.35]" : compact ? "text-[18px] leading-[1.55]" : "text-[10px] leading-[1.38] sm:text-[12px] lg:text-[16px]")}>관찰</p>
-            <p className={classNames("whitespace-pre-line font-medium", exportMode ? "text-[30px] leading-[1.5]" : compact ? "text-[16px] leading-[1.55]" : "text-[9px] leading-[1.42] sm:text-[11px] lg:text-[14px]")}>{observed}</p>
+            <p className={classNames("mb-1.5 font-bold text-black sm:mb-2", exportMode ? "text-[34px] leading-[1.35]" : compact ? "text-[18px] leading-[1.55]" : "text-[15px] leading-[1.38] sm:text-[12px] lg:text-[16px]")}>관찰</p>
+            <p className={classNames("whitespace-pre-line font-medium", exportMode ? "text-[30px] leading-[1.5]" : compact ? "text-[16px] leading-[1.55]" : "text-[14px] leading-[1.5] sm:text-[11px] lg:text-[14px]")}>{observed}</p>
           </section>
           <section>
-            <p className={classNames("mb-1.5 font-bold text-black sm:mb-2", exportMode ? "text-[34px] leading-[1.35]" : compact ? "text-[18px] leading-[1.55]" : "text-[10px] leading-[1.38] sm:text-[12px] lg:text-[16px]")}>인사이트</p>
-            <p className={classNames("whitespace-pre-line font-medium", exportMode ? "text-[30px] leading-[1.5]" : compact ? "text-[16px] leading-[1.55]" : "text-[9px] leading-[1.42] sm:text-[11px] lg:text-[14px]")}>{insight}</p>
+            <p className={classNames("mb-1.5 font-bold text-black sm:mb-2", exportMode ? "text-[34px] leading-[1.35]" : compact ? "text-[18px] leading-[1.55]" : "text-[15px] leading-[1.38] sm:text-[12px] lg:text-[16px]")}>인사이트</p>
+            <p className={classNames("whitespace-pre-line font-medium", exportMode ? "text-[30px] leading-[1.5]" : compact ? "text-[16px] leading-[1.55]" : "text-[14px] leading-[1.5] sm:text-[11px] lg:text-[14px]")}>{insight}</p>
           </section>
         </div>
       </article>
@@ -708,7 +708,7 @@ function ExportCardSpread({ card }: { card: ImageCard }) {
         <div>
           <div className="flex items-center gap-[22px]">
             <span className="inline-flex h-[92px] w-[92px] shrink-0 items-center justify-center rounded-full bg-black text-[46px] font-bold leading-none text-white">{card.number}</span>
-            <h3 className="text-[74px] font-bold leading-[1.12]">{card.title}</h3>
+            <h3 className="text-[62px] font-bold leading-[1.12]">{card.title}</h3>
           </div>
           <div className="mt-[14px] text-[36px] font-medium leading-[1.2] text-black">
             <p>{timeLine}</p>
@@ -1404,10 +1404,10 @@ export function ImageZettelkastenPrototype() {
       <input ref={addImageInputRef} className="hidden" type="file" accept="image/*" onChange={(event) => { readImage(event.target.files?.[0]); event.currentTarget.value = ""; }} />
       <input ref={importCsvInputRef} className="hidden" type="file" accept=".csv,text/csv" onChange={(event) => { void readImportCsv(event.target.files?.[0]); event.currentTarget.value = ""; }} />
       <input ref={importImageInputRef} className="hidden" type="file" multiple accept="image/*" onChange={(event) => { readImportImages(event.target.files); event.currentTarget.value = ""; }} />
-      <header className="sticky top-0 z-30 w-full border-b border-black/10 bg-[#f5f5f7]/95 px-4 py-3 backdrop-blur-xl sm:px-6 sm:py-4">
-        <div className="mx-auto flex w-full max-w-[1540px] items-center gap-3 sm:gap-5">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-black text-white sm:h-12 sm:w-12 sm:rounded-2xl"><Library size={20} /></div>
-          <div className="mr-auto min-w-0"><h1 className="truncate text-lg font-semibold sm:text-2xl sm:font-black">Image Zettelkasten</h1></div>
+      <header className="sticky top-0 z-30 w-full border-b border-black/10 bg-[#f5f5f7]/95 px-2 py-2 backdrop-blur-xl sm:px-6 sm:py-4">
+        <div className="mx-auto flex w-full max-w-[1540px] items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 sm:gap-5 sm:overflow-visible sm:pb-0">
+          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-black text-white sm:h-12 sm:w-12 sm:rounded-2xl"><Library size={18} /></div>
+          <div className="mr-auto min-w-[140px] sm:min-w-0"><h1 className="truncate text-base font-semibold sm:text-2xl sm:font-black">Image Zettelkasten</h1></div>
           <label className="hidden min-w-[320px] items-center gap-3 rounded-full border border-black/10 bg-white px-4 py-3 md:flex"><Search size={17} className="text-[#6e6e73]" /><input className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-[#8e8e93]" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="제목, 태그, 장소, 관찰 문장 검색" /></label>
           <a className="hidden shrink-0 rounded-full bg-white px-4 py-3 text-sm font-semibold text-black sm:inline-flex" href="/image-zettelkasten-import-template.csv" download>CSV 템플릿</a>
           <button className="shrink-0 rounded-full bg-white px-3 py-2 text-xs font-semibold text-black sm:px-5 sm:py-3 sm:text-sm" onClick={() => importCsvInputRef.current?.click()} type="button">대량 임포트</button>
@@ -1416,8 +1416,8 @@ export function ImageZettelkastenPrototype() {
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-[1500px] gap-4 px-2 py-3 sm:px-6 sm:py-6">
-        <section className="rounded-[24px] bg-[#e8e8eb] p-2 shadow-inner shadow-black/5 sm:rounded-[38px] sm:p-5">
+      <main className="mx-auto grid max-w-[1500px] gap-4 px-1 py-2 sm:px-6 sm:py-6">
+        <section className="rounded-[20px] bg-[#e8e8eb] p-1.5 shadow-inner shadow-black/5 sm:rounded-[38px] sm:p-5">
           <div className="mb-3 sm:mb-5">
             <div className="flex max-w-full items-center gap-1.5 overflow-x-auto whitespace-nowrap py-1">
               <label className="relative flex shrink-0 items-center gap-1.5 rounded-full bg-white px-2.5 font-medium" style={{ height: 26, fontSize: 10, lineHeight: 1 }}>
