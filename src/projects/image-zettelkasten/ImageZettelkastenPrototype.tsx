@@ -437,8 +437,12 @@ function suggestTags(observation: Observation) {
   return tags;
 }
 
+function isTagCategory(value: GroupField): value is TagCategory {
+  return (tagCategoryIds as string[]).includes(value);
+}
+
 function getGroupValues(card: ImageCard, groupBy: GroupField) {
-  if (tagCategoryIds.includes(groupBy as TagCategory)) return card.tags[groupBy as TagCategory];
+  if (isTagCategory(groupBy)) return card.tags[groupBy];
   return [card[groupBy] || "미기록"];
 }
 
