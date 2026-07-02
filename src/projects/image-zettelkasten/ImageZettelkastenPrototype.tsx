@@ -647,9 +647,9 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
   const titleSize = exportMode ? "text-[54px] leading-[1.08]" : compact ? "text-[21px] leading-[1.22]" : "text-[18px] leading-[1.14] sm:text-[16px] lg:text-[18px]";
 
   return (
-    <div className={classNames("relative grid min-w-0 max-w-full", exportMode && "h-[1417px] w-[2362px] grid-cols-2 overflow-hidden border border-[#b8b8bd] bg-white", !exportMode && (compact ? "grid-cols-1 gap-6" : "w-full grid-cols-1 overflow-hidden border border-[#b8b8bd] bg-white shadow-[0_10px_30px_rgba(0,0,0,0.12)] lg:grid-cols-2"))}>
+    <div className={classNames("group/card relative grid min-w-0 max-w-full", exportMode && "h-[1417px] w-[2362px] grid-cols-2 overflow-hidden border border-[#b8b8bd] bg-white", !exportMode && (compact ? "grid-cols-1 gap-6" : "w-full grid-cols-1 overflow-hidden border border-[#b8b8bd] bg-white shadow-[0_10px_30px_rgba(0,0,0,0.12)] lg:grid-cols-2"))}>
       {!exportMode && !hideActions && (onEdit || onDelete || onExport) && (
-        <div className="absolute right-3 top-3 z-30">
+        <div className={classNames("absolute right-3 top-3 z-30 transition-opacity duration-150 group-hover/card:opacity-100 group-focus-within/card:opacity-100", menuOpen ? "opacity-100" : "pointer-events-none opacity-0 group-hover/card:pointer-events-auto group-focus-within/card:pointer-events-auto")}>
           <button className="grid h-8 w-8 place-items-center rounded-full bg-white/90 text-black shadow-md shadow-black/10 backdrop-blur" onClick={() => setMenuOpen((current) => !current)} type="button" aria-label="카드 메뉴">
             <MoreHorizontal size={18} />
           </button>
