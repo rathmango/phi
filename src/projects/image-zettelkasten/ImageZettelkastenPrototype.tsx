@@ -523,7 +523,7 @@ async function getCroppedImage(imageSrc: string, cropState: CropState, frameSize
   const outputSize = 1800;
   const safeFrameSize = Math.max(1, frameSize || outputSize);
   const outputScale = outputSize / safeFrameSize;
-  const baseScale = Math.min(safeFrameSize / image.width, safeFrameSize / image.height);
+  const baseScale = Math.max(safeFrameSize / image.width, safeFrameSize / image.height);
   const renderedWidth = image.width * baseScale * cropState.zoom * outputScale;
   const renderedHeight = image.height * baseScale * cropState.zoom * outputScale;
 
@@ -537,7 +537,7 @@ async function getCroppedImage(imageSrc: string, cropState: CropState, frameSize
   ctx.rotate(getRadianAngle(cropState.rotation));
   ctx.drawImage(image, -renderedWidth / 2, -renderedHeight / 2, renderedWidth, renderedHeight);
 
-  return canvas.toDataURL("image/jpeg", 0.92);
+  return canvas.toDataURL("image/jpeg", 0.86);
 }
 
 async function resizeImageDataUrl(imageSrc: string, maxSide: number, quality: number) {
@@ -575,6 +575,7 @@ async function createSuggestionImage(imageSrc: string) {
 
 async function createStoredImage(imageSrc: string) {
   if (!imageSrc || !imageSrc.startsWith("data:image/")) return imageSrc;
+  if (imageSrc.startsWith("data:image/jpeg")) return imageSrc;
   return resizeImageDataUrl(imageSrc, 1800, 0.86);
 }
 
@@ -688,9 +689,9 @@ function ExportCardSpread({ card }: { card: ImageCard }) {
       </article>
 
       <article className="relative h-full overflow-hidden bg-white px-[58px] py-[58px]">
-        <div className="absolute left-[58px] top-[58px] flex max-w-[920px] flex-wrap gap-[12px]">
+        <div className="absolute left-[58px] top-[58px] flex max-w-[980px] flex-wrap gap-[10px]">
           {(displayTags.length > 0 ? displayTags : [{ category: "effect" as TagCategory, label: "태그 미정" }]).map((tag) => (
-            <span className="rounded-full border border-black/70 px-[26px] py-[12px] text-[36px] font-semibold leading-none text-black/70" key={`${tag.category}-${tag.label}`}>{tag.label}</span>
+            <span className="whitespace-nowrap rounded-full border border-black/70 px-[22px] py-[10px] text-[28px] font-semibold leading-none text-black/70" key={`${tag.category}-${tag.label}`}>{tag.label}</span>
           ))}
         </div>
         <div className="flex h-full flex-col gap-[54px] pt-[160px]">
@@ -1238,7 +1239,7 @@ export function ImageZettelkastenPrototype() {
                       rotation={draft.crop.rotation}
                       aspect={1}
                       cropShape="rect"
-                      objectFit="contain"
+                      objectFit="cover"
                       showGrid={false}
                       zoomWithScroll={false}
                       minZoom={0.25}
