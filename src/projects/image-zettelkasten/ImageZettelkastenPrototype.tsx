@@ -301,6 +301,14 @@ function createDraft(): DraftCard {
   };
 }
 
+function getDefaultCropFrameSize() {
+  if (typeof window === "undefined") return 620;
+  const isMobile = window.innerWidth < 640;
+  const widthAllowance = isMobile ? window.innerWidth - 48 : window.innerWidth - 220;
+  const heightAllowance = isMobile ? window.innerHeight - 270 : 620;
+  return Math.max(280, Math.floor(Math.min(widthAllowance, heightAllowance)));
+}
+
 function tagStringToArray(value: string) {
   return value.split(",").map((item) => item.trim()).filter(Boolean);
 }
@@ -722,7 +730,7 @@ export function ImageZettelkastenPrototype() {
   const [deleteTarget, setDeleteTarget] = useState<ImageCard | null>(null);
   const [deletingCard, setDeletingCard] = useState(false);
   const [cropZoomInitialized, setCropZoomInitialized] = useState(false);
-  const [cropFrameSize, setCropFrameSize] = useState(() => (typeof window === "undefined" ? 500 : Math.min(500, Math.max(280, window.innerWidth - 48))));
+  const [cropFrameSize, setCropFrameSize] = useState(getDefaultCropFrameSize);
   const addImageInputRef = useRef<HTMLInputElement | null>(null);
   const importCsvInputRef = useRef<HTMLInputElement | null>(null);
   const importImageInputRef = useRef<HTMLInputElement | null>(null);
@@ -841,7 +849,7 @@ export function ImageZettelkastenPrototype() {
         lastSuggestionRequestKey.current = "";
         setEditingCardId(null);
         setCropZoomInitialized(false);
-        setCropFrameSize(typeof window === "undefined" ? 500 : Math.min(500, Math.max(280, window.innerWidth - 48)));
+        setCropFrameSize(getDefaultCropFrameSize());
         setAddStep("refine");
         setMode("add");
       }
@@ -877,7 +885,7 @@ export function ImageZettelkastenPrototype() {
     lastSuggestionRequestKey.current = "";
     setEditingCardId(null);
     setCropZoomInitialized(false);
-    setCropFrameSize(typeof window === "undefined" ? 500 : Math.min(500, Math.max(280, window.innerWidth - 48)));
+    setCropFrameSize(getDefaultCropFrameSize());
     setAddStep("refine");
     setMode("add");
   }
@@ -1261,10 +1269,9 @@ export function ImageZettelkastenPrototype() {
                       onZoomChange={(zoom) => updateCrop({ zoom })}
                       onRotationChange={(rotation) => updateCrop({ rotation })}
                       onCropComplete={(_, croppedAreaPixels) => updateCrop({ croppedAreaPixels })}
-                      onMediaLoaded={(mediaSize) => {
+                      onMediaLoaded={() => {
                         if (cropZoomInitialized || editingCardId) return;
-                        const displayedImageWidth = Math.max(280, Math.round(mediaSize.width));
-                        setCropFrameSize(displayedImageWidth);
+                        setCropFrameSize(getDefaultCropFrameSize());
                         updateCrop({ crop: { x: 0, y: 0 }, zoom: 1 });
                         setCropZoomInitialized(true);
                       }}
