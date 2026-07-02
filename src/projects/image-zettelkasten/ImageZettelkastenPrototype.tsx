@@ -703,6 +703,7 @@ export function ImageZettelkastenPrototype() {
   const [addStep, setAddStep] = useState<AddStep>("refine");
   const [editingCardId, setEditingCardId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ImageCard | null>(null);
+  const [deletingCard, setDeletingCard] = useState(false);
   const [cropZoomInitialized, setCropZoomInitialized] = useState(false);
   const [cropFrameSize, setCropFrameSize] = useState(() => (typeof window === "undefined" ? 500 : Math.min(500, Math.max(280, window.innerWidth - 48))));
   const addImageInputRef = useRef<HTMLInputElement | null>(null);
@@ -788,6 +789,26 @@ export function ImageZettelkastenPrototype() {
     setMode("library");
   }
 
+  function advanceImportQueue() {
+    if (!importQueue?.active) return false;
+    const nextIndex = importQueue.currentIndex + 1;
+    if (nextIndex < importQueue.rows.length) {
+      const nextQueue = { ...importQueue, currentIndex: nextIndex };
+      setImportQueue(nextQueue);
+      void loadImportRow(nextQueue.rows, nextQueue.files, nextIndex);
+    } else {
+      setImportQueue(null);
+      setPendingImportRows([]);
+      setMode("library");
+    }
+    return true;
+  }
+
+  function skipCurrentImportRow() {
+    if (savingCard) return;
+    advanceImportQueue();
+  }
+
   async function readImage(file: File | undefined) {
     if (!file) return;
     const metadata = await readExifMetadata(file);
@@ -859,12 +880,12 @@ export function ImageZettelkastenPrototype() {
     const files = fileList ? Array.from(fileList) : [];
     if (pendingImportRows.length === 0 || files.length === 0) return;
     const fileMap = createImportFileMap(files);
-    const missing = pendingImportRows.filter((row) => !getImportFile(fileMap, row.fileName));
-    if (missing.length > 0) {
-      window.alert(`CSV와 매칭되지 않은 이미지가 있다: ${missing.slice(0, 5).map((row) => row.fileName).join(", ")}${missing.length > 5 ? "..." : ""}`);
+    const matchedRows = pendingImportRows.filter((row) => getImportFile(fileMap, row.fileName));
+    if (matchedRows.length === 0) {
+      window.alert("CSV와 매칭되는 이미지가 없다.");
       return;
     }
-    const queue = { rows: pendingImportRows, files: fileMap, currentIndex: 0, active: true };
+    const queue = { rows: matchedRows, files: fileMap, currentIndex: 0, active: true };
     setImportQueue(queue);
     void loadImportRow(queue.rows, queue.files, 0);
   }
@@ -1024,16 +1045,7 @@ export function ImageZettelkastenPrototype() {
       }
       setSelectedGroupValue(null);
       if (importQueue?.active) {
-        const nextIndex = importQueue.currentIndex + 1;
-        if (nextIndex < importQueue.rows.length) {
-          const nextQueue = { ...importQueue, currentIndex: nextIndex };
-          setImportQueue(nextQueue);
-          void loadImportRow(nextQueue.rows, nextQueue.files, nextIndex);
-        } else {
-          setImportQueue(null);
-          setPendingImportRows([]);
-          setMode("library");
-        }
+        advanceImportQueue();
         return;
       }
       setMode("library");
@@ -1069,19 +1081,24 @@ export function ImageZettelkastenPrototype() {
   }
 
   async function confirmDeleteCard() {
-    if (!deleteTarget) return;
-    const response = await fetch(`/api/cards/${encodeURIComponent(deleteTarget.id)}`, { method: "DELETE" });
-    if (!response.ok) {
-      window.alert("카드를 삭제하지 못했다.");
-      return;
+    if (!deleteTarget || deletingCard) return;
+    setDeletingCard(true);
+    try {
+      const response = await fetch(`/api/cards/${encodeURIComponent(deleteTarget.id)}`, { method: "DELETE" });
+      if (!response.ok) {
+        window.alert("카드를 삭제하지 못했다.");
+        return;
+      }
+      const data = await response.json();
+      if (Array.isArray(data.cards)) {
+        setCards(data.cards.map(normalizeCard));
+      } else {
+        setCards((current) => current.filter((card) => card.id !== deleteTarget.id));
+      }
+      setDeleteTarget(null);
+    } finally {
+      setDeletingCard(false);
     }
-    const data = await response.json();
-    if (Array.isArray(data.cards)) {
-      setCards(data.cards.map(normalizeCard));
-    } else {
-      setCards((current) => current.filter((card) => card.id !== deleteTarget.id));
-    }
-    setDeleteTarget(null);
   }
 
   async function exportAllCards() {
@@ -1181,7 +1198,10 @@ export function ImageZettelkastenPrototype() {
           {addStep === "refine" && (
             <section className="overflow-hidden bg-white shadow-2xl shadow-black/10 sm:rounded-[28px] sm:border sm:border-black/10">
               <div className="flex h-16 items-center justify-between border-b border-black/10 px-4 text-black sm:h-[76px] sm:px-6">
-                <button className="rounded-full px-2 py-2 text-sm font-black text-black/55 sm:px-4" onClick={closeAddMode} type="button">취소</button>
+                <div className="flex items-center gap-2">
+                  <button className="rounded-full px-2 py-2 text-sm font-black text-black/55 sm:px-4" onClick={closeAddMode} type="button">취소</button>
+                  {importQueue?.active && <button className="rounded-full border border-black/10 bg-white px-3 py-2 text-sm font-black text-black disabled:cursor-not-allowed disabled:opacity-45" disabled={savingCard} onClick={skipCurrentImportRow} type="button">스킵</button>}
+                </div>
                 <div className="text-center">
                   <p className="text-[10px] font-black uppercase text-black/40 sm:text-xs">Crop</p>
                   <h2 className="text-base font-black sm:text-lg">1:1 관찰 이미지화</h2>
@@ -1381,8 +1401,11 @@ export function ImageZettelkastenPrototype() {
             <h2 className="text-xl font-semibold">정말 삭제하시겠습니까?</h2>
             <p className="mt-2 text-sm font-medium leading-6 text-[#6e6e73]">삭제하면 이 카드 기록을 되돌릴 수 없습니다.</p>
             <div className="mt-6 flex justify-end gap-2">
-              <button className="rounded-full bg-[#f5f5f7] px-5 py-3 text-sm font-semibold" onClick={() => setDeleteTarget(null)} type="button">취소</button>
-              <button className="rounded-full bg-red-600 px-5 py-3 text-sm font-semibold text-white" onClick={confirmDeleteCard} type="button">확인</button>
+              <button className="rounded-full bg-[#f5f5f7] px-5 py-3 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-45" disabled={deletingCard} onClick={() => setDeleteTarget(null)} type="button">취소</button>
+              <button className="inline-flex items-center gap-2 rounded-full bg-red-600 px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45" disabled={deletingCard} onClick={confirmDeleteCard} type="button">
+                {deletingCard && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />}
+                <span>{deletingCard ? "삭제 중" : "확인"}</span>
+              </button>
             </div>
           </div>
         </div>
