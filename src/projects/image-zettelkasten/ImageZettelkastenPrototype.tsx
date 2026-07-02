@@ -50,6 +50,8 @@ type ImageCard = {
 type DraftCard = Omit<ImageCard, "id" | "number">;
 type CardLike = (ImageCard | DraftCard) & { number?: string };
 type SuggestionResult = { title: string; tags: CardTags; newTags?: Array<{ category: TagCategory; label: string; reason?: string }> };
+type ImportRow = { id: string; fileName: string; observation: string; insight: string };
+type ImportQueue = { rows: ImportRow[]; files: Record<string, File>; currentIndex: number; active: boolean };
 
 const tagCategories: Array<{ id: TagCategory; label: string; description: string; examples: string[] }> = [
   { id: "subject", label: "대상", description: "이미지 속 관찰 대상", examples: ["간판", "타일", "벽면", "계단", "창문", "문", "의자", "조명", "식물"] },
@@ -333,6 +335,72 @@ function tagMapToInputs(tags: CardTags) {
 
 function normalizeCard(card: ImageCard): ImageCard {
   return { ...card, tags: normalizeTags(card.tags) };
+}
+
+function normalizeFileName(value: string) {
+  return value.trim().split(/[\\/]/).pop()?.toLowerCase() || "";
+}
+
+function parseCsvRecords(text: string) {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let value = "";
+  let quoted = false;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    const next = text[index + 1];
+    if (char === "\"" && quoted && next === "\"") {
+      value += "\"";
+      index += 1;
+    } else if (char === "\"") {
+      quoted = !quoted;
+    } else if (char === "," && !quoted) {
+      row.push(value);
+      value = "";
+    } else if ((char === "\n" || char === "\r") && !quoted) {
+      if (char === "\r" && next === "\n") index += 1;
+      row.push(value);
+      if (row.some((item) => item.trim())) rows.push(row);
+      row = [];
+      value = "";
+    } else {
+      value += char;
+    }
+  }
+
+  row.push(value);
+  if (row.some((item) => item.trim())) rows.push(row);
+  return rows;
+}
+
+function parseImportCsv(text: string): ImportRow[] {
+  const records = parseCsvRecords(text.replace(/^\uFEFF/, ""));
+  const headers = (records[0] || []).map((header) => header.trim());
+  const fieldIndex = (names: string[]) => headers.findIndex((header) => names.includes(header));
+  const fileNameIndex = fieldIndex(["fileName", "filename", "image", "imageFile", "file"]);
+  const observationIndex = fieldIndex(["observation", "관찰"]);
+  const insightIndex = fieldIndex(["insight", "인사이트"]);
+
+  if (fileNameIndex < 0) return [];
+  return records.slice(1).map((record, index) => ({
+    id: `import-${Date.now()}-${index}`,
+    fileName: (record[fileNameIndex] || "").trim(),
+    observation: observationIndex >= 0 ? (record[observationIndex] || "").trim() : "",
+    insight: insightIndex >= 0 ? (record[insightIndex] || "").trim() : "",
+  })).filter((row) => row.fileName);
+}
+
+function fileToDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") resolve(reader.result);
+      else reject(new Error("file read failed"));
+    };
+    reader.onerror = () => reject(reader.error || new Error("file read failed"));
+    reader.readAsDataURL(file);
+  });
 }
 
 function observationText(observation: Observation) {
@@ -630,6 +698,8 @@ export function ImageZettelkastenPrototype() {
   const [cropZoomInitialized, setCropZoomInitialized] = useState(false);
   const [cropFrameSize, setCropFrameSize] = useState(() => (typeof window === "undefined" ? 500 : Math.min(500, Math.max(280, window.innerWidth - 48))));
   const addImageInputRef = useRef<HTMLInputElement | null>(null);
+  const importCsvInputRef = useRef<HTMLInputElement | null>(null);
+  const importImageInputRef = useRef<HTMLInputElement | null>(null);
   const cardExportRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const lastSuggestionRequestKey = useRef("");
   const [exporting, setExporting] = useState(false);
@@ -637,6 +707,8 @@ export function ImageZettelkastenPrototype() {
   const [suggestionStatus, setSuggestionStatus] = useState<"idle" | "loading" | "error">("idle");
   const [suggestionError, setSuggestionError] = useState("");
   const [cardsLoading, setCardsLoading] = useState(true);
+  const [pendingImportRows, setPendingImportRows] = useState<ImportRow[]>([]);
+  const [importQueue, setImportQueue] = useState<ImportQueue | null>(null);
 
   const filteredCards = useMemo(() => cards.filter((card) => cardMatchesQuery(card, query)), [cards, query]);
   const groups = useMemo(() => groupCards(filteredCards, groupBy), [filteredCards, groupBy]);
@@ -650,6 +722,7 @@ export function ImageZettelkastenPrototype() {
   const suggestedTags = llmSuggestion && hasAnyTags(llmSuggestion.tags) ? llmSuggestion.tags : fallbackTags;
   const finalTitle = draft.title.trim() || suggestedTitle;
   const finalTags = hasAnyTags(draft.tags) ? draft.tags : suggestedTags;
+  const currentImportRow = importQueue?.active ? importQueue.rows[importQueue.currentIndex] : null;
   const suggestionRequestKey = useMemo(() => JSON.stringify({
     observation: observationBody(draft.observation),
     insight: insightBody(draft.observation),
@@ -693,11 +766,15 @@ export function ImageZettelkastenPrototype() {
 
   function startAddMode() {
     setEditingCardId(null);
+    setImportQueue(null);
+    setPendingImportRows([]);
     addImageInputRef.current?.click();
   }
 
   function closeAddMode() {
     setEditingCardId(null);
+    setImportQueue(null);
+    setPendingImportRows([]);
     setMode("library");
   }
 
@@ -722,6 +799,64 @@ export function ImageZettelkastenPrototype() {
       }
     };
     reader.readAsDataURL(file);
+  }
+
+  async function loadImportRow(rows: ImportRow[], files: Record<string, File>, currentIndex: number) {
+    const row = rows[currentIndex];
+    if (!row) return;
+    const file = files[normalizeFileName(row.fileName)];
+    if (!file) {
+      window.alert(`이미지 파일을 찾지 못했다: ${row.fileName}`);
+      return;
+    }
+    const metadata = await readExifMetadata(file);
+    const dataUrl = await fileToDataUrl(file);
+    const workingImage = await resizeImageDataUrl(dataUrl, 1800, 0.86);
+    setDraft({
+      ...createDraft(),
+      imageUrl: workingImage,
+      originalImageUrl: workingImage,
+      fileName: file.name,
+      collectedAt: metadata.collectedAt,
+      collectedTime: metadata.collectedTime,
+      collectedPlace: metadata.collectedPlace,
+      observation: { ...emptyObservation, context: row.observation, insight: row.insight },
+    });
+    setTagInputs(tagMapToInputs(emptyTags));
+    setLlmSuggestion(null);
+    setSuggestionStatus("idle");
+    setSuggestionError("");
+    lastSuggestionRequestKey.current = "";
+    setEditingCardId(null);
+    setCropZoomInitialized(false);
+    setCropFrameSize(typeof window === "undefined" ? 500 : Math.min(500, Math.max(280, window.innerWidth - 48)));
+    setAddStep("refine");
+    setMode("add");
+  }
+
+  async function readImportCsv(file: File | undefined) {
+    if (!file) return;
+    const rows = parseImportCsv(await file.text());
+    if (rows.length === 0) {
+      window.alert("CSV에서 fileName 행을 찾지 못했다.");
+      return;
+    }
+    setPendingImportRows(rows);
+    importImageInputRef.current?.click();
+  }
+
+  function readImportImages(fileList: FileList | null) {
+    const files = fileList ? Array.from(fileList) : [];
+    if (pendingImportRows.length === 0 || files.length === 0) return;
+    const fileMap = Object.fromEntries(files.map((file) => [normalizeFileName(file.name), file]));
+    const missing = pendingImportRows.filter((row) => !fileMap[normalizeFileName(row.fileName)]);
+    if (missing.length > 0) {
+      window.alert(`CSV와 매칭되지 않은 이미지가 있다: ${missing.slice(0, 5).map((row) => row.fileName).join(", ")}${missing.length > 5 ? "..." : ""}`);
+      return;
+    }
+    const queue = { rows: pendingImportRows, files: fileMap, currentIndex: 0, active: true };
+    setImportQueue(queue);
+    void loadImportRow(queue.rows, queue.files, 0);
   }
 
   async function commitCrop() {
@@ -869,6 +1004,19 @@ export function ImageZettelkastenPrototype() {
     const data = await response.json();
     setCards((current) => [normalizeCard(data.card), ...current]);
     setSelectedGroupValue(null);
+    if (importQueue?.active) {
+      const nextIndex = importQueue.currentIndex + 1;
+      if (nextIndex < importQueue.rows.length) {
+        const nextQueue = { ...importQueue, currentIndex: nextIndex };
+        setImportQueue(nextQueue);
+        void loadImportRow(nextQueue.rows, nextQueue.files, nextIndex);
+      } else {
+        setImportQueue(null);
+        setPendingImportRows([]);
+        setMode("library");
+      }
+      return;
+    }
     setMode("library");
   }
 
@@ -992,6 +1140,11 @@ export function ImageZettelkastenPrototype() {
         )}
 
         <main className={classNames("mx-auto grid max-w-7xl gap-6", addStep === "refine" ? "px-0 py-0 sm:px-6 sm:py-6" : "px-6 py-8")}>
+          {importQueue && currentImportRow && (
+            <div className="mx-4 mt-4 rounded-2xl bg-black px-4 py-3 text-sm font-semibold text-white sm:mx-0 sm:mt-0">
+              대량 임포트 {importQueue.currentIndex + 1}/{importQueue.rows.length} · {currentImportRow.fileName}
+            </div>
+          )}
           {addStep === "refine" && (
             <section className="overflow-hidden bg-white shadow-2xl shadow-black/10 sm:rounded-[28px] sm:border sm:border-black/10">
               <div className="flex h-16 items-center justify-between border-b border-black/10 px-4 text-black sm:h-[76px] sm:px-6">
@@ -1142,11 +1295,15 @@ export function ImageZettelkastenPrototype() {
   return (
     <div className="min-h-screen bg-[#f5f5f7] font-sans text-[#1d1d1f]">
       <input ref={addImageInputRef} className="hidden" type="file" accept="image/*" onChange={(event) => { readImage(event.target.files?.[0]); event.currentTarget.value = ""; }} />
+      <input ref={importCsvInputRef} className="hidden" type="file" accept=".csv,text/csv" onChange={(event) => { void readImportCsv(event.target.files?.[0]); event.currentTarget.value = ""; }} />
+      <input ref={importImageInputRef} className="hidden" type="file" multiple accept="image/*" onChange={(event) => { readImportImages(event.target.files); event.currentTarget.value = ""; }} />
       <header className="sticky top-0 z-30 w-full border-b border-black/10 bg-[#f5f5f7]/95 px-4 py-3 backdrop-blur-xl sm:px-6 sm:py-4">
         <div className="mx-auto flex w-full max-w-[1540px] items-center gap-3 sm:gap-5">
           <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-black text-white sm:h-12 sm:w-12 sm:rounded-2xl"><Library size={20} /></div>
           <div className="mr-auto min-w-0"><h1 className="truncate text-lg font-semibold sm:text-2xl sm:font-black">Image Zettelkasten</h1></div>
           <label className="hidden min-w-[320px] items-center gap-3 rounded-full border border-black/10 bg-white px-4 py-3 md:flex"><Search size={17} className="text-[#6e6e73]" /><input className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-[#8e8e93]" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="제목, 태그, 장소, 관찰 문장 검색" /></label>
+          <a className="hidden shrink-0 rounded-full bg-white px-4 py-3 text-sm font-semibold text-black sm:inline-flex" href="/image-zettelkasten-import-template.csv" download>CSV 템플릿</a>
+          <button className="shrink-0 rounded-full bg-white px-3 py-2 text-xs font-semibold text-black sm:px-5 sm:py-3 sm:text-sm" onClick={() => importCsvInputRef.current?.click()} type="button">대량 임포트</button>
           <button className="shrink-0 rounded-full bg-white px-3 py-2 text-xs font-semibold text-black disabled:opacity-45 sm:px-5 sm:py-3 sm:text-sm" disabled={exporting} onClick={exportAllCards} type="button">{exporting ? "내보내는 중" : "내보내기"}</button>
           <button className="shrink-0 rounded-full bg-black px-4 py-2 text-sm font-semibold text-white sm:px-5 sm:py-3 sm:font-black" onClick={startAddMode} type="button">새 카드</button>
         </div>
