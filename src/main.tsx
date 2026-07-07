@@ -11,6 +11,7 @@ import {
 import { QueuePrototype } from "./projects/queue-flow/QueuePrototype";
 import { RepeatRunPrototype } from "./projects/repeat-run/RepeatRunPrototype";
 import { BowScoreMazePrototype } from "./projects/score-maze/BowScoreMazePrototype";
+import { TakoyakiGrillGame } from "./projects/takoyaki-grill-game/TakoyakiGrillGame";
 import { Project, ProjectSectionId, projects } from "./projects";
 import "./styles.css";
 
@@ -61,6 +62,7 @@ function getRoute() {
 function defaultSection(project: Project) {
   if (project.kind === "pinned-home") return "onepager";
   if (project.kind === "queue") return "brief";
+  if (project.kind === "ct-decomposition") return "brief";
   if (project.kind === "ct-process") return "brief";
   if (project.kind === "ct-brief") return "brief";
   if (project.kind === "ct") return "brief";
@@ -70,6 +72,7 @@ function defaultSection(project: Project) {
 function projectSections(project: Project) {
   if (project.kind === "pinned-home") return pinnedHomeSections;
   if (project.kind === "queue") return queueSections;
+  if (project.kind === "ct-decomposition") return [ctSections[0], ctSections[1], ctSections[2], ctSections[3]];
   if (project.kind === "ct-process") return ctSections;
   if (project.kind === "ct-brief") return [ctSections[0], ctSections[1], ctSections[2], ctSections[3]];
   if (project.kind === "ct") return ctSections;
@@ -110,6 +113,10 @@ function App() {
 
   if (route.appId === "image-zettelkasten") {
     return <ImageZettelkastenPrototype />;
+  }
+
+  if (route.appId === "takoyaki-grill-game") {
+    return <TakoyakiGrillGame />;
   }
 
   if (!project) {
@@ -205,7 +212,11 @@ function App() {
           </article>
         )}
 
-        {(project.kind === "ct" || project.kind === "ct-brief" || project.kind === "ct-process") && activeSection === "brief" && (
+        {(project.kind === "ct" ||
+          project.kind === "ct-decomposition" ||
+          project.kind === "ct-brief" ||
+          project.kind === "ct-process") &&
+          activeSection === "brief" && (
           <article className="ct-decomposition-view">
             <div className="pattern-intro">
               <p className="eyebrow">Decomposition</p>
@@ -213,6 +224,8 @@ function App() {
               <p>
                 {project.kind === "ct"
                   ? "두 사물을 각각 먼저 분해한 뒤, 패턴 인식 단계에서 저수준 값의 역할을 비교 분해 속성으로 묶는다."
+                  : project.kind === "ct-decomposition"
+                    ? "최종 과제 CT를 진행하기 위한 기준 분해안이다. 지금 단계에서는 필요한 상수와 변수만 남긴 모래시계 분해안을 먼저 확인한다."
                   : project.kind === "ct-process"
                     ? "프로세스 수행 기록을 고수준-중수준-저수준 과업으로 나누고, 가장 낮은 단계에서 추려지는 데이터를 함께 확인한다."
                     : "사물의 목적에서 시작해 주요 작동 흐름을 나누고, 각 단계에서 바뀌는 값과 고정된 값을 함께 확인한다."}
@@ -353,6 +366,56 @@ function App() {
           </article>
         )}
 
+        {project.kind === "ct-decomposition" && activeSection === "pattern" && (
+          <article className="pattern-view">
+            <div className="pattern-intro">
+              <p className="eyebrow">Pattern Recognition</p>
+              <h2>패턴 인식</h2>
+              <p>{project.patternRecognition.overview}</p>
+            </div>
+
+            <div className="comparison-table-wrap">
+              <table className="comparison-table">
+                <thead>
+                  <tr>
+                    <th>비교 속성</th>
+                    <th>모래시계</th>
+                    <th>타코야끼 굽기</th>
+                    <th>공통 패턴</th>
+                    <th>차이 패턴</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {project.patternRecognition.rows.map((row) => (
+                    <tr key={row.property}>
+                      <th scope="row">{row.property}</th>
+                      <td>
+                        <PatternMetricCell text={row.hourglass.text} metrics={row.hourglass.metrics} />
+                      </td>
+                      <td>
+                        <PatternMetricCell text={row.takoyaki.text} metrics={row.takoyaki.metrics} />
+                      </td>
+                      <td>{row.commonPattern}</td>
+                      <td>{row.differencePattern}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="pattern-summary-grid">
+              <section>
+                <h3>공통 패턴</h3>
+                <p>{project.patternRecognition.commonSummary}</p>
+              </section>
+              <section>
+                <h3>차이 패턴</h3>
+                <p>{project.patternRecognition.differenceSummary}</p>
+              </section>
+            </div>
+          </article>
+        )}
+
         {project.kind === "ct-brief" && activeSection === "pattern" && (
           <article className="pattern-view">
             <div className="pattern-intro">
@@ -449,7 +512,11 @@ function App() {
           </article>
         )}
 
-        {(project.kind === "ct" || project.kind === "ct-brief" || project.kind === "ct-process") && activeSection === "abstraction" && (
+        {(project.kind === "ct" ||
+          project.kind === "ct-decomposition" ||
+          project.kind === "ct-brief" ||
+          project.kind === "ct-process") &&
+          activeSection === "abstraction" && (
           <article className="ct-abstraction-view">
             <div className="pattern-intro">
               <p className="eyebrow">Abstraction</p>
@@ -507,6 +574,20 @@ function App() {
                 </dl>
               </section>
 
+              {project.abstraction.derivedVariables && project.abstraction.derivedVariables.length > 0 && (
+                <section>
+                  <h3>파생 변수</h3>
+                  <dl className="term-list">
+                    {project.abstraction.derivedVariables.map((item) => (
+                      <div key={item.name}>
+                        <dt>{item.name}</dt>
+                        <dd>{item.text}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+              )}
+
               <section>
                 <h3>상수</h3>
                 <dl className="term-list">
@@ -550,7 +631,11 @@ function App() {
           </article>
         )}
 
-        {(project.kind === "ct" || project.kind === "ct-brief" || project.kind === "ct-process") && activeSection === "flowchart" && (
+        {(project.kind === "ct" ||
+          project.kind === "ct-decomposition" ||
+          project.kind === "ct-brief" ||
+          project.kind === "ct-process") &&
+          activeSection === "flowchart" && (
           <article className="ct-flowchart-view">
             <div className="pattern-intro">
               <p className="eyebrow">Flowchart</p>

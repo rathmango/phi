@@ -141,6 +141,238 @@ flowchart TB
   class chamberSwap,sandBecomesTop,startTime,downwardMove,neckLimit,sandShift,topDecrease,bottomIncrease,timeRead,emptyCheck,noFlow,finishedState action;
 `;
 
+export const finalHourglassDecompositionChart = `
+flowchart TB
+  root["고수준<br/>정해진 양의 단위가 위쪽 영역에서 아래쪽 영역으로<br/>일정한 속도로 이동하고,<br/>남은 양과 이동한 양의 비율로<br/>정해진 시간의 진행과 완료를 보여준다"]
+
+  root --> start["중수준 1<br/>시간 측정 시작"]
+  root --> regulate["중수준 2<br/>시간 흐름 제어"]
+  root --> observe["중수준 3<br/>진행 상태 표시"]
+  root --> result["중수준 4<br/>측정 완료 확인"]
+
+  start --> swap["1-1. 위쪽 영역과 아래쪽 영역의<br/>역할이 바뀐다<br/><br/>[변수] state: 측정 상태<br/>[변수] top_amount: 위쪽에 남은 양<br/>[변수] bottom_amount: 아래쪽에 쌓인 양"]
+  start --> setStart["1-2. 측정 시작 시점과<br/>총 측정 기준이 정해진다<br/><br/>[변수] elapsed_time: 경과 시간<br/>[상수] total_amount: 전체 단위량<br/>[상수] target_duration: 목표 측정 시간"]
+
+  regulate --> limit["2-1. 연결 통로가<br/>단위의 이동 속도를 제한한다<br/><br/>[상수] transfer_rate: 이동 속도"]
+  regulate --> move["2-2. 시간이 지날수록<br/>위쪽 양은 줄고 아래쪽 양은 늘어난다<br/><br/>[변수] top_amount: 위쪽에 남은 양<br/>[변수] bottom_amount: 아래쪽에 쌓인 양<br/>[변수] elapsed_time: 경과 시간"]
+
+  observe --> progress["3-1. 남은 양과 이동한 양이<br/>진행률로 변환된다<br/><br/>[변수] progress_ratio: 진행률<br/>[변수] remaining_time: 남은 시간"]
+  observe --> visibleState["3-2. 위쪽과 아래쪽의 모래 분포가<br/>사용자가 볼 수 있는 진행 상태가 된다<br/><br/>[변수] top_amount: 위쪽에 남은 양<br/>[변수] bottom_amount: 아래쪽에 쌓인 양"]
+
+  result --> check["4-1. 위쪽에 남은 양이<br/>완료 기준에 도달했는지 판단한다<br/><br/>[변수] top_amount: 위쪽에 남은 양<br/>[상수] 완료 기준: top_amount = 0"]
+  result --> done["4-2. 완료 기준을 만족하면<br/>측정 완료 상태가 된다<br/><br/>[변수] state: 측정 상태<br/>[변수] is_finished: 완료 여부"]
+
+  classDef high fill:#ffffff,stroke:#64748b,stroke-width:3px,color:#111827,font-weight:bold;
+  classDef mid fill:#e8f2ff,stroke:#2563eb,stroke-width:3px,color:#0f172a,font-weight:bold;
+  classDef action fill:#e9f9f1,stroke:#16824a,stroke-width:2px,color:#10251a,font-weight:bold;
+  classDef endState fill:#f5eafe,stroke:#7c3aed,stroke-width:3px,color:#1f133a,font-weight:bold;
+
+  class root high;
+  class start,regulate,observe mid;
+  class result endState;
+  class swap,setStart,limit,move,progress,visibleState,check,done action;
+`;
+
+export const takoyakiDecompositionChart = `
+flowchart TB
+  root["고수준<br/>가열된 팬에 반죽과 재료를 넣은 뒤,<br/>팬에 닿은 면이 시간에 따라 익는 동안<br/>사용자가 굴려 접촉면을 바꾸고,<br/>겉면 전체가 충분히 익으면 팬에서 꺼낸다"]
+
+  root --> prepare["중수준 1<br/>팬 준비"]
+  root --> pour["중수준 2<br/>반죽과 재료 투입"]
+  root --> cook["중수준 3<br/>타코야끼 익히기"]
+  root --> turn["중수준 4<br/>타코야끼 굴리기"]
+  root --> remove["중수준 5<br/>팬에서 꺼내기"]
+
+  prepare --> heatPan["1-1. 팬을 조리 가능한 온도로<br/>예열한다<br/><br/>[변수] pan_temperature: 팬 온도<br/>[상수] target_heat_range: 조리 가능한 온도 범위"]
+  prepare --> oilPan["1-2. 팬 홈에 기름을 발라<br/>반죽이 과하게 달라붙지 않게 한다<br/><br/>[변수] oil_coverage: 기름칠 범위"]
+
+  pour --> pourBatter["2-1. 반죽을 팬 홈에 붓는다<br/><br/>[변수] batter_amount: 투입된 반죽 양"]
+  pour --> startCooking["2-2. 반죽이 팬에 닿는 순간<br/>익힘 시간이 시작된다<br/><br/>[변수] cook_time: 반죽 투입 후 지난 시간"]
+  pour --> addIngredients["2-3. 반죽 위에 재료를 넣는다<br/><br/>[변수] ingredient_amount: 투입된 재료 양"]
+
+  cook --> heatContact["3-1. 팬에 닿아 있는 면이<br/>먼저 익는다<br/><br/>[변수] contact_time: 현재 접촉면이 팬에 닿은 시간<br/>[변수] cooked_surface_coverage: 익은 표면 범위"]
+  cook --> timePasses["3-2. 시간이 지나면 익힘이 진행되고,<br/>너무 오래 닿은 면은 탄다<br/><br/>[변수] cook_time: 반죽 투입 후 지난 시간<br/>[변수] contact_time: 현재 접촉면이 팬에 닿은 시간<br/>[변수] burn_degree: 탄 정도"]
+  cook --> cookProgress["3-3. 익은 면이 늘어나면서<br/>전체 겉면의 익은 범위가 커진다<br/><br/>[변수] cooked_surface_coverage: 익은 표면 범위"]
+
+  turn --> rotatePiece["4-1. 굴리면 타코야끼의 방향이 바뀌고<br/>보이는 면과 팬에 닿는 면이 바뀐다<br/><br/>[변수] rotation_index: 현재 굴러간 방향<br/>[변수] visible_area: 현재 위쪽에서 보이는 표면 영역<br/>[변수] contact_area: 현재 팬에 닿은 표면 영역"]
+  turn --> contactRule["4-2. 팬에 닿는 면은 현재 방향의<br/>아래쪽 일부로 정해진다<br/><br/>[상수] contact_surface_ratio: 한 번에 팬에 닿는 표면 비율 ≈ 1/2<br/>[상수] contact_area_rule: rotation_index에 따라 contact_area가 정해짐"]
+  turn --> turnLoop["4-3. 겉면 전체가 익을 때까지<br/>굴리기를 반복한다<br/><br/>[변수] cooked_surface_coverage: 익은 표면 범위<br/>[상수] target_surface_coverage: 완료로 볼 익은 표면 범위"]
+
+  remove --> finishCheck["5-1. 겉면 전체가 기준 이상 익었는지<br/>확인한다<br/><br/>[변수] cooked_surface_coverage: 익은 표면 범위<br/>[상수] target_surface_coverage: 완료로 볼 익은 표면 범위<br/>[변수] burn_degree: 탄 정도"]
+  remove --> takeOut["5-2. 익었거나 탄 타코야끼를<br/>팬 홈에서 꺼낸다<br/><br/>[변수] is_removed: 팬에서 꺼냈는지 여부"]
+
+  classDef high fill:#ffffff,stroke:#64748b,stroke-width:3px,color:#111827,font-weight:bold;
+  classDef mid fill:#e8f2ff,stroke:#2563eb,stroke-width:3px,color:#0f172a,font-weight:bold;
+  classDef action fill:#e9f9f1,stroke:#16824a,stroke-width:2px,color:#10251a,font-weight:bold;
+  classDef endState fill:#f5eafe,stroke:#7c3aed,stroke-width:3px,color:#1f133a,font-weight:bold;
+
+  class root high;
+  class prepare,pour,cook,turn mid;
+  class remove endState;
+  class heatPan,oilPan,pourBatter,startCooking,addIngredients,heatContact,timePasses,cookProgress,rotatePiece,contactRule,turnLoop,finishCheck,takeOut action;
+`;
+
+export const takoyakiGameFlowChart = `
+flowchart TD
+  start(["시작"])
+
+  subgraph setup_module["시작/초기화 모듈"]
+    direction TD
+    initialize{{"초기값 설정<br/>pan_width_count = 3<br/>pan_height_count = 6<br/>takoyaki_count = 18<br/>plate_capacity = 6<br/>target_plate_count = 3<br/>completed_plate_count = 0<br/>plate_piece_ids = []<br/>remaining_time = time_limit"}}
+    create_grid["가로 3 x 세로 6 팬 구멍에<br/>18개 takoyaki_piece 배치"]
+    game_start[/"game_start<br/>조리 시작"/]
+    show_initial[/"초기 화면 표시<br/>18개 visible_panels 표시<br/>각 알의 contact_panels 계산"/]
+  end
+
+  subgraph timer_module["게임 타이머 모듈"]
+    direction TD
+    time_tick[/"time_tick<br/>시간 경과"/]
+    update_time["remaining_time 감소"]
+    time_over{"remaining_time &lt;= 0인가?"}
+  end
+
+  subgraph heat_module["접촉면 상태 갱신 모듈<br/>팬 위 active_pieces 전체에 적용"]
+    direction TD
+    read_active["팬 위 active_pieces 확인"]
+    read_contact["각 active_piece의<br/>현재 contact_panels 확인"]
+    increase_contact_state["각 contact_panels의<br/>panel_state_levels 증가"]
+    clamp_panel_levels["max_state_level을 넘지 않게 제한"]
+    update_coverage["각 알의 done_coverage 재계산<br/>각 알의 overdone_coverage 재계산"]
+  end
+
+  subgraph decision_module["관찰/판단 모듈"]
+    direction TD
+    show_cooking_view[/"관찰 화면 갱신<br/>가로 3 x 세로 6 팬, visible_panels,<br/>접시 슬롯, 남은 시간 표시"/]
+    player_decision{"사용자 판단<br/>무엇을 할 것인가?"}
+    wait_choice(("계속 기다리기"))
+    rotate_event[/"rotate_input<br/>선택한 타코야끼 알 굴리기"/]
+    move_to_plate_event[/"drag_to_plate_input<br/>팬의 알을 눌러 접시로 드래그"/]
+    return_to_pan_event[/"return_to_pan_input<br/>접시의 알을 빈 구멍으로 드래그"/]
+    plate_event[/"plate_submit_input<br/>접시 제출"/]
+  end
+
+  subgraph rotation_module["회전 모듈<br/>rotate_input 발생 시 실행"]
+    direction TD
+    select_piece["selected_piece_id 지정"]
+    begin_rotation["회전 시작<br/>reveal_timer = reveal_duration"]
+    no_heat_during_rotation["회전 중에는<br/>panel_state_levels 변화 없음"]
+    show_reveal[/"회전 중 노출<br/>지나가는 표면 상태를 잠깐 표시"/]
+    reveal_done{"reveal_timer &lt;= 0인가?"}
+    continue_reveal["reveal_timer 감소<br/>회전 애니메이션 유지"]
+    settle_rotation["선택한 알의<br/>rotation_index 변경"]
+    recalc_surfaces["선택한 알의<br/>contact_panels / visible_panels 재계산"]
+  end
+
+  subgraph plate_move_module["팬/접시 이동 모듈<br/>drag 입력 발생 시 실행"]
+    direction TD
+    select_pan_piece["팬 위 selected_piece_id 지정"]
+    plate_has_space{"plate_piece_ids 수 &lt; plate_capacity인가?"}
+    plate_full_block(("접시가 가득 참"))
+    move_to_plate["선택한 알을 접시 슬롯으로 이동<br/>active_piece_ids에서 제거<br/>plate_piece_ids에 추가"]
+    stop_cooking_on_plate["접시 위 알은<br/>익힘 갱신에서 제외"]
+    select_plate_piece["접시 위 selected_piece_id 지정"]
+    select_empty_hole["빈 pan_hole_id 지정"]
+    move_back_to_pan["선택한 알을 빈 구멍으로 이동<br/>plate_piece_ids에서 제거<br/>active_piece_ids에 추가"]
+    resume_cooking_on_pan["다음 time_tick부터<br/>다시 익힘 갱신 대상"]
+  end
+
+  subgraph plate_module["접시 제출 판정 모듈<br/>plate_submit_input 발생 시 실행"]
+    direction TD
+    plate_full{"plate_piece_ids 수 = plate_capacity인가?"}
+    need_six(("한 접시는 6개 필요"))
+    freeze_plate["plate_piece_ids 6개 상태 고정<br/>plate_candidate 생성"]
+    judge_plate{"접시 조건을<br/>만족하는가?<br/>각 알 done_coverage &gt;= required_done_coverage<br/>각 알 overdone_coverage &lt;= max_overdone_coverage"}
+    show_plate_reject[/"접시 미완료 표시<br/>plate_piece_ids 유지"/]
+    accept_plate["completed_plate_count 증가<br/>접시 위 6개를 완료 처리<br/>plate_piece_ids = []"]
+  end
+
+  subgraph end_module["전체 완료/종료 판정 모듈"]
+    direction TD
+    auto_finalize["is_finalized = true<br/>제한 시간 종료"]
+    all_plates_done{"completed_plate_count = target_plate_count인가?"}
+    success(["종료: 성공<br/>타코야끼 3접시 완성"])
+    fail_time(["종료: 실패<br/>제한 시간 안에 3접시를 완성하지 못함"])
+  end
+
+  start --> initialize
+  initialize --> create_grid
+  create_grid --> game_start
+  game_start --> show_initial
+  show_initial --> time_tick
+
+  time_tick --> update_time
+  update_time --> time_over
+  time_over -->|예| auto_finalize
+  auto_finalize --> fail_time
+  time_over -->|아니오| read_active
+  read_active --> read_contact
+  read_contact --> increase_contact_state
+  increase_contact_state --> clamp_panel_levels
+  clamp_panel_levels --> update_coverage
+  update_coverage --> show_cooking_view
+  show_cooking_view --> player_decision
+  player_decision -->|기다리기| wait_choice
+  wait_choice --> time_tick
+  player_decision -->|굴리기| rotate_event
+  rotate_event --> select_piece
+  select_piece --> begin_rotation
+  begin_rotation --> no_heat_during_rotation
+  no_heat_during_rotation --> show_reveal
+  show_reveal --> reveal_done
+  reveal_done -->|아니오| continue_reveal
+  continue_reveal --> show_reveal
+  reveal_done -->|예| settle_rotation
+  settle_rotation --> recalc_surfaces
+  recalc_surfaces --> time_tick
+
+  player_decision -->|접시에 올리기| move_to_plate_event
+  move_to_plate_event --> select_pan_piece
+  select_pan_piece --> plate_has_space
+  plate_has_space -->|아니오| plate_full_block
+  plate_full_block --> player_decision
+  plate_has_space -->|예| move_to_plate
+  move_to_plate --> stop_cooking_on_plate
+  stop_cooking_on_plate --> time_tick
+
+  player_decision -->|팬으로 되돌리기| return_to_pan_event
+  return_to_pan_event --> select_plate_piece
+  select_plate_piece --> select_empty_hole
+  select_empty_hole --> move_back_to_pan
+  move_back_to_pan --> resume_cooking_on_pan
+  resume_cooking_on_pan --> time_tick
+
+  player_decision -->|제출하기| plate_event
+  plate_event --> plate_full
+  plate_full -->|아니오| need_six
+  need_six --> player_decision
+  plate_full -->|예| freeze_plate
+  freeze_plate --> judge_plate
+  judge_plate -->|아니오| show_plate_reject
+  show_plate_reject --> player_decision
+  judge_plate -->|예| accept_plate
+  accept_plate --> all_plates_done
+  all_plates_done -->|예| success
+  all_plates_done -->|아니오| time_tick
+
+  classDef terminal fill:#ffffff,stroke:#64748b,stroke-width:3px,color:#111827,font-weight:bold;
+  classDef preparation fill:#f8fafc,stroke:#64748b,stroke-width:3px,color:#111827,font-weight:bold;
+  classDef io fill:#eef6ff,stroke:#2563eb,stroke-width:3px,color:#0f172a,font-weight:bold;
+  classDef process fill:#ffffff,stroke:#737373,stroke-width:3px,color:#111827;
+  classDef decision fill:#fff8e6,stroke:#b7791f,stroke-width:3px,color:#111827,font-weight:bold;
+  classDef connector fill:#ffffff,stroke:#64748b,stroke-width:3px,color:#111827;
+  classDef successState fill:#dcfce7,stroke:#16824a,stroke-width:4px,color:#10251a,font-weight:bold;
+  classDef failureState fill:#fee2e2,stroke:#b91c1c,stroke-width:4px,color:#3f1212,font-weight:bold;
+
+  class start terminal;
+  class initialize preparation;
+  class game_start,show_initial,time_tick,show_cooking_view,show_reveal,rotate_event,move_to_plate_event,return_to_pan_event,plate_event,show_plate_reject io;
+  class create_grid,update_time,read_active,read_contact,increase_contact_state,clamp_panel_levels,update_coverage,select_piece,begin_rotation,no_heat_during_rotation,continue_reveal,settle_rotation,recalc_surfaces,select_pan_piece,move_to_plate,stop_cooking_on_plate,select_plate_piece,select_empty_hole,move_back_to_pan,resume_cooking_on_pan,freeze_plate,accept_plate,auto_finalize process;
+  class player_decision,reveal_done,plate_has_space,plate_full,judge_plate,all_plates_done,time_over decision;
+  class wait_choice,plate_full_block,need_six connector;
+  class success successState;
+  class fail_time failureState;
+`;
+
 export const musicBoxDecompositionChart = `
 flowchart TB
   root["고수준<br/>감긴 태엽이 풀리는 힘으로 실린더를 돌리고,<br/>실린더의 핀이 금속 빗살을 차례대로 튕겨<br/>정해진 음악을 재생한다"]
@@ -604,6 +836,7 @@ type CtProject = {
       tagGroups?: Array<{ label: string; items: string[] }>;
     }>;
     variables: Array<{ name: string; text: string }>;
+    derivedVariables?: Array<{ name: string; text: string }>;
     constants: Array<{ name: string; text: string }>;
     events: Array<{ condition: string; result: string }>;
     examples: Array<{ title: string; mappings: Array<{ name: string; value: string }> }>;
@@ -615,6 +848,58 @@ type CtProject = {
     chart: string;
   };
   prototypeNote: string;
+};
+
+type CtDecompositionProject = {
+  id: string;
+  kind: "ct-decomposition";
+  title: string;
+  status: string;
+  summary: string;
+  decomposition: Array<{
+    title: string;
+    brief: string;
+    chart: string;
+  }>;
+  patternRecognition: {
+    overview: string;
+    rows: Array<{
+      property: string;
+      hourglass: {
+        text: string;
+        metrics: string[];
+      };
+      takoyaki: {
+        text: string;
+        metrics: string[];
+      };
+      commonPattern: string;
+      differencePattern: string;
+    }>;
+    commonSummary: string;
+    differenceSummary: string;
+  };
+  abstraction: {
+    title: string;
+    oneLine: string;
+    description: string;
+    elements: Array<{
+      key: string;
+      text: string;
+      tagGroups?: Array<{ label: string; items: string[] }>;
+    }>;
+    variables: Array<{ name: string; text: string }>;
+    derivedVariables?: Array<{ name: string; text: string }>;
+    constants: Array<{ name: string; text: string }>;
+    events: Array<{ condition: string; result: string }>;
+    examples: Array<{ title: string; mappings: Array<{ name: string; value: string }> }>;
+  };
+  flowchart: {
+    overview: string;
+    states: Array<{ name: string; text: string }>;
+    scenarios: Array<string>;
+    chart: string;
+  };
 };
 
 type CtBriefProject = {
@@ -658,6 +943,7 @@ type CtBriefProject = {
       tagGroups?: Array<{ label: string; items: string[] }>;
     }>;
     variables: Array<{ name: string; text: string }>;
+    derivedVariables?: Array<{ name: string; text: string }>;
     constants: Array<{ name: string; text: string }>;
     events: Array<{ condition: string; result: string }>;
     examples: Array<{ title: string; mappings: Array<{ name: string; value: string }> }>;
@@ -722,6 +1008,7 @@ type CtProcessProject = {
       tagGroups?: Array<{ label: string; items: string[] }>;
     }>;
     variables: Array<{ name: string; text: string }>;
+    derivedVariables?: Array<{ name: string; text: string }>;
     constants: Array<{ name: string; text: string }>;
     events: Array<{ condition: string; result: string }>;
     examples: Array<{ title: string; mappings: Array<{ name: string; value: string }> }>;
@@ -735,9 +1022,503 @@ type CtProcessProject = {
   prototypeNote: string;
 };
 
-export type Project = QueueProject | GlossaryProject | PinnedHomeProject | CtProject | CtBriefProject | CtProcessProject;
+export type Project =
+  | QueueProject
+  | GlossaryProject
+  | PinnedHomeProject
+  | CtProject
+  | CtDecompositionProject
+  | CtBriefProject
+  | CtProcessProject;
 
 export const projects: Project[] = [
+  {
+    id: "engineering-ct-final-takoyaki",
+    kind: "ct-decomposition",
+    title: "Engineering CT Final: 타코야끼 굽기 프로세스",
+    status: "최종 과제 플로우차트",
+    summary:
+      "모래시계와 타코야끼 굽기 프로세스를 비교해, 시간 경과로 진행되는 상태 변화와 진행 중 개입의 차이를 찾는 CT 작업장",
+    decomposition: [
+      {
+        title: "모래시계 분해안",
+        brief:
+          "기존 모래시계 CT에서 불필요하게 세밀한 물리값을 줄이고, 프로세스 판단에 필요한 상수와 변수만 남긴 기준 분해안이다.",
+        chart: finalHourglassDecompositionChart,
+      },
+      {
+        title: "타코야끼 굽기 프로세스 분해안",
+        brief:
+          "반죽을 팬에 붓는 순간부터 익힘 시간이 시작되고, 재료를 넣은 뒤 사용자가 굴리기를 반복해 접촉면을 바꾸면서 전면이 기준 이상 익은 타코야끼로 완성한 뒤 팬에서 꺼내는 프로세스이다.",
+        chart: takoyakiDecompositionChart,
+      },
+    ],
+    patternRecognition: {
+      overview:
+        "분해안의 저수준 값을 그대로 비교하지 않고, 여러 메트릭이 함께 만드는 작동 속성을 찾는다. 비교 속성은 두 대상 모두에 있어야 하는 조건이 아니다. 한쪽에만 강하게 나타나는 속성은 다른 쪽을 X로 두어, 공통 구조뿐 아니라 결정적인 차이 구조까지 드러낸다.",
+      rows: [
+        {
+          property: "시작 입력이 시간 기반 진행을 활성화한다",
+          hourglass: {
+            text:
+              "뒤집는 순간 측정 상태가 열리고, 경과 시간과 목표 측정 시간이 의미를 갖기 시작한다.",
+            metrics: ["state", "top_amount", "bottom_amount", "elapsed_time", "target_duration"],
+          },
+          takoyaki: {
+            text:
+              "반죽이 팬에 닿는 순간 조리 시간이 시작되고, 이후 익힘과 탐이 시간에 따라 진행된다.",
+            metrics: ["pan_temperature", "target_heat_range", "batter_amount", "ingredient_amount", "cook_time"],
+          },
+          commonPattern:
+            "둘 다 특정 입력 이후 시간 경과가 핵심 진행값을 바꾸기 시작한다.",
+          differencePattern:
+            "모래시계의 시작은 측정을 여는 신호이고, 타코야끼의 시작은 재료가 열에 들어가 되돌리기 어려운 조리가 시작되는 사건이다.",
+        },
+        {
+          property: "고정된 총량이 진행 전체를 정의한다",
+          hourglass: {
+            text:
+              "전체 단위량과 이동 속도가 목표 측정 시간을 만들고, 위쪽/아래쪽 양의 분포가 전체 진행 범위를 이룬다.",
+            metrics: ["total_amount", "transfer_rate", "target_duration", "top_amount", "bottom_amount"],
+          },
+          takoyaki: {
+            text: "X",
+            metrics: [],
+          },
+          commonPattern:
+            "공통 패턴이 아니다.",
+          differencePattern:
+            "모래시계는 전체 진행량이 사전에 닫혀 있지만, 타코야끼는 반죽 양이 있어도 전체 표면이 어떻게 익을지는 접촉면 변화와 조리 과정에 의해 결정된다.",
+        },
+        {
+          property: "시간 경과가 상태를 자동으로 변화시킨다",
+          hourglass: {
+            text:
+              "시간이 지날수록 위쪽 양은 줄고 아래쪽 양은 늘어나며, 진행률과 남은 시간이 계산된다.",
+            metrics: ["elapsed_time", "top_amount", "bottom_amount", "progress_ratio", "remaining_time"],
+          },
+          takoyaki: {
+            text:
+              "시간이 지날수록 현재 팬에 닿은 표면이 익고, 너무 오래 닿은 면은 탄다.",
+            metrics: ["cook_time", "contact_time", "cooked_surface_coverage", "burn_degree"],
+          },
+          commonPattern:
+            "둘 다 시간 경과만으로 내부 상태가 자동 갱신된다.",
+          differencePattern:
+            "모래시계의 자동 변화는 완료를 향한 안정적인 이동이고, 타코야끼의 자동 변화는 익힘과 탐이 함께 진행되는 품질 변화이다.",
+        },
+        {
+          property: "고정된 흐름 제어 구조가 진행 속도를 결정한다",
+          hourglass: {
+            text:
+              "연결 통로의 이동 속도가 전체 진행 속도를 제한하고, 목표 측정 시간과 연결된다.",
+            metrics: ["transfer_rate", "target_duration", "total_amount"],
+          },
+          takoyaki: {
+            text: "X",
+            metrics: [],
+          },
+          commonPattern:
+            "공통 패턴이 아니다.",
+          differencePattern:
+            "모래시계는 구조가 흐름 속도를 거의 고정하지만, 타코야끼는 고정 통로 같은 단일 속도 제어 구조가 아니라 팬 온도와 접촉면 변화가 조리 결과를 조건짓는다.",
+        },
+        {
+          property: "현재 처리 위치가 다음 상태 변화를 결정한다",
+          hourglass: {
+            text:
+              "위쪽에 있는 양만 아래쪽으로 이동할 수 있고, 위/아래 분포가 곧 진행 상태가 된다.",
+            metrics: ["top_amount", "bottom_amount"],
+          },
+          takoyaki: {
+            text:
+              "팬에 닿은 표면 영역만 직접 익고, 현재 방향이 보이는 면과 접촉면을 나누어 다음 익힘 대상을 정한다.",
+            metrics: ["rotation_index", "visible_area", "contact_area", "contact_surface_ratio", "contact_time"],
+          },
+          commonPattern:
+            "둘 다 전체 대상이 한꺼번에 같은 방식으로 변하지 않고, 현재 처리 위치에 놓인 부분이 먼저 변한다.",
+          differencePattern:
+            "모래시계의 처리 위치는 위/아래 두 영역으로 고정되고, 타코야끼의 처리 위치는 굴림 방향에 따라 바뀌는 접촉면이다.",
+        },
+        {
+          property: "사용자 개입이 진행 구조를 바꾼다",
+          hourglass: {
+            text: "X",
+            metrics: [],
+          },
+          takoyaki: {
+            text:
+              "사용자가 굴릴 때마다 방향이 바뀌고, 그 결과 보이는 면과 팬에 닿는 면이 달라진다.",
+            metrics: ["rotation_index", "visible_area", "contact_area", "cooked_surface_coverage"],
+          },
+          commonPattern:
+            "공통 패턴이 아니다.",
+          differencePattern:
+            "모래시계는 시작 후 기다리는 구조이고, 타코야끼는 기다리기만 하면 한 면만 익거나 타므로 반복 개입이 진행 구조 자체를 바꾼다.",
+        },
+        {
+          property: "반복 개입이 전체 표면 처리 범위를 만든다",
+          hourglass: {
+            text: "X",
+            metrics: [],
+          },
+          takoyaki: {
+            text:
+              "한 번에 아래쪽 일부만 팬에 닿으므로, 전체 겉면을 익히려면 방향을 바꾸는 굴리기를 반복해야 한다.",
+            metrics: ["rotation_index", "contact_surface_ratio", "contact_area", "cooked_surface_coverage"],
+          },
+          commonPattern:
+            "공통 패턴이 아니다.",
+          differencePattern:
+            "모래시계는 반복 개입 없이 전체 진행이 완성되지만, 타코야끼는 반복 개입이 전체 표면 커버리지를 만든다.",
+        },
+        {
+          property: "진행 상태가 외부에서 관찰된다",
+          hourglass: {
+            text:
+              "위쪽과 아래쪽의 양 변화가 그대로 보이고, 이를 통해 진행률과 남은 시간을 읽는다.",
+            metrics: ["top_amount", "bottom_amount", "progress_ratio", "remaining_time"],
+          },
+          takoyaki: {
+            text:
+              "위쪽에 드러난 표면의 익은 정도와 탄 정도가 보이며, 사용자는 이를 보고 계속 굴릴지 꺼낼지 판단한다.",
+            metrics: ["visible_area", "cooked_surface_coverage", "burn_degree"],
+          },
+          commonPattern:
+            "둘 다 내부 진행값이 완전히 숨겨져 있지 않고, 외부에서 관찰 가능한 상태 변화로 나타난다.",
+          differencePattern:
+            "모래시계는 양의 분포가 시간 표시가 되고, 타코야끼는 위쪽에 보이는 표면 상태가 품질 판단의 근거가 된다.",
+        },
+        {
+          property: "관찰 가능한 영역과 실제 진행 영역이 분리된다",
+          hourglass: {
+            text: "X",
+            metrics: [],
+          },
+          takoyaki: {
+            text:
+              "사용자는 위쪽에 보이는 표면을 확인하지만, 실제로 익고 있는 것은 팬에 닿은 아래쪽 면이다. 굴리는 순간의 짧은 노출과 이전 상태 기억으로 아래쪽 익힘을 추정해야 한다.",
+            metrics: ["visible_area", "contact_area", "rotation_index", "contact_time", "burn_degree"],
+          },
+          commonPattern:
+            "공통 패턴이 아니다.",
+          differencePattern:
+            "모래시계는 현재 진행 영역과 관찰 영역이 거의 일치하지만, 타코야끼는 보이는 정보와 실제로 익는 위치가 어긋난다.",
+        },
+        {
+          property: "완료 기준이 단일 상태값으로 판정된다",
+          hourglass: {
+            text:
+              "위쪽에 남은 양이 0이 되면 완료 여부가 결정된다. 완료 기준은 단일하고 명확하다.",
+            metrics: ["top_amount", "is_finished", "top_amount = 0"],
+          },
+          takoyaki: {
+            text: "X",
+            metrics: [],
+          },
+          commonPattern:
+            "공통 패턴이 아니다.",
+          differencePattern:
+            "모래시계는 단일 완료 조건으로 판정되지만, 타코야끼는 표면 범위와 탄 정도를 함께 보아야 하므로 단일 상태값만으로 완료를 설명하기 어렵다.",
+        },
+        {
+          property: "완료 기준이 품질 판단과 결합된다",
+          hourglass: {
+            text: "X",
+            metrics: [],
+          },
+          takoyaki: {
+            text:
+              "익은 표면 범위가 완료 기준에 도달해야 하지만, 탄 정도도 결과 품질 판단에 함께 영향을 준다.",
+            metrics: ["cooked_surface_coverage", "target_surface_coverage", "burn_degree"],
+          },
+          commonPattern:
+            "공통 패턴이 아니다.",
+          differencePattern:
+            "모래시계는 완료 여부만 판단하면 되지만, 타코야끼는 완료 여부와 먹을 만한 품질이 분리되지 않는다.",
+        },
+        {
+          property: "완료 시점 이후 방치하면 결과 품질이 나빠진다",
+          hourglass: {
+            text: "X",
+            metrics: [],
+          },
+          takoyaki: {
+            text:
+              "익은 뒤에도 팬에 오래 두면 접촉 시간이 계속 늘고, 탄 정도가 커져 결과 품질이 나빠진다.",
+            metrics: ["contact_time", "cook_time", "burn_degree", "is_removed"],
+          },
+          commonPattern:
+            "공통 패턴이 아니다.",
+          differencePattern:
+            "모래시계는 완료 후 방치해도 측정 결과가 망가지지 않지만, 타코야끼는 완료 시점을 지나면 음식 상태가 품질 저하 쪽으로 변한다.",
+        },
+        {
+          property: "최종 결과가 재료의 물리적 변환으로 남는다",
+          hourglass: {
+            text: "X",
+            metrics: [],
+          },
+          takoyaki: {
+            text:
+              "반죽과 재료가 익은 타코야끼라는 조리물로 변환되고, 사용자가 팬에서 꺼내는 순간 결과물이 분리된다.",
+            metrics: ["batter_amount", "ingredient_amount", "cooked_surface_coverage", "is_removed"],
+          },
+          commonPattern:
+            "공통 패턴이 아니다.",
+          differencePattern:
+            "모래시계는 시간을 표시하는 장치이고, 타코야끼 굽기는 재료를 결과물로 변환하는 제작 프로세스이다.",
+        },
+      ],
+      commonSummary:
+        "공통으로 볼 수 있는 핵심은 시작 이후 시간이 흐르면 내부 상태가 자동으로 변하고, 현재 처리 위치에 놓인 부분이 먼저 변하며, 진행 상태가 외부에서 관찰된다는 점이다.",
+      differenceSummary:
+        "결정적 차이는 개입, 품질, 관찰 범위이다. 모래시계는 고정된 총량과 흐름 제어 구조가 단일 완료 조건으로 수렴하는 표시 시스템이다. 타코야끼는 사용자가 접촉면을 반복해서 바꾸어 전체 표면을 익혀야 하고, 보이는 면과 실제로 익는 면이 분리되며, 완료 시점을 지나면 품질이 나빠지는 변환 시스템이다.",
+    },
+    abstraction: {
+      title: "Timed Contact State Rotation Model",
+      oneLine:
+        "제한 시간 안에서 여러 처리 대상을 동시에 관리하고, 각 대상의 관찰 가능한 표면과 실제 접촉 표면을 회전 입력으로 바꾸며, 정해진 묶음 단위가 목표 상태에 도달했는지 판정하는 시스템.",
+      description:
+        "모래시계에서는 제한 시간, 자동 진행, 명확한 종료 판정을 가져오고, 타코야끼에서는 접촉면만 익는 구조와 굴림으로 접촉면을 바꾸는 개입을 가져온다. 반죽 양, 재료 양, 기름칠, 팬 온도 조절 같은 실제 조리 세부값은 제외하고, 가로 3 x 세로 6 배치의 18개 대상, 표면 패널의 상태 변화, 접시 이동, 6개 단위 제출, 제출 통과 3회에 필요한 상태값만 남긴다.",
+      elements: [
+        {
+          key: "1. 대상 배치와 완료 단위",
+          text:
+            "처리 대상은 격자 안에 여러 개 배치되고, 결과는 개별 대상 하나가 아니라 정해진 개수의 묶음 단위로 확정된다. 이번 모델에서는 가로 3 x 세로 6 배치의 18개 대상이 있고, 접시 위 6개를 제출해 3번 통과해야 전체가 완료된다.",
+          tagGroups: [
+            { label: "변수", items: ["active_piece_ids", "plate_piece_ids", "completed_plate_count"] },
+            { label: "상수", items: ["pan_width_count", "pan_height_count", "takoyaki_count", "plate_capacity", "target_plate_count"] },
+          ],
+        },
+        {
+          key: "2. 제한 시간",
+          text:
+            "수행이 시작되면 남은 시간이 줄어든다. 시간은 모래시계처럼 전체 과정을 닫는 기준이지만, 목표 상태 도달을 자동으로 보장하지는 않는다.",
+          tagGroups: [
+            { label: "변수", items: ["remaining_time"] },
+            { label: "상수", items: ["time_limit"] },
+          ],
+        },
+        {
+          key: "3. 표면 분할",
+          text:
+            "각 대상의 표면을 여러 패널로 나누고, 각 패널은 독립적인 상태 레벨을 가진다. 목표는 제출할 대상들의 충분히 많은 패널을 적정 상태 범위에 넣는 것이다.",
+          tagGroups: [
+            { label: "변수", items: ["piece_panel_state_levels"] },
+            { label: "파생 변수", items: ["surface_panels_by_piece"] },
+            { label: "상수", items: ["surface_panel_count", "initial_state_level", "max_state_level", "target_state_range"] },
+          ],
+        },
+        {
+          key: "4. 방향 기반 접촉",
+          text:
+            "각 대상의 현재 방향이 위쪽에 보이는 패널과 아래쪽에서 접촉되는 패널을 나눈다. 접촉 패널은 완전 무작위가 아니라 대상별 방향값으로 결정된다.",
+          tagGroups: [
+            { label: "변수", items: ["piece_rotation_indices"] },
+            { label: "파생 변수", items: ["visible_panels_by_piece", "contact_panels_by_piece"] },
+            { label: "상수", items: ["contact_ratio", "rotation_step"] },
+          ],
+        },
+        {
+          key: "5. 자동 익힘",
+          text:
+            "시간이 흐르는 동안 팬 위에 남아 있는 대상들의 접촉 패널만 상태 레벨이 올라간다. 같은 패널이 너무 오래 접촉해 있으면 적정 범위를 지나 과처리 상태로 넘어간다.",
+          tagGroups: [
+            { label: "변수", items: ["piece_panel_state_levels"] },
+            { label: "파생 변수", items: ["done_coverage_by_piece", "overdone_coverage_by_piece"] },
+            { label: "상수", items: ["state_change_rate", "target_state_range", "overdone_threshold"] },
+          ],
+        },
+        {
+          key: "6. 짧은 노출과 추정",
+          text:
+            "선택한 대상을 회전하는 순간에는 이동하는 면이 잠깐 보인다. 이후 아래쪽 접촉면은 직접 보이지 않으므로, 사용자는 방금 본 상태와 경과 시간을 기억해 처리 정도를 추정한다.",
+          tagGroups: [
+            { label: "변수", items: ["selected_piece_id", "reveal_timer"] },
+            { label: "파생 변수", items: ["is_revealing", "visible_panels_by_piece", "contact_panels_by_piece"] },
+            { label: "상수", items: ["reveal_duration"] },
+          ],
+        },
+        {
+          key: "7. 팬/접시 위치 이동",
+          text:
+            "사용자는 팬 위 대상을 눌러 접시로 드래그할 수 있고, 접시 위 대상을 빈 팬 구멍으로 다시 드래그할 수 있다. 접시 위에 있는 대상은 팬에 닿지 않으므로 익힘 상태 갱신에서 제외된다.",
+          tagGroups: [
+            { label: "변수", items: ["active_piece_ids", "plate_piece_ids", "selected_piece_id"] },
+            { label: "상수", items: ["plate_capacity"] },
+          ],
+        },
+        {
+          key: "8. 접시 단위 결과 확정",
+          text:
+            "사용자가 접시 위 6개를 제출하면 시스템은 각 대상의 적정 상태 표면 비율과 과처리 표면 비율을 함께 확인한다. 접시가 통과하면 완료 접시 수가 증가하고, 통과하지 못하면 접시 위 대상은 그대로 남아 다시 팬으로 옮겨 더 구울 수 있다. 제출을 통과한 접시가 3개가 되면 전체가 완료된다.",
+          tagGroups: [
+            { label: "변수", items: ["plate_piece_ids", "completed_plate_count", "is_finalized"] },
+            { label: "파생 변수", items: ["done_coverage_by_piece", "overdone_coverage_by_piece", "is_plate_condition_satisfied"] },
+            { label: "상수", items: ["plate_capacity", "required_done_coverage", "max_overdone_coverage", "target_plate_count"] },
+          ],
+        },
+      ],
+      variables: [
+        { name: "remaining_time", text: "결과 확정까지 남은 시간" },
+        { name: "active_piece_ids", text: "아직 팬 위에 남아 있어 익힘 상태가 갱신되는 대상 id 목록" },
+        { name: "piece_rotation_indices", text: "각 대상이 현재 어느 방향으로 놓여 있는지 나타내는 방향값 목록" },
+        { name: "piece_panel_state_levels", text: "각 대상의 표면 패널별 처리 상태 레벨 목록. 타코야끼에 대입하면 각 알의 패널별 익힘 정도가 된다" },
+        { name: "selected_piece_id", text: "사용자가 굴리기로 선택한 대상 id" },
+        { name: "plate_piece_ids", text: "현재 접시 위에 올라가 있는 대상 id 목록" },
+        { name: "completed_plate_count", text: "제출 판정을 통과한 접시 수" },
+        { name: "reveal_timer", text: "회전 직후 이동하는 면을 잠깐 보여주는 남은 시간" },
+        { name: "is_finalized", text: "성공 또는 시간 초과 실패로 전체 흐름이 닫혔는지 여부" },
+      ],
+      derivedVariables: [
+        { name: "surface_panels_by_piece", text: "각 대상마다 surface_panel_count에 따라 만들어지는 표면 패널 목록" },
+        { name: "contact_panels_by_piece", text: "piece_rotation_indices, contact_ratio, surface_panel_count로 계산되는 대상별 현재 접촉 패널" },
+        { name: "visible_panels_by_piece", text: "각 대상의 surface_panels 중 contact_panels에 포함되지 않아 위쪽에서 관찰 가능한 패널" },
+        { name: "is_revealing", text: "reveal_timer가 0보다 큰 동안 true가 되는 짧은 노출 상태" },
+        { name: "done_coverage_by_piece", text: "대상별 panel_state_levels 중 target_state_range에 들어온 패널 비율" },
+        { name: "overdone_coverage_by_piece", text: "대상별 panel_state_levels 중 overdone_threshold 이상인 패널 비율" },
+        { name: "is_plate_condition_satisfied", text: "plate_piece_ids에 포함된 6개 모두가 done_coverage와 overdone_coverage 기준을 만족하는지 여부" },
+      ],
+      constants: [
+        { name: "time_limit", text: "한 번의 수행을 끝내야 하는 제한 시간" },
+        { name: "pan_width_count", text: "팬 구멍의 가로 배치 수. 이번 모델에서는 3" },
+        { name: "pan_height_count", text: "팬 구멍의 세로 배치 수. 이번 모델에서는 6" },
+        { name: "takoyaki_count", text: "팬에 올라가는 전체 대상 수. pan_width_count x pan_height_count로 계산되며 이번 모델에서는 18" },
+        { name: "plate_capacity", text: "한 접시에 담아 제출하는 대상 수. 이번 모델에서는 6" },
+        { name: "target_plate_count", text: "완료해야 하는 접시 수. 이번 모델에서는 3" },
+        { name: "surface_panel_count", text: "표면을 나누는 패널 개수" },
+        { name: "contact_ratio", text: "한 번에 접촉되는 표면 비율. 기본값은 1/2" },
+        { name: "initial_rotation_index", text: "수행 시작 시 대상이 놓이는 초기 방향값" },
+        { name: "rotation_step", text: "한 번 회전할 때 방향이 바뀌는 단위" },
+        { name: "state_change_rate", text: "접촉 패널의 상태 레벨이 올라가는 속도" },
+        { name: "initial_state_level", text: "수행 시작 시 각 패널이 갖는 초기 상태 레벨" },
+        { name: "max_state_level", text: "상태 레벨이 올라갈 수 있는 최대값" },
+        { name: "target_state_range", text: "완료로 인정하는 상태 레벨 범위. 타코야끼에 대입하면 적정 익힘 범위가 된다" },
+        { name: "overdone_threshold", text: "과처리 상태로 판정하는 상태 레벨. 타코야끼에 대입하면 탄 상태 기준이 된다" },
+        { name: "reveal_duration", text: "회전 중 표면 상태가 잠깐 드러나는 시간" },
+        { name: "required_done_coverage", text: "조건 만족에 필요한 목표 상태 표면 비율" },
+        { name: "max_overdone_coverage", text: "허용되는 최대 과처리 표면 비율" },
+      ],
+      events: [
+        {
+          condition: "process_start",
+          result:
+            "remaining_time을 time_limit으로 설정하고, 가로 3 x 세로 6 배치에 18개 대상을 만든다. active_piece_ids를 전체 대상으로 채우고, plate_piece_ids를 빈 목록으로 두며, 각 대상의 piece_panel_state_levels를 initial_state_level로, piece_rotation_indices를 initial_rotation_index로 둔다.",
+        },
+        {
+          condition: "time_tick",
+          result:
+            "is_finalized가 false이면 remaining_time이 줄어든다. 회전 중이 아니라면 active_piece_ids에 포함된 대상들의 contact_panels_by_piece만 state_change_rate만큼 증가한다.",
+        },
+        {
+          condition: "rotate_input",
+          result:
+            "is_finalized가 false이고 remaining_time이 0보다 크면 selected_piece_id를 정하고 reveal_timer를 reveal_duration으로 설정한다. 회전 중에는 panel_state_levels가 변하지 않고, 회전이 끝나면 선택한 대상의 piece_rotation_indices가 rotation_step만큼 바뀌며 contact_panels_by_piece와 visible_panels_by_piece가 다시 계산된다.",
+        },
+        {
+          condition: "drag_to_plate_input",
+          result:
+            "팬 위 대상 하나를 selected_piece_id로 정한다. plate_piece_ids 수가 plate_capacity보다 작으면 그 대상을 active_piece_ids에서 제거하고 plate_piece_ids에 추가한다. 접시 위 대상은 다음 time_tick부터 익힘 갱신에서 제외된다.",
+        },
+        {
+          condition: "return_to_pan_input",
+          result:
+            "접시 위 대상 하나와 빈 팬 구멍 하나를 정한다. 그 대상을 plate_piece_ids에서 제거하고 active_piece_ids에 다시 추가한다. 팬으로 돌아온 대상은 다음 time_tick부터 다시 익힘 갱신 대상이 된다.",
+        },
+        {
+          condition: "plate_submit_input",
+          result:
+            "plate_piece_ids 수가 plate_capacity이면 그 6개를 plate_candidate로 고정하고 is_plate_condition_satisfied를 계산한다. 통과하면 completed_plate_count를 증가시키고 plate_piece_ids를 빈 목록으로 만든다. 통과하지 못하면 plate_piece_ids를 유지해 사용자가 다시 팬으로 옮길 수 있게 한다. completed_plate_count가 target_plate_count에 도달하면 is_finalized를 true로 둔다.",
+        },
+        {
+          condition: "time_expired",
+          result:
+            "remaining_time이 0이 되었는데 completed_plate_count가 target_plate_count보다 작으면 is_finalized를 true로 두고 시간 초과 실패로 판정한다.",
+        },
+      ],
+      examples: [
+        {
+          title: "모래시계에서 가져온 단순화",
+          mappings: [
+            { name: "제한 시간", value: "전체 수행을 닫는 time_limit으로 변환" },
+            { name: "자동 진행", value: "사용자가 아무 입력을 하지 않아도 contact_panels의 상태 변화가 계속 진행" },
+            { name: "명확한 종료", value: "결과 확정 또는 시간 종료로 판정 시점이 명확해짐" },
+          ],
+        },
+        {
+          title: "타코야끼에서 남긴 조작 구조",
+          mappings: [
+            { name: "접촉면만 익음", value: "contact_panels만 panel_state_levels가 상승" },
+            { name: "굴림", value: "rotation_index를 바꾸어 visible_panels와 contact_panels를 재배치" },
+            { name: "접시 이동", value: "팬의 알을 접시로 옮기거나 접시의 알을 팬으로 되돌릴 수 있음" },
+            { name: "접시 제출", value: "접시 위 6개를 제출하고 done_coverage와 overdone_coverage를 함께 판단" },
+          ],
+        },
+        {
+          title: "모델에서 제외한 실제 조리 요소",
+          mappings: [
+            { name: "반죽 양", value: "표면 패널 상태로 흡수하고 별도 조작값으로 두지 않음" },
+            { name: "재료 양", value: "완성 판정에 직접 쓰지 않음" },
+            { name: "기름칠/팬 온도 조절", value: "모델 복잡도를 키우는 세부 조리값이므로 이번 모델에서 제외" },
+          ],
+        },
+      ],
+    },
+    flowchart: {
+      overview:
+        "가로 3 x 세로 6 팬의 18개 타코야끼 알을 제한 시간 안에 굽고, 접시에 6개씩 올려 제출해 총 3접시를 통과시키는 게임 흐름이다. 게임 타이머 모듈은 전체 남은 시간을 관리하고, 접촉면 상태 갱신 모듈은 팬 위 active_pieces 전체의 현재 contact_panels만 변화시킨다. 사용자는 알 하나를 굴리거나, 팬에서 접시로 옮기거나, 접시에서 팬으로 되돌릴 수 있으며, 제출한 접시가 통과한 횟수가 3이 되면 성공한다.",
+      states: [
+        {
+          name: "시작 전",
+          text: "가로 3 x 세로 6 팬, 18개 알, 6개 단위 접시, 제출 통과 3회 목표가 준비되어 있고 game_start 입력을 기다리는 상태.",
+        },
+        {
+          name: "접촉면 상태 갱신",
+          text: "팬 위에 남아 있는 active_pieces 전체에서 현재 contact_panels의 panel_state_levels가 자동으로 증가하는 상태.",
+        },
+        {
+          name: "회전 노출",
+          text: "rotate_input 직후 reveal_timer가 유지되는 동안 이동 표면이 잠깐 보이는 상태.",
+        },
+        {
+          name: "관찰/판단",
+          text: "visible_panels를 보고 아래쪽 contact_panels의 상태를 추정하며 기다릴지, 굴릴지, 접시에 올릴지, 팬으로 되돌릴지, 제출할지 고르는 상태.",
+        },
+        {
+          name: "팬/접시 이동",
+          text: "drag_to_plate_input 또는 return_to_pan_input으로 알의 위치가 팬과 접시 사이에서 바뀌는 상태.",
+        },
+        {
+          name: "접시 제출 판정",
+          text: "plate_submit_input 이후 접시 위 6개 알의 done_coverage와 overdone_coverage로 접시 통과 여부를 판정하는 상태.",
+        },
+        {
+          name: "종료",
+          text: "제출 판정을 통과한 접시가 3개가 되어 성공하거나, 제한 시간 안에 3접시를 통과시키지 못해 실패한 상태.",
+        },
+      ],
+      scenarios: [
+        "사용자가 game_start를 입력하면 가로 3 x 세로 6 팬에 18개 takoyaki_piece가 배치되고 remaining_time이 초기화된다.",
+        "time_tick마다 게임 타이머 모듈이 실행되어 remaining_time을 줄이고 시간 종료 여부를 확인한다.",
+        "remaining_time이 0보다 크면 접촉면 상태 갱신 모듈이 팬 위 active_pieces 전체의 contact_panels를 확인한다.",
+        "접촉면 상태 갱신 모듈은 각 active_piece의 contact_panels만 state_change_rate만큼 증가시키고 max_state_level 초과를 제한한다.",
+        "접촉면 상태 갱신 모듈은 각 알의 done_coverage와 overdone_coverage를 다시 계산한다.",
+        "사용자는 관찰 화면을 보고 계속 기다릴지, 굴릴지, 접시에 올릴지, 팬으로 되돌릴지, 제출할지 판단한다.",
+        "rotate_input이 들어오면 선택한 타코야끼 알 하나에 대해 회전 모듈이 실행되고, reveal_timer 동안 이동 표면이 잠깐 보인다.",
+        "회전 중에는 panel_state_levels가 변하지 않는다.",
+        "회전이 끝나면 선택한 알의 rotation_index가 바뀌고, contact_panels와 visible_panels가 새 방향 기준으로 재계산된다.",
+        "drag_to_plate_input이 들어오면 팬 위 알 하나가 접시 슬롯으로 이동하고, 그 알은 active_piece_ids에서 빠져 익힘 갱신 대상에서 제외된다.",
+        "return_to_pan_input이 들어오면 접시 위 알 하나가 빈 팬 구멍으로 이동하고, 그 알은 active_piece_ids에 다시 들어가 다음 time_tick부터 다시 익는다.",
+        "plate_submit_input이 들어오면 접시 위 알이 6개인지 확인한 뒤 6개를 한 접시 후보로 고정한다.",
+        "접시 위 6개 알이 모두 required_done_coverage 이상이고 max_overdone_coverage 이하이면 접시가 통과되고 completed_plate_count가 증가한다.",
+        "제출한 접시가 기준을 만족하지 못하면 plate_piece_ids를 유지한 채 접시 미완료를 표시하고, 사용자는 접시 위 알을 팬으로 되돌려 다시 구울 수 있다.",
+        "completed_plate_count가 3이 되면, 즉 접시 세 개가 모두 제출 판정을 통과하면 성공으로 종료한다.",
+        "remaining_time이 0이 될 때까지 제출 판정을 통과한 접시가 3개가 되지 못하면 시간 초과 실패로 종료한다.",
+      ],
+      chart: takoyakiGameFlowChart,
+    },
+  },
   {
     id: "engineering-ct-week-4-image-zettelkasten",
     kind: "ct-process",

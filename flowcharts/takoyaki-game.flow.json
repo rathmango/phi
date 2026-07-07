@@ -1,0 +1,202 @@
+{
+  "version": "0.1",
+  "title": "Takoyaki Timed Contact Rotation Game",
+  "direction": "TD",
+  "nodes": [
+    { "id": "start", "symbol": "terminal", "terminal": "start", "label": "시작" },
+    {
+      "id": "initialize",
+      "symbol": "preparation",
+      "label": "초기값 설정\npan_width_count = 3\npan_height_count = 6\ntakoyaki_count = 18\nplate_capacity = 6\ntarget_plate_count = 3\ncompleted_plate_count = 0\nplate_piece_ids = []\nremaining_time = time_limit"
+    },
+    { "id": "create_grid", "symbol": "process", "label": "가로 3 x 세로 6 팬 구멍에\n18개 takoyaki_piece 배치" },
+    { "id": "game_start", "symbol": "input-output", "io": "input", "label": "game_start\n조리 시작" },
+    { "id": "show_initial", "symbol": "input-output", "io": "output", "label": "초기 화면 표시\n18개 visible_panels 표시\n각 알의 contact_panels 계산" },
+
+    { "id": "time_tick", "symbol": "input-output", "io": "input", "label": "time_tick\n시간 경과" },
+    { "id": "update_time", "symbol": "process", "label": "remaining_time 감소" },
+    { "id": "time_over", "symbol": "decision", "label": "remaining_time <= 0인가?" },
+
+    { "id": "read_active", "symbol": "process", "label": "팬 위 active_pieces 확인" },
+    { "id": "read_contact", "symbol": "process", "label": "각 active_piece의\n현재 contact_panels 확인" },
+    { "id": "increase_contact_state", "symbol": "process", "label": "각 contact_panels의\npanel_state_levels 증가" },
+    { "id": "clamp_panel_levels", "symbol": "process", "label": "max_state_level을 넘지 않게 제한" },
+    { "id": "update_coverage", "symbol": "process", "label": "각 알의 done_coverage 재계산\n각 알의 overdone_coverage 재계산" },
+
+    { "id": "show_cooking_view", "symbol": "input-output", "io": "output", "label": "관찰 화면 갱신\n가로 3 x 세로 6 팬, visible_panels,\n접시 슬롯, 남은 시간 표시" },
+    { "id": "player_decision", "symbol": "decision", "label": "사용자 판단\n무엇을 할 것인가?" },
+    { "id": "wait_choice", "symbol": "connector", "label": "계속 기다리기" },
+    { "id": "rotate_event", "symbol": "input-output", "io": "input", "label": "rotate_input\n선택한 타코야끼 알 굴리기" },
+    { "id": "move_to_plate_event", "symbol": "input-output", "io": "input", "label": "drag_to_plate_input\n팬의 알을 눌러 접시로 드래그" },
+    { "id": "return_to_pan_event", "symbol": "input-output", "io": "input", "label": "return_to_pan_input\n접시의 알을 빈 구멍으로 드래그" },
+    { "id": "plate_event", "symbol": "input-output", "io": "input", "label": "plate_submit_input\n접시 제출" },
+
+    { "id": "select_piece", "symbol": "process", "label": "selected_piece_id 지정" },
+    { "id": "begin_rotation", "symbol": "process", "label": "회전 시작\nreveal_timer = reveal_duration" },
+    { "id": "no_heat_during_rotation", "symbol": "process", "label": "회전 중에는\npanel_state_levels 변화 없음" },
+    { "id": "show_reveal", "symbol": "input-output", "io": "output", "label": "회전 중 노출\n지나가는 표면 상태를 잠깐 표시" },
+    { "id": "reveal_done", "symbol": "decision", "label": "reveal_timer <= 0인가?" },
+    { "id": "continue_reveal", "symbol": "process", "label": "reveal_timer 감소\n회전 애니메이션 유지" },
+    { "id": "settle_rotation", "symbol": "process", "label": "선택한 알의\nrotation_index 변경" },
+    { "id": "recalc_surfaces", "symbol": "process", "label": "선택한 알의\ncontact_panels / visible_panels 재계산" },
+
+    { "id": "select_pan_piece", "symbol": "process", "label": "팬 위 selected_piece_id 지정" },
+    { "id": "plate_has_space", "symbol": "decision", "label": "plate_piece_ids 수 < plate_capacity인가?" },
+    { "id": "plate_full_block", "symbol": "connector", "label": "접시가 가득 참" },
+    { "id": "move_to_plate", "symbol": "process", "label": "선택한 알을 접시 슬롯으로 이동\nactive_piece_ids에서 제거\nplate_piece_ids에 추가" },
+    { "id": "stop_cooking_on_plate", "symbol": "process", "label": "접시 위 알은\n익힘 갱신에서 제외" },
+    { "id": "select_plate_piece", "symbol": "process", "label": "접시 위 selected_piece_id 지정" },
+    { "id": "select_empty_hole", "symbol": "process", "label": "빈 pan_hole_id 지정" },
+    { "id": "move_back_to_pan", "symbol": "process", "label": "선택한 알을 빈 구멍으로 이동\nplate_piece_ids에서 제거\nactive_piece_ids에 추가" },
+    { "id": "resume_cooking_on_pan", "symbol": "process", "label": "다음 time_tick부터\n다시 익힘 갱신 대상" },
+
+    { "id": "plate_full", "symbol": "decision", "label": "plate_piece_ids 수 = plate_capacity인가?" },
+    { "id": "need_six", "symbol": "connector", "label": "한 접시는 6개 필요" },
+    { "id": "freeze_plate", "symbol": "process", "label": "plate_piece_ids 6개 상태 고정\nplate_candidate 생성" },
+    {
+      "id": "judge_plate",
+      "symbol": "decision",
+      "label": "접시 조건을\n만족하는가?\n각 알 done_coverage >= required_done_coverage\n각 알 overdone_coverage <= max_overdone_coverage"
+    },
+    { "id": "show_plate_reject", "symbol": "input-output", "io": "output", "label": "접시 미완료 표시\nplate_piece_ids 유지" },
+    { "id": "accept_plate", "symbol": "process", "label": "completed_plate_count 증가\n접시 위 6개를 완료 처리\nplate_piece_ids = []" },
+
+    { "id": "auto_finalize", "symbol": "process", "label": "is_finalized = true\n제한 시간 종료" },
+    { "id": "all_plates_done", "symbol": "decision", "label": "completed_plate_count = target_plate_count인가?" },
+    { "id": "success", "symbol": "terminal", "terminal": "end", "label": "종료: 성공\n타코야끼 3접시 완성" },
+    { "id": "fail_time", "symbol": "terminal", "terminal": "end", "label": "종료: 실패\n제한 시간 안에 3접시를 완성하지 못함" }
+  ],
+  "edges": [
+    { "from": "start", "to": "initialize" },
+    { "from": "initialize", "to": "create_grid" },
+    { "from": "create_grid", "to": "game_start" },
+    { "from": "game_start", "to": "show_initial" },
+    { "from": "show_initial", "to": "time_tick" },
+
+    { "from": "time_tick", "to": "update_time" },
+    { "from": "update_time", "to": "time_over" },
+    { "from": "time_over", "to": "auto_finalize", "label": "예" },
+    { "from": "auto_finalize", "to": "fail_time" },
+    { "from": "time_over", "to": "read_active", "label": "아니오" },
+
+    { "from": "read_active", "to": "read_contact" },
+    { "from": "read_contact", "to": "increase_contact_state" },
+    { "from": "increase_contact_state", "to": "clamp_panel_levels" },
+    { "from": "clamp_panel_levels", "to": "update_coverage" },
+    { "from": "update_coverage", "to": "show_cooking_view" },
+
+    { "from": "show_cooking_view", "to": "player_decision" },
+    { "from": "player_decision", "to": "wait_choice", "label": "기다리기" },
+    { "from": "wait_choice", "to": "time_tick" },
+    { "from": "player_decision", "to": "rotate_event", "label": "굴리기" },
+    { "from": "rotate_event", "to": "select_piece" },
+    { "from": "select_piece", "to": "begin_rotation" },
+    { "from": "begin_rotation", "to": "no_heat_during_rotation" },
+    { "from": "no_heat_during_rotation", "to": "show_reveal" },
+    { "from": "show_reveal", "to": "reveal_done" },
+    { "from": "reveal_done", "to": "continue_reveal", "label": "아니오" },
+    { "from": "continue_reveal", "to": "show_reveal" },
+    { "from": "reveal_done", "to": "settle_rotation", "label": "예" },
+    { "from": "settle_rotation", "to": "recalc_surfaces" },
+    { "from": "recalc_surfaces", "to": "time_tick" },
+
+    { "from": "player_decision", "to": "move_to_plate_event", "label": "접시에 올리기" },
+    { "from": "move_to_plate_event", "to": "select_pan_piece" },
+    { "from": "select_pan_piece", "to": "plate_has_space" },
+    { "from": "plate_has_space", "to": "plate_full_block", "label": "아니오" },
+    { "from": "plate_full_block", "to": "player_decision" },
+    { "from": "plate_has_space", "to": "move_to_plate", "label": "예" },
+    { "from": "move_to_plate", "to": "stop_cooking_on_plate" },
+    { "from": "stop_cooking_on_plate", "to": "time_tick" },
+
+    { "from": "player_decision", "to": "return_to_pan_event", "label": "팬으로 되돌리기" },
+    { "from": "return_to_pan_event", "to": "select_plate_piece" },
+    { "from": "select_plate_piece", "to": "select_empty_hole" },
+    { "from": "select_empty_hole", "to": "move_back_to_pan" },
+    { "from": "move_back_to_pan", "to": "resume_cooking_on_pan" },
+    { "from": "resume_cooking_on_pan", "to": "time_tick" },
+
+    { "from": "player_decision", "to": "plate_event", "label": "제출하기" },
+    { "from": "plate_event", "to": "plate_full" },
+    { "from": "plate_full", "to": "need_six", "label": "아니오" },
+    { "from": "need_six", "to": "player_decision" },
+    { "from": "plate_full", "to": "freeze_plate", "label": "예" },
+    { "from": "freeze_plate", "to": "judge_plate" },
+    { "from": "judge_plate", "to": "show_plate_reject", "label": "아니오" },
+    { "from": "show_plate_reject", "to": "player_decision" },
+    { "from": "judge_plate", "to": "accept_plate", "label": "예" },
+    { "from": "accept_plate", "to": "all_plates_done" },
+    { "from": "all_plates_done", "to": "success", "label": "예" },
+    { "from": "all_plates_done", "to": "time_tick", "label": "아니오" }
+  ],
+  "groups": [
+    {
+      "id": "setup_module",
+      "kind": "module",
+      "label": "시작/초기화 모듈",
+      "nodes": ["initialize", "create_grid", "game_start", "show_initial"],
+      "entry": "initialize",
+      "exit": "show_initial"
+    },
+    {
+      "id": "timer_module",
+      "kind": "module",
+      "label": "게임 타이머 모듈",
+      "nodes": ["time_tick", "update_time", "time_over"],
+      "entry": "time_tick",
+      "exit": "time_over"
+    },
+    {
+      "id": "heat_module",
+      "kind": "module",
+      "label": "접촉면 상태 갱신 모듈",
+      "condition": "팬 위 active_pieces 전체에 적용",
+      "nodes": ["read_active", "read_contact", "increase_contact_state", "clamp_panel_levels", "update_coverage"],
+      "entry": "read_active",
+      "exit": "update_coverage"
+    },
+    {
+      "id": "decision_module",
+      "kind": "module",
+      "label": "관찰/판단 모듈",
+      "nodes": ["show_cooking_view", "player_decision", "wait_choice", "rotate_event", "move_to_plate_event", "return_to_pan_event", "plate_event"],
+      "entry": "show_cooking_view",
+      "exit": "player_decision"
+    },
+    {
+      "id": "rotation_module",
+      "kind": "module",
+      "label": "회전 모듈",
+      "condition": "rotate_input 발생 시 실행",
+      "nodes": ["select_piece", "begin_rotation", "no_heat_during_rotation", "show_reveal", "reveal_done", "continue_reveal", "settle_rotation", "recalc_surfaces"],
+      "entry": "select_piece",
+      "exit": "recalc_surfaces"
+    },
+    {
+      "id": "plate_move_module",
+      "kind": "module",
+      "label": "팬/접시 이동 모듈",
+      "condition": "drag 입력 발생 시 실행",
+      "nodes": ["select_pan_piece", "plate_has_space", "plate_full_block", "move_to_plate", "stop_cooking_on_plate", "select_plate_piece", "select_empty_hole", "move_back_to_pan", "resume_cooking_on_pan"],
+      "entry": "select_pan_piece",
+      "exit": "resume_cooking_on_pan"
+    },
+    {
+      "id": "plate_module",
+      "kind": "module",
+      "label": "접시 제출 판정 모듈",
+      "condition": "plate_submit_input 발생 시 실행",
+      "nodes": ["plate_full", "need_six", "freeze_plate", "judge_plate", "show_plate_reject", "accept_plate"],
+      "entry": "plate_full",
+      "exit": "accept_plate"
+    },
+    {
+      "id": "end_module",
+      "kind": "module",
+      "label": "전체 완료/종료 판정 모듈",
+      "nodes": ["auto_finalize", "all_plates_done", "success", "fail_time"],
+      "entry": "all_plates_done",
+      "exit": "success"
+    }
+  ]
+}
