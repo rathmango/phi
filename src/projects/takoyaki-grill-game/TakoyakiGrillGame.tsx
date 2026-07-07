@@ -8,9 +8,7 @@ import {
   colorForCookLevel,
   formatClock,
   GAME_CONSTANTS,
-  hottestVisibleLevel,
-  sauceColorForLevel,
-  visibleLevel,
+  levelForPanel,
 } from "./gameRules";
 import { useTakoyakiGameStore } from "./gameStore";
 import { GamePhase, TakoyakiPieceState } from "./gameTypes";
@@ -26,15 +24,18 @@ const PLATE_CENTERS = [
   new THREE.Vector3(3.12, 0.2, 1.78),
 ];
 const PLATE_SIZE = { width: 1.82, depth: 1.34 };
+const FLIP_MAX_CHARGE_SECONDS = 0.95;
 const TEMP_QUATERNION = new THREE.Quaternion();
+const TEMP_FROM_QUATERNION = new THREE.Quaternion();
+const TEMP_TO_QUATERNION = new THREE.Quaternion();
 const TEMP_EULER = new THREE.Euler();
 
-type DragState = {
+type PressState = {
   pieceId: string;
-  origin: "pan" | "plate";
-  startPoint: THREE.Vector3;
-  point: THREE.Vector3;
-  moved: boolean;
+  startedAt: number;
+  charge: number;
+  startClient: { x: number; y: number };
+  currentClient: { x: number; y: number };
 };
 
 function holeIndexFromId(holeId: string | null) {
@@ -63,35 +64,42 @@ function plateSlotPosition(plateIndex: number | null, slotIndex: number | null) 
   );
 }
 
-function plateIndexFromPoint(point: THREE.Vector3) {
-  let nearest = { index: -1, distance: Number.POSITIVE_INFINITY };
-  PLATE_CENTERS.forEach((center, index) => {
-    const normalizedX = Math.abs(point.x - center.x) / (PLATE_SIZE.width * 0.72);
-    const normalizedZ = Math.abs(point.z - center.z) / (PLATE_SIZE.depth * 0.72);
-    const inside = normalizedX <= 1 && normalizedZ <= 1;
-    const distance = Math.hypot(normalizedX, normalizedZ);
-    if (inside && distance < nearest.distance) nearest = { index, distance };
-  });
-  return nearest.index >= 0 ? nearest.index : null;
+function firstAvailablePlateIndex(pieces: TakoyakiPieceState[]) {
+  for (let plateIndex = 0; plateIndex < GAME_CONSTANTS.targetPlateCount; plateIndex += 1) {
+    const count = pieces.filter((piece) => piece.location === "plate" && piece.plateIndex === plateIndex).length;
+    if (count < GAME_CONSTANTS.plateCapacity) return plateIndex;
+  }
+  return null;
 }
 
-function nearestPanHole(point: THREE.Vector3, pieces: TakoyakiPieceState[]) {
+function firstOpenPanHoleId(pieces: TakoyakiPieceState[]) {
   const occupied = new Set(
-    pieces
-      .filter((piece) => piece.location === "pan" && piece.panHoleId)
-      .map((piece) => piece.panHoleId),
+    pieces.filter((piece) => piece.location === "pan" && piece.panHoleId).map((piece) => piece.panHoleId),
   );
-
-  let nearest = { id: "", distance: Number.POSITIVE_INFINITY };
   for (let index = 0; index < GAME_CONSTANTS.takoyakiCount; index += 1) {
-    const id = `hole-${index}`;
-    if (occupied.has(id)) continue;
-    const position = panHolePosition(index);
-    const distance = Math.hypot(position.x - point.x, position.z - point.z);
-    if (distance < nearest.distance) nearest = { id, distance };
+    const holeId = `hole-${index}`;
+    if (!occupied.has(holeId)) return holeId;
   }
+  return null;
+}
 
-  return nearest.distance <= 0.78 ? nearest.id : nearest.id || null;
+function chargeFromElapsed(elapsedSeconds: number) {
+  return THREE.MathUtils.clamp(elapsedSeconds / FLIP_MAX_CHARGE_SECONDS, 0, 1);
+}
+
+function rotationStepFromPress(press: PressState) {
+  const power = 1 + Math.floor(THREE.MathUtils.clamp(press.charge, 0, 0.999) * 4);
+  const dx = press.currentClient.x - press.startClient.x;
+  const dy = press.currentClient.y - press.startClient.y;
+  const movement = Math.hypot(dx, dy);
+  if (movement < 6) return power;
+  const dominantDirection = Math.abs(dx) >= Math.abs(dy) ? dx : dy;
+  return dominantDirection >= 0 ? power : -power;
+}
+
+function setTakoyakiOrientation(target: THREE.Quaternion, rotationIndex: number) {
+  TEMP_EULER.set(rotationIndex * 0.72, rotationIndex * 0.24, 0);
+  target.setFromEuler(TEMP_EULER);
 }
 
 function pieceBasePosition(piece: TakoyakiPieceState) {
@@ -241,23 +249,21 @@ function Plates() {
 
 function TakoyakiPiece({
   piece,
-  draggedPoint,
   selected,
+  charge,
   onPointerDown,
+  onDoubleClick,
 }: {
   piece: TakoyakiPieceState;
-  draggedPoint: THREE.Vector3 | null;
   selected: boolean;
+  charge: number;
   onPointerDown: (piece: TakoyakiPieceState, event: ThreeEvent<PointerEvent>) => void;
+  onDoubleClick: (piece: TakoyakiPieceState, event: ThreeEvent<MouseEvent>) => void;
 }) {
   const bodyRef = useRef<RapierRigidBody | null>(null);
   const groupRef = useRef<THREE.Group | null>(null);
-  const targetPosition = draggedPoint ? new THREE.Vector3(draggedPoint.x, 0.9, draggedPoint.z) : pieceBasePosition(piece);
+  const targetPosition = pieceBasePosition(piece);
   const currentPositionRef = useRef(targetPosition.clone());
-  const averageVisibleLevel = visibleLevel(piece);
-  const hottestLevel = hottestVisibleLevel(piece);
-  const color = colorForCookLevel(averageVisibleLevel);
-  const sauceColor = sauceColorForLevel(hottestLevel);
   const isRevealing = piece.revealTimer > 0;
 
   useFrame((_, delta) => {
@@ -266,13 +272,19 @@ function TakoyakiPiece({
     if (!body || !group) return;
 
     const current = currentPositionRef.current;
-    current.lerp(targetPosition, draggedPoint ? 0.42 : 0.18);
+    current.lerp(targetPosition, 0.18);
     const lift = isRevealing ? Math.sin((piece.revealTimer / GAME_CONSTANTS.revealDuration) * Math.PI) * 0.12 : 0;
     body.setNextKinematicTranslation({ x: current.x, y: current.y + lift, z: current.z });
 
-    const roll = piece.rotationIndex * 0.72 + (isRevealing ? (1 - piece.revealTimer / GAME_CONSTANTS.revealDuration) * Math.PI : 0);
-    TEMP_EULER.set(roll, piece.rotationIndex * 0.24, selected ? 0.14 : 0);
-    TEMP_QUATERNION.setFromEuler(TEMP_EULER);
+    if (isRevealing) {
+      const progress = 1 - piece.revealTimer / GAME_CONSTANTS.revealDuration;
+      const easedProgress = THREE.MathUtils.smoothstep(progress, 0, 1);
+      setTakoyakiOrientation(TEMP_FROM_QUATERNION, piece.previousRotationIndex);
+      setTakoyakiOrientation(TEMP_TO_QUATERNION, piece.rotationIndex);
+      TEMP_QUATERNION.copy(TEMP_FROM_QUATERNION).slerp(TEMP_TO_QUATERNION, easedProgress);
+    } else {
+      setTakoyakiOrientation(TEMP_QUATERNION, piece.rotationIndex);
+    }
     body.setNextKinematicRotation(TEMP_QUATERNION);
 
     if (isRevealing) {
@@ -293,19 +305,37 @@ function TakoyakiPiece({
       enabledRotations={[true, true, true]}
     >
       <BallCollider args={[PIECE_RADIUS]} />
-      <group ref={groupRef} onPointerDown={(event) => onPointerDown(piece, event)}>
-        <mesh castShadow>
-          <sphereGeometry args={[PIECE_RADIUS, 36, 22]} />
-          <meshStandardMaterial color={color} roughness={0.72} metalness={0.02} />
+      <group
+        ref={groupRef}
+        onPointerDown={(event) => onPointerDown(piece, event)}
+        onDoubleClick={(event) => onDoubleClick(piece, event)}
+      >
+        <mesh>
+          <sphereGeometry args={[PIECE_RADIUS * 0.996, 32, 16]} />
+          <meshStandardMaterial color="#4b3827" roughness={0.88} metalness={0.02} />
         </mesh>
-        <mesh castShadow position={[0, 0.21, 0.09]} rotation={[-0.7, 0.2, 0.12]}>
-          <sphereGeometry args={[0.118, 16, 8]} />
-          <meshStandardMaterial color={sauceColor} roughness={0.84} metalness={0.02} />
-        </mesh>
-        <mesh position={[0, 0.235, -0.09]} rotation={[-0.55, -0.35, 0]}>
-          <sphereGeometry args={[0.06, 12, 8]} />
-          <meshStandardMaterial color={hottestLevel >= 9 ? "#101010" : "#f6ead1"} roughness={0.9} />
-        </mesh>
+        {Array.from({ length: GAME_CONSTANTS.surfacePanelCount }, (_, panelIndex) => {
+          const level = levelForPanel(piece, panelIndex);
+          const quadrant = panelIndex % 4;
+          const isTop = panelIndex < 4;
+          const phiLength = Math.PI / 2;
+          const phiStart = quadrant * phiLength + 0.01;
+          const thetaStart = isTop ? 0.01 : Math.PI / 2 + 0.01;
+          const thetaLength = Math.PI / 2 - 0.02;
+          const panelColor = level < 0.25 ? (panelIndex % 2 === 0 ? "#f4ddb1" : "#efd4a4") : colorForCookLevel(level);
+          return (
+            <mesh key={panelIndex} castShadow>
+              <sphereGeometry args={[PIECE_RADIUS, 12, 8, phiStart, phiLength - 0.02, thetaStart, thetaLength]} />
+              <meshStandardMaterial color={panelColor} roughness={0.76} metalness={0.02} />
+            </mesh>
+          );
+        })}
+        {charge > 0 && (
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.268, 0]}>
+            <ringGeometry args={[0.43, 0.475, 42, 1, -Math.PI / 2, Math.max(0.04, charge * Math.PI * 2)]} />
+            <meshBasicMaterial color="#f97316" transparent opacity={0.88} />
+          </mesh>
+        )}
         {(selected || isRevealing) && (
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.275, 0]}>
             <ringGeometry args={[0.35, 0.39, 36]} />
@@ -318,78 +348,54 @@ function TakoyakiPiece({
 }
 
 function SceneInteraction({
-  drag,
-  setDrag,
+  press,
+  setPress,
+  onFlipRequest,
 }: {
-  drag: DragState | null;
-  setDrag: React.Dispatch<React.SetStateAction<DragState | null>>;
+  press: PressState | null;
+  setPress: React.Dispatch<React.SetStateAction<PressState | null>>;
+  onFlipRequest: (pieceId: string, rotationStep: number) => void;
 }) {
-  const camera = useThree((state) => state.camera);
-  const gl = useThree((state) => state.gl);
-  const pieces = useTakoyakiGameStore((state) => state.pieces);
-  const rotatePiece = useTakoyakiGameStore((state) => state.rotatePiece);
-  const movePieceToPlate = useTakoyakiGameStore((state) => state.movePieceToPlate);
-  const returnPieceToPan = useTakoyakiGameStore((state) => state.returnPieceToPan);
-  const dragRef = useRef<DragState | null>(drag);
+  const pressRef = useRef<PressState | null>(press);
 
   useEffect(() => {
-    dragRef.current = drag;
-  }, [drag]);
+    pressRef.current = press;
+  }, [press]);
+
+  useFrame(() => {
+    const current = pressRef.current;
+    if (!current) return;
+    const nextCharge = chargeFromElapsed((performance.now() - current.startedAt) / 1000);
+    if (Math.abs(nextCharge - current.charge) < 0.015) return;
+    setPress((latest) => {
+      if (!latest || latest.pieceId !== current.pieceId) return latest;
+      const nextPress = { ...latest, charge: nextCharge };
+      pressRef.current = nextPress;
+      return nextPress;
+    });
+  });
 
   useEffect(() => {
-    if (!drag) return undefined;
-
-    const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.62);
-    const pointer = new THREE.Vector2();
-    const raycaster = new THREE.Raycaster();
-    const intersection = new THREE.Vector3();
-
-    function pointFromEvent(event: PointerEvent) {
-      const rect = gl.domElement.getBoundingClientRect();
-      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      pointer.y = -(((event.clientY - rect.top) / rect.height) * 2 - 1);
-      raycaster.setFromCamera(pointer, camera);
-      raycaster.ray.intersectPlane(plane, intersection);
-      return intersection.clone();
-    }
+    if (!press) return undefined;
 
     function handlePointerMove(event: PointerEvent) {
-      const nextPoint = pointFromEvent(event);
-      setDrag((current) => {
-        if (!current) return current;
-        const nextDrag = {
-          ...current,
-          point: nextPoint,
-          moved: current.moved || nextPoint.distanceTo(current.startPoint) > 0.16,
+      setPress((latest) => {
+        if (!latest) return latest;
+        const nextPress = {
+          ...latest,
+          currentClient: { x: event.clientX, y: event.clientY },
         };
-        dragRef.current = nextDrag;
-        return nextDrag;
+        pressRef.current = nextPress;
+        return nextPress;
       });
     }
 
-    function handlePointerUp(event: PointerEvent) {
-      const currentDrag = dragRef.current;
-      if (!currentDrag) return;
-
-      const dropPoint = pointFromEvent(event);
-      dragRef.current = null;
-      setDrag(null);
-
-      if (!currentDrag.moved) {
-        if (currentDrag.origin === "pan") rotatePiece(currentDrag.pieceId);
-        return;
-      }
-
-      const targetPlateIndex = plateIndexFromPoint(dropPoint);
-      if (currentDrag.origin === "pan" && targetPlateIndex !== null) {
-        movePieceToPlate(currentDrag.pieceId, targetPlateIndex);
-        return;
-      }
-
-      if (currentDrag.origin === "plate") {
-        const holeId = nearestPanHole(dropPoint, pieces);
-        if (holeId) returnPieceToPan(currentDrag.pieceId, holeId);
-      }
+    function handlePointerUp() {
+      const currentPress = pressRef.current;
+      if (!currentPress) return;
+      pressRef.current = null;
+      setPress(null);
+      onFlipRequest(currentPress.pieceId, rotationStepFromPress(currentPress));
     }
 
     window.addEventListener("pointermove", handlePointerMove);
@@ -398,7 +404,7 @@ function SceneInteraction({
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
     };
-  }, [camera, drag, gl.domElement, movePieceToPlate, pieces, returnPieceToPan, rotatePiece, setDrag]);
+  }, [onFlipRequest, press, setPress]);
 
   return null;
 }
@@ -407,22 +413,52 @@ function TakoyakiScene() {
   const pieces = useTakoyakiGameStore((state) => state.pieces);
   const phase = useTakoyakiGameStore((state) => state.phase);
   const selectedPieceId = useTakoyakiGameStore((state) => state.selectedPieceId);
-  const [drag, setDrag] = useState<DragState | null>(null);
+  const rotatePiece = useTakoyakiGameStore((state) => state.rotatePiece);
+  const movePieceToPlate = useTakoyakiGameStore((state) => state.movePieceToPlate);
+  const returnPieceToPan = useTakoyakiGameStore((state) => state.returnPieceToPan);
+  const [press, setPress] = useState<PressState | null>(null);
+
+  const handleFlipRequest = useCallback(
+    (pieceId: string, rotationStep: number) => {
+      rotatePiece(pieceId, rotationStep);
+    },
+    [rotatePiece],
+  );
 
   const handlePiecePointerDown = useCallback(
     (piece: TakoyakiPieceState, event: ThreeEvent<PointerEvent>) => {
-      if (phase !== "playing" || piece.location === "completed") return;
+      if (phase !== "playing" || piece.location !== "pan") return;
       event.stopPropagation();
-      const point = event.point.clone();
-      setDrag({
+      const client = { x: event.nativeEvent.clientX, y: event.nativeEvent.clientY };
+      setPress({
         pieceId: piece.id,
-        origin: piece.location === "plate" ? "plate" : "pan",
-        startPoint: point,
-        point,
-        moved: false,
+        startedAt: performance.now(),
+        charge: 0,
+        startClient: client,
+        currentClient: client,
       });
     },
     [phase],
+  );
+
+  const handlePieceDoubleClick = useCallback(
+    (piece: TakoyakiPieceState, event: ThreeEvent<MouseEvent>) => {
+      if (phase !== "playing" || piece.location === "completed") return;
+      event.stopPropagation();
+      setPress(null);
+
+      if (piece.location === "pan") {
+        const plateIndex = firstAvailablePlateIndex(pieces);
+        if (plateIndex !== null) movePieceToPlate(piece.id, plateIndex);
+        return;
+      }
+
+      if (piece.location === "plate") {
+        const panHoleId = firstOpenPanHoleId(pieces);
+        if (panHoleId) returnPieceToPan(piece.id, panHoleId);
+      }
+    },
+    [movePieceToPlate, phase, pieces, returnPieceToPan],
   );
 
   return (
@@ -445,14 +481,15 @@ function TakoyakiScene() {
           <TakoyakiPiece
             key={piece.id}
             piece={piece}
-            draggedPoint={drag?.pieceId === piece.id ? drag.point : null}
-            selected={selectedPieceId === piece.id || drag?.pieceId === piece.id}
+            selected={selectedPieceId === piece.id || press?.pieceId === piece.id}
+            charge={press?.pieceId === piece.id ? press.charge : 0}
             onPointerDown={handlePiecePointerDown}
+            onDoubleClick={handlePieceDoubleClick}
           />
         ))}
       </Physics>
       <ContactShadows position={[0.6, -0.29, 0]} opacity={0.44} scale={7} blur={2.8} far={2.6} />
-      <SceneInteraction drag={drag} setDrag={setDrag} />
+      <SceneInteraction press={press} setPress={setPress} onFlipRequest={handleFlipRequest} />
     </>
   );
 }

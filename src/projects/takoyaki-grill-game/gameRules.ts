@@ -16,7 +16,7 @@ export const GAME_CONSTANTS: GameConstants = {
   requiredDoneCoverage: 0.75,
   maxOverdoneCoverage: 0,
   timeLimit: 120,
-  stateChangeRate: 1.18,
+  stateChangeRate: 0.34,
   revealDuration: 0.54,
   rotationStep: 2,
 };
@@ -32,7 +32,9 @@ export function createInitialPieces(constants = GAME_CONSTANTS): TakoyakiPieceSt
     panHoleId: panHoleId(index),
     plateIndex: null,
     plateSlotIndex: null,
-    rotationIndex: index % constants.surfacePanelCount,
+    rotationIndex: 0,
+    previousRotationIndex: 0,
+    panelContactSeconds: Array.from({ length: constants.surfacePanelCount }, () => 0),
     panelStateLevels: Array.from({ length: constants.surfacePanelCount }, () => constants.initialStateLevel),
     revealTimer: 0,
   }));
@@ -44,7 +46,10 @@ export function clampLevel(value: number, constants = GAME_CONSTANTS) {
 
 export function contactPanels(rotationIndex: number, constants = GAME_CONSTANTS) {
   const count = Math.round(constants.surfacePanelCount * constants.contactRatio);
-  const start = ((rotationIndex % constants.surfacePanelCount) + constants.surfacePanelCount) % constants.surfacePanelCount;
+  const baseBottomStart = constants.surfacePanelCount / 2;
+  const start =
+    ((baseBottomStart + rotationIndex) % constants.surfacePanelCount + constants.surfacePanelCount) %
+    constants.surfacePanelCount;
   return Array.from({ length: count }, (_, offset) => (start + offset) % constants.surfacePanelCount);
 }
 
@@ -80,6 +85,10 @@ export function visibleLevel(piece: TakoyakiPieceState, constants = GAME_CONSTAN
 
 export function hottestVisibleLevel(piece: TakoyakiPieceState, constants = GAME_CONSTANTS) {
   return Math.max(...visiblePanels(piece.rotationIndex, constants).map((panelIndex) => piece.panelStateLevels[panelIndex]));
+}
+
+export function levelForPanel(piece: TakoyakiPieceState, panelIndex: number) {
+  return piece.panelStateLevels[panelIndex] ?? 0;
 }
 
 export function colorForCookLevel(level: number) {

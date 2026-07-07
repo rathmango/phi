@@ -78,13 +78,15 @@ export const useTakoyakiGameStore = create<GameStore>((set, get) => ({
       }
 
       const contact = new Set(contactPanels(piece.rotationIndex));
+      const panelContactSeconds = piece.panelContactSeconds.map((seconds, panelIndex) =>
+        contact.has(panelIndex) ? seconds + deltaSeconds : seconds,
+      );
       return {
         ...piece,
         revealTimer: nextRevealTimer,
-        panelStateLevels: piece.panelStateLevels.map((level, panelIndex) =>
-          contact.has(panelIndex)
-            ? Math.min(GAME_CONSTANTS.maxStateLevel, level + deltaSeconds * GAME_CONSTANTS.stateChangeRate)
-            : level,
+        panelContactSeconds,
+        panelStateLevels: panelContactSeconds.map((seconds) =>
+          Math.min(GAME_CONSTANTS.maxStateLevel, seconds * GAME_CONSTANTS.stateChangeRate),
         ),
       };
     });
@@ -97,9 +99,11 @@ export const useTakoyakiGameStore = create<GameStore>((set, get) => ({
     });
   },
 
-  rotatePiece: (pieceId: string) => {
+  rotatePiece: (pieceId: string, rotationStep: number) => {
     const state = get();
     if (state.phase !== "playing") return;
+    const sign = rotationStep < 0 ? -1 : 1;
+    const safeStep = sign * Math.max(1, Math.min(GAME_CONSTANTS.surfacePanelCount / 2, Math.round(Math.abs(rotationStep))));
 
     set({
       selectedPieceId: pieceId,
@@ -108,7 +112,9 @@ export const useTakoyakiGameStore = create<GameStore>((set, get) => ({
         if (piece.id !== pieceId || piece.location !== "pan" || piece.revealTimer > 0) return piece;
         return {
           ...piece,
-          rotationIndex: (piece.rotationIndex + GAME_CONSTANTS.rotationStep) % GAME_CONSTANTS.surfacePanelCount,
+          previousRotationIndex: piece.rotationIndex,
+          rotationIndex:
+            (piece.rotationIndex + safeStep + GAME_CONSTANTS.surfacePanelCount) % GAME_CONSTANTS.surfacePanelCount,
           revealTimer: GAME_CONSTANTS.revealDuration,
         };
       }),

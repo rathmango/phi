@@ -9,6 +9,8 @@ export type TakoyakiPieceState = {
   plateIndex: number | null;
   plateSlotIndex: number | null;
   rotationIndex: number;
+  previousRotationIndex: number;
+  panelContactSeconds: number[];
   panelStateLevels: number[];
   revealTimer: number;
 };
@@ -54,7 +56,7 @@ export type GameStore = GameSnapshot & {
   startGame: () => void;
   resetGame: () => void;
   tick: (deltaSeconds: number) => void;
-  rotatePiece: (pieceId: string) => void;
+  rotatePiece: (pieceId: string, rotationStep: number) => void;
   movePieceToPlate: (pieceId: string, plateIndex: number) => boolean;
   returnPieceToPan: (pieceId: string, panHoleId: string) => boolean;
   submitPlate: (plateIndex?: number) => PlateEvaluation | null;

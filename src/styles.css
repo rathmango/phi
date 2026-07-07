@@ -45,11 +45,11 @@ body {
 .takoyaki-canvas {
   position: absolute;
   inset: 0;
-  cursor: grab;
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M4 28 27 5' stroke='%236f4424' stroke-width='3' stroke-linecap='round'/%3E%3Cpath d='M25 3 31 0 29 7Z' fill='%23d7a15c'/%3E%3Cpath d='M7 25 3 29' stroke='%23f5d8a8' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E") 4 28, crosshair;
 }
 
 .takoyaki-canvas:active {
-  cursor: grabbing;
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M4 28 27 5' stroke='%2357341c' stroke-width='3.4' stroke-linecap='round'/%3E%3Cpath d='M25 3 31 0 29 7Z' fill='%23c8823b'/%3E%3Cpath d='M7 25 3 29' stroke='%23f5d8a8' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E") 4 28, crosshair;
 }
 
 .takoyaki-hud {
