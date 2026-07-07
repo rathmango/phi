@@ -1,26 +1,42 @@
 import { useMemo, useState } from "react";
 import {
   ArrowUp,
+  Check,
   Grip,
   Home,
+  Maximize2,
   Mic,
+  Minimize2,
   PanelLeft,
   Pin,
   PinOff,
+  RotateCcw,
   Search,
   Send,
   SquarePen,
 } from "lucide-react";
+import "./PinnedSessionHomePrototype.css";
+
+type PanelSize = "normal" | "large" | "compact";
+type WorkStatus = "idle" | "generating" | "new-result" | "seen";
 
 type Session = {
   id: string;
   title: string;
   summary: string;
   pinned: boolean;
+  panelSize: PanelSize;
+  status: WorkStatus;
   recentUser: string;
   recentAssistant: string;
   draft?: string;
   result?: string;
+};
+
+type ToastState = {
+  message: string;
+  actionLabel?: string;
+  onAction?: () => void;
 };
 
 const baseSessions: Session[] = [
@@ -29,6 +45,8 @@ const baseSessions: Session[] = [
     title: "비즈니스 영어 번역",
     summary: "브랜드명 유지, Markdown 출력, 자연스러운 이메일 톤",
     pinned: true,
+    panelSize: "large",
+    status: "new-result",
     recentUser: "Speak Friday 프로모션 페이지 문구를 영어로 다듬어줘.",
     recentAssistant: "Sure. I’ll keep Speak as a brand name and write it in a natural business tone.",
     draft: "이번 주 금요일까지 온보딩 플로우 개선안을 공유드리겠습니다. Speak 관련 문구는 다음 회의에서 다시 논의하겠습니다.",
@@ -40,6 +58,8 @@ const baseSessions: Session[] = [
     title: "Notion용 Markdown 정리",
     summary: "회의 메모를 제목, 결정사항, 액션 아이템으로 정리",
     pinned: true,
+    panelSize: "normal",
+    status: "idle",
     recentUser: "아래 메모를 Notion에 붙여넣기 좋게 정리해줘.",
     recentAssistant: "정리 기준은 제목, 결정사항, 액션 아이템 순서로 맞춰둘게요.",
     draft: "오늘 논의한 온보딩 개선안 메모 붙여넣기",
@@ -49,6 +69,8 @@ const baseSessions: Session[] = [
     title: "회의록 요약",
     summary: "결정사항과 다음 할 일만 추출",
     pinned: true,
+    panelSize: "normal",
+    status: "seen",
     recentUser: "오늘 회의록에서 결정사항과 할 일만 뽑아줘.",
     recentAssistant: "결정사항 3개와 담당자별 액션 아이템으로 정리했습니다.",
   },
@@ -57,6 +79,8 @@ const baseSessions: Session[] = [
     title: "문장 톤 다듬기",
     summary: "딱딱한 문장을 부드러운 업무 메시지로 변환",
     pinned: true,
+    panelSize: "compact",
+    status: "idle",
     recentUser: "이 문장을 조금 더 부드러운 업무 메시지로 바꿔줘.",
     recentAssistant: "상대가 부담스럽지 않도록 요청의 이유와 다음 행동을 함께 넣었습니다.",
   },
@@ -65,6 +89,8 @@ const baseSessions: Session[] = [
     title: "랜딩페이지 리뷰 배치 연구",
     summary: "리뷰 섹션의 정보 구조를 비교",
     pinned: false,
+    panelSize: "normal",
+    status: "idle",
     recentUser: "랜딩페이지 리뷰 배치를 비교해줘.",
     recentAssistant: "신뢰 형성, 전환 직전 보강, 사용 맥락 제시 기준으로 나눠볼 수 있어요.",
   },
@@ -73,13 +99,17 @@ const baseSessions: Session[] = [
     title: "시스템 트레이딩 답변 요청",
     summary: "긴 답변을 검토 가능한 구조로 정리",
     pinned: false,
+    panelSize: "normal",
+    status: "idle",
     recentUser: "아래 답변을 검토하기 좋게 정리해줘.",
     recentAssistant: "주장, 근거, 확인해야 할 지점으로 나누어 정리했습니다.",
   },
 ];
 
-const prototypeSeed = baseSessions.map((session) =>
-  session.id === "biz-english" ? { ...session, pinned: false, draft: "", result: undefined } : session,
+const prototypeSeed: Session[] = baseSessions.map((session) =>
+  session.id === "biz-english"
+    ? { ...session, pinned: false, panelSize: "normal" as const, status: "idle" as const, draft: "", result: undefined }
+    : { ...session, status: session.status === "new-result" ? "seen" as const : session.status },
 );
 
 function createResult(sessionId: string, input: string) {
@@ -96,6 +126,22 @@ function createResult(sessionId: string, input: string) {
   }
 
   return "";
+}
+
+function statusLabel(status: WorkStatus) {
+  if (status === "generating") return "생성 중";
+  if (status === "new-result") return "새 결과";
+  if (status === "seen") return "확인함";
+  return "";
+}
+
+function getOrderedPinnedSessions(sessions: Session[], homeOrder: string[]) {
+  const sessionMap = new Map(sessions.map((session) => [session.id, session]));
+  const ordered = homeOrder
+    .map((id) => sessionMap.get(id))
+    .filter((session): session is Session => Boolean(session?.pinned));
+  const missing = sessions.filter((session) => session.pinned && !homeOrder.includes(session.id));
+  return [...ordered, ...missing].slice(0, 4);
 }
 
 function Sidebar({
@@ -180,6 +226,7 @@ function SessionButton({
       <button type="button" onClick={() => onOpenSession?.(session.id)}>
         {session.title}
       </button>
+      {session.status === "new-result" ? <span className="session-unread-dot" aria-label="새 결과" /> : <span />}
       <button
         type="button"
         className={session.pinned ? "pin-control pinned" : "pin-control"}
@@ -201,6 +248,8 @@ function HomeGrid({
   onDraftChange,
   onSubmitPanel,
   onReorderPinned,
+  onMarkSeen,
+  onSetPanelSize,
 }: {
   sessions: Session[];
   interactive: boolean;
@@ -209,6 +258,8 @@ function HomeGrid({
   onDraftChange?: (id: string, value: string) => void;
   onSubmitPanel?: (id: string) => void;
   onReorderPinned?: (draggedId: string, targetId: string) => void;
+  onMarkSeen?: (id: string) => void;
+  onSetPanelSize?: (id: string, size: PanelSize) => void;
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dragPoint, setDragPoint] = useState<{ x: number; y: number } | null>(null);
@@ -229,7 +280,7 @@ function HomeGrid({
   }
 
   return (
-      <main className="chatgpt-main home-main">
+    <main className="chatgpt-main home-main">
       <section className="pinned-home-canvas" aria-label="고정 세션 홈">
         <div className="pinned-home-title">
           <h3>Home</h3>
@@ -239,9 +290,20 @@ function HomeGrid({
           {pinnedSessions.map((session, index) => (
             <article
               data-pinned-card-id={session.id}
-              className={draggingId === session.id ? "pinned-chat-card dragging" : "pinned-chat-card"}
+              className={[
+                "pinned-chat-card",
+                `size-${session.panelSize}`,
+                `status-${session.status}`,
+                draggingId === session.id ? "dragging" : "",
+              ].join(" ")}
               key={session.id}
+              onClick={() => {
+                if (interactive && session.status === "new-result") {
+                  onMarkSeen?.(session.id);
+                }
+              }}
             >
+              {session.status === "generating" && <div className="panel-progress-bar" aria-hidden="true" />}
               <header className="pinned-chat-card-header">
                 <button
                   type="button"
@@ -275,16 +337,50 @@ function HomeGrid({
                 <div>
                   <small>{index + 1}</small>
                   <h4>{session.title}</h4>
+                  {session.status !== "idle" && (
+                    <span className={`panel-status-badge ${session.status}`}>{statusLabel(session.status)}</span>
+                  )}
                 </div>
-                <button
-                  type="button"
-                  className="panel-pin-button"
-                  aria-label={`${session.title} 홈에서 해제`}
-                  aria-disabled={!interactive}
-                  onClick={() => interactive && onUnpin?.(session.id)}
-                >
-                  <Pin size={15} fill="currentColor" />
-                </button>
+                <div className="panel-action-group">
+                  <button
+                    type="button"
+                    className="panel-icon-button"
+                    title={session.panelSize === "large" ? "기본 크기로 보기" : "크게 보기"}
+                    aria-label={session.panelSize === "large" ? `${session.title} 기본 크기로 보기` : `${session.title} 크게 보기`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      if (!interactive) return;
+                      onSetPanelSize?.(session.id, session.panelSize === "large" ? "normal" : "large");
+                    }}
+                  >
+                    {session.panelSize === "large" ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
+                  </button>
+                  <button
+                    type="button"
+                    className="panel-icon-button"
+                    title={session.panelSize === "compact" ? "기본 크기로 펼치기" : "작게 접기"}
+                    aria-label={session.panelSize === "compact" ? `${session.title} 기본 크기로 펼치기` : `${session.title} 작게 접기`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      if (!interactive) return;
+                      onSetPanelSize?.(session.id, session.panelSize === "compact" ? "normal" : "compact");
+                    }}
+                  >
+                    {session.panelSize === "compact" ? <Maximize2 size={15} /> : <Minimize2 size={15} />}
+                  </button>
+                  <button
+                    type="button"
+                    className="panel-pin-button"
+                    aria-label={`${session.title} 홈에서 해제`}
+                    aria-disabled={!interactive}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      interactive && onUnpin?.(session.id);
+                    }}
+                  >
+                    <Pin size={15} fill="currentColor" />
+                  </button>
+                </div>
               </header>
 
               <p className="pinned-chat-summary">{session.summary}</p>
@@ -302,6 +398,7 @@ function HomeGrid({
                 className={session.draft ? "pinned-panel-input active" : "pinned-panel-input"}
                 onSubmit={(event) => {
                   event.preventDefault();
+                  event.stopPropagation();
                   onSubmitPanel?.(session.id);
                 }}
               >
@@ -313,7 +410,11 @@ function HomeGrid({
                   placeholder="무엇이든 부탁하세요"
                   rows={2}
                 />
-                <button type="submit" aria-label={`${session.title} 전송`} disabled={interactive && !session.draft?.trim()}>
+                <button
+                  type="submit"
+                  aria-label={`${session.title} 전송`}
+                  disabled={!interactive || !session.draft?.trim() || session.status === "generating"}
+                >
                   <ArrowUp size={16} />
                 </button>
               </form>
@@ -393,6 +494,64 @@ function ChatView({
   );
 }
 
+function FeedbackToast({ toast, onDismiss }: { toast: ToastState; onDismiss: () => void }) {
+  return (
+    <div className="pinned-feedback-toast" role="status" aria-live="polite">
+      <Check size={16} />
+      <span>{toast.message}</span>
+      {toast.onAction && toast.actionLabel && (
+        <button
+          type="button"
+          onClick={() => {
+            toast.onAction?.();
+            onDismiss();
+          }}
+        >
+          <RotateCcw size={14} />
+          {toast.actionLabel}
+        </button>
+      )}
+      <button type="button" aria-label="닫기" onClick={onDismiss}>
+        ×
+      </button>
+    </div>
+  );
+}
+
+function ReplacePinnedDialog({
+  pendingSession,
+  pinnedSessions,
+  onReplace,
+  onCancel,
+}: {
+  pendingSession: Session;
+  pinnedSessions: Session[];
+  onReplace: (replaceId: string) => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="pinned-replace-backdrop" role="dialog" aria-modal="true" aria-label="Home 고정 세션 교체">
+      <section className="pinned-replace-dialog">
+        <header>
+          <h3>Home이 가득 찼습니다</h3>
+          <p><strong>{pendingSession.title}</strong>을 고정하려면 기존 패널 하나를 교체해야 합니다.</p>
+        </header>
+        <div className="replace-option-list">
+          {pinnedSessions.map((session) => (
+            <button type="button" key={session.id} onClick={() => onReplace(session.id)}>
+              <strong>{session.title}</strong>
+              <span>{session.summary}</span>
+            </button>
+          ))}
+        </div>
+        <footer>
+          <button type="button" onClick={onCancel}>취소</button>
+        </footer>
+      </section>
+    </div>
+  );
+}
+
 export function PinnedSessionHomeKeyScreen() {
   return (
     <div className="chatgpt-home-shell" aria-label="고정 세션 홈 키스크린">
@@ -404,20 +563,102 @@ export function PinnedSessionHomeKeyScreen() {
 
 export function PinnedSessionHomePrototype() {
   const [sessions, setSessions] = useState(prototypeSeed);
+  const [homeOrder, setHomeOrder] = useState(() => prototypeSeed.filter((session) => session.pinned).map((session) => session.id));
   const [activeView, setActiveView] = useState<"home" | "chat">("chat");
   const [activeSessionId, setActiveSessionId] = useState("biz-english");
+  const [toast, setToast] = useState<ToastState | null>(null);
+  const [pendingPinId, setPendingPinId] = useState<string | null>(null);
   const activeSession = useMemo(
     () => sessions.find((session) => session.id === activeSessionId) ?? sessions[0],
     [activeSessionId, sessions],
   );
+  const pendingSession = pendingPinId ? sessions.find((session) => session.id === pendingPinId) : undefined;
+  const pinnedSessions = useMemo(() => getOrderedPinnedSessions(sessions, homeOrder), [sessions, homeOrder]);
+
+  function showToast(nextToast: ToastState) {
+    setToast(nextToast);
+  }
+
+  function pinSession(id: string) {
+    const target = sessions.find((session) => session.id === id);
+    if (!target) return;
+
+    setSessions((current) =>
+      current.map((session) =>
+        session.id === id ? { ...session, pinned: true, panelSize: session.panelSize ?? "normal" } : session,
+      ),
+    );
+    setHomeOrder((current) => (current.includes(id) ? current : [...current, id].slice(-4)));
+    showToast({
+      message: `${target.title}이 Home에 고정되었습니다.`,
+      actionLabel: "실행 취소",
+      onAction: () => {
+        setSessions((current) => current.map((session) => (session.id === id ? { ...session, pinned: false } : session)));
+        setHomeOrder((current) => current.filter((sessionId) => sessionId !== id));
+      },
+    });
+  }
+
+  function unpinSession(id: string) {
+    const target = sessions.find((session) => session.id === id);
+    if (!target) return;
+
+    setSessions((current) => current.map((session) => (session.id === id ? { ...session, pinned: false } : session)));
+    setHomeOrder((current) => current.filter((sessionId) => sessionId !== id));
+    showToast({
+      message: `Home에서 제거되었습니다. 채팅 기록은 유지됩니다.`,
+      actionLabel: "실행 취소",
+      onAction: () => {
+        setSessions((current) => current.map((session) => (session.id === id ? { ...session, pinned: true } : session)));
+        setHomeOrder((current) => (current.includes(id) ? current : [...current, id].slice(0, 4)));
+      },
+    });
+  }
 
   function togglePin(id: string) {
-    setSessions((current) => {
-      const target = current.find((session) => session.id === id);
-      const pinnedCount = current.filter((session) => session.pinned).length;
-      if (!target) return current;
-      if (!target.pinned && pinnedCount >= 4) return current;
-      return current.map((session) => (session.id === id ? { ...session, pinned: !session.pinned } : session));
+    const target = sessions.find((session) => session.id === id);
+    if (!target) return;
+
+    if (target.pinned) {
+      unpinSession(id);
+      return;
+    }
+
+    const pinnedCount = sessions.filter((session) => session.pinned).length;
+    if (pinnedCount >= 4) {
+      setPendingPinId(id);
+      return;
+    }
+
+    pinSession(id);
+  }
+
+  function replacePinnedSession(replaceId: string) {
+    if (!pendingSession) return;
+    const addedTitle = pendingSession.title;
+
+    setSessions((current) =>
+      current.map((session) => {
+        if (session.id === replaceId) return { ...session, pinned: false };
+        if (session.id === pendingSession.id) return { ...session, pinned: true, panelSize: "normal" };
+        return session;
+      }),
+    );
+    setHomeOrder((current) => current.map((sessionId) => (sessionId === replaceId ? pendingSession.id : sessionId)));
+    setPendingPinId(null);
+    showToast({
+      message: `${addedTitle}이 Home에 고정되었습니다.`,
+      actionLabel: "실행 취소",
+      onAction: () => {
+        setSessions((current) =>
+          current.map((session) => {
+            if (session.id === replaceId) return { ...session, pinned: true };
+            if (session.id === pendingSession.id) return { ...session, pinned: false };
+            return session;
+          }),
+        );
+        setHomeOrder((current) => current.map((sessionId) => (sessionId === pendingSession.id ? replaceId : sessionId)));
+      },
     });
   }
 
@@ -426,29 +667,48 @@ export function PinnedSessionHomePrototype() {
   }
 
   function submitPanel(id: string) {
+    const target = sessions.find((session) => session.id === id);
+    const input = target?.draft?.trim();
+    if (!target || !input || target.status === "generating") return;
+
     setSessions((current) =>
       current.map((session) =>
         session.id === id
           ? {
               ...session,
-              result: createResult(id, session.draft ?? ""),
-              recentUser: session.draft?.trim() || session.recentUser,
+              status: "generating",
+              recentUser: input,
               draft: "",
             }
           : session,
       ),
     );
+
+    window.setTimeout(() => {
+      setSessions((current) =>
+        current.map((session) =>
+          session.id === id
+            ? {
+                ...session,
+                status: "new-result",
+                result: createResult(id, input),
+              }
+            : session,
+        ),
+      );
+    }, 900);
   }
 
   function reorderPinned(draggedId: string, targetId: string) {
-    setSessions((current) => {
-      const draggedIndex = current.findIndex((session) => session.id === draggedId && session.pinned);
-      const targetIndex = current.findIndex((session) => session.id === targetId && session.pinned);
+    setHomeOrder((current) => {
+      const orderedIds = getOrderedPinnedSessions(sessions, current).map((session) => session.id);
+      const draggedIndex = orderedIds.indexOf(draggedId);
+      const targetIndex = orderedIds.indexOf(targetId);
       if (draggedIndex < 0 || targetIndex < 0 || draggedIndex === targetIndex) return current;
 
-      const next = [...current];
+      const next = [...orderedIds];
       const [dragged] = next.splice(draggedIndex, 1);
-      const adjustedTargetIndex = next.findIndex((session) => session.id === targetId);
+      const adjustedTargetIndex = next.indexOf(targetId);
       const insertIndex = draggedIndex < targetIndex ? adjustedTargetIndex + 1 : adjustedTargetIndex;
       next.splice(insertIndex, 0, dragged);
       return next;
@@ -458,6 +718,15 @@ export function PinnedSessionHomePrototype() {
   function openSession(id: string) {
     setActiveSessionId(id);
     setActiveView("chat");
+    setSessions((current) => current.map((session) => (session.id === id && session.status === "new-result" ? { ...session, status: "seen" } : session)));
+  }
+
+  function markSeen(id: string) {
+    setSessions((current) => current.map((session) => (session.id === id && session.status === "new-result" ? { ...session, status: "seen" } : session)));
+  }
+
+  function setPanelSize(id: string, panelSize: PanelSize) {
+    setSessions((current) => current.map((session) => (session.id === id ? { ...session, panelSize } : session)));
   }
 
   return (
@@ -473,15 +742,26 @@ export function PinnedSessionHomePrototype() {
       />
       {activeView === "home" ? (
         <HomeGrid
-          sessions={sessions}
+          sessions={pinnedSessions}
           interactive
           onUnpin={togglePin}
           onDraftChange={updateDraft}
           onSubmitPanel={submitPanel}
           onReorderPinned={reorderPinned}
+          onMarkSeen={markSeen}
+          onSetPanelSize={setPanelSize}
         />
       ) : (
         <ChatView session={activeSession} interactive onTogglePin={togglePin} />
+      )}
+      {toast && <FeedbackToast toast={toast} onDismiss={() => setToast(null)} />}
+      {pendingSession && (
+        <ReplacePinnedDialog
+          pendingSession={pendingSession}
+          pinnedSessions={pinnedSessions}
+          onReplace={replacePinnedSession}
+          onCancel={() => setPendingPinId(null)}
+        />
       )}
     </div>
   );
