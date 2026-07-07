@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowUp,
   Check,
@@ -45,7 +45,7 @@ const baseSessions: Session[] = [
     title: "비즈니스 영어 번역",
     summary: "브랜드명 유지, Markdown 출력, 자연스러운 이메일 톤",
     pinned: true,
-    panelSize: "large",
+    panelSize: "normal",
     status: "new-result",
     recentUser: "Speak Friday 프로모션 페이지 문구를 영어로 다듬어줘.",
     recentAssistant: "Sure. I’ll keep Speak as a brand name and write it in a natural business tone.",
@@ -79,7 +79,7 @@ const baseSessions: Session[] = [
     title: "문장 톤 다듬기",
     summary: "딱딱한 문장을 부드러운 업무 메시지로 변환",
     pinned: true,
-    panelSize: "compact",
+    panelSize: "normal",
     status: "idle",
     recentUser: "이 문장을 조금 더 부드러운 업무 메시지로 바꿔줘.",
     recentAssistant: "상대가 부담스럽지 않도록 요청의 이유와 다음 행동을 함께 넣었습니다.",
@@ -131,8 +131,19 @@ function createResult(sessionId: string, input: string) {
 function statusLabel(status: WorkStatus) {
   if (status === "generating") return "생성 중";
   if (status === "new-result") return "새 결과";
-  if (status === "seen") return "확인함";
   return "";
+}
+
+function getNextPanelSize(size: PanelSize): PanelSize {
+  if (size === "normal") return "large";
+  if (size === "large") return "compact";
+  return "normal";
+}
+
+function panelSizeButtonLabel(size: PanelSize) {
+  if (size === "large") return "작게 접기";
+  if (size === "compact") return "기본 크기로 보기";
+  return "크게 보기";
 }
 
 function getOrderedPinnedSessions(sessions: Session[], homeOrder: string[]) {
@@ -226,7 +237,7 @@ function SessionButton({
       <button type="button" onClick={() => onOpenSession?.(session.id)}>
         {session.title}
       </button>
-      {session.status === "new-result" ? <span className="session-unread-dot" aria-label="새 결과" /> : <span />}
+      {session.status === "new-result" && <span className="session-unread-dot" aria-label="새 결과" />}
       <button
         type="button"
         className={session.pinned ? "pin-control pinned" : "pin-control"}
@@ -282,12 +293,8 @@ function HomeGrid({
   return (
     <main className="chatgpt-main home-main">
       <section className="pinned-home-canvas" aria-label="고정 세션 홈">
-        <div className="pinned-home-title">
-          <h3>Home</h3>
-        </div>
-
-        <div className="pinned-card-grid">
-          {pinnedSessions.map((session, index) => (
+        <div className={`pinned-card-grid count-${pinnedSessions.length}`}>
+          {pinnedSessions.map((session) => (
             <article
               data-pinned-card-id={session.id}
               className={[
@@ -334,39 +341,28 @@ function HomeGrid({
                 >
                   <Grip size={15} />
                 </button>
-                <div>
-                  <small>{index + 1}</small>
-                  <h4>{session.title}</h4>
-                  {session.status !== "idle" && (
-                    <span className={`panel-status-badge ${session.status}`}>{statusLabel(session.status)}</span>
-                  )}
+                <div className="panel-heading">
+                  <div className="panel-title-row">
+                    <h4>{session.title}</h4>
+                    {(session.status === "generating" || session.status === "new-result") && (
+                      <span className={`panel-status-badge ${session.status}`}>{statusLabel(session.status)}</span>
+                    )}
+                  </div>
+                  <p>{session.summary}</p>
                 </div>
                 <div className="panel-action-group">
                   <button
                     type="button"
                     className="panel-icon-button"
-                    title={session.panelSize === "large" ? "기본 크기로 보기" : "크게 보기"}
-                    aria-label={session.panelSize === "large" ? `${session.title} 기본 크기로 보기` : `${session.title} 크게 보기`}
+                    title={panelSizeButtonLabel(session.panelSize)}
+                    aria-label={`${session.title} ${panelSizeButtonLabel(session.panelSize)}`}
                     onClick={(event) => {
                       event.stopPropagation();
                       if (!interactive) return;
-                      onSetPanelSize?.(session.id, session.panelSize === "large" ? "normal" : "large");
+                      onSetPanelSize?.(session.id, getNextPanelSize(session.panelSize));
                     }}
                   >
                     {session.panelSize === "large" ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-                  </button>
-                  <button
-                    type="button"
-                    className="panel-icon-button"
-                    title={session.panelSize === "compact" ? "기본 크기로 펼치기" : "작게 접기"}
-                    aria-label={session.panelSize === "compact" ? `${session.title} 기본 크기로 펼치기` : `${session.title} 작게 접기`}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      if (!interactive) return;
-                      onSetPanelSize?.(session.id, session.panelSize === "compact" ? "normal" : "compact");
-                    }}
-                  >
-                    {session.panelSize === "compact" ? <Maximize2 size={15} /> : <Minimize2 size={15} />}
                   </button>
                   <button
                     type="button"
@@ -382,8 +378,6 @@ function HomeGrid({
                   </button>
                 </div>
               </header>
-
-              <p className="pinned-chat-summary">{session.summary}</p>
 
               <div className="pinned-chat-thread">
                 <div className="thread-bubble user">
@@ -574,6 +568,13 @@ export function PinnedSessionHomePrototype() {
   );
   const pendingSession = pendingPinId ? sessions.find((session) => session.id === pendingPinId) : undefined;
   const pinnedSessions = useMemo(() => getOrderedPinnedSessions(sessions, homeOrder), [sessions, homeOrder]);
+
+  useEffect(() => {
+    if (!toast) return undefined;
+
+    const timeoutId = window.setTimeout(() => setToast(null), 2600);
+    return () => window.clearTimeout(timeoutId);
+  }, [toast]);
 
   function showToast(nextToast: ToastState) {
     setToast(nextToast);
