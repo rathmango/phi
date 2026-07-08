@@ -36,8 +36,9 @@ body {
   min-height: 620px;
   overflow: hidden;
   background:
-    radial-gradient(circle at 16% 18%, rgba(221, 120, 54, 0.18), transparent 28%),
-    linear-gradient(135deg, #f2eadf 0%, #dbe6e0 48%, #e9dfcf 100%);
+    radial-gradient(circle at 16% 18%, rgba(255, 184, 88, 0.24), transparent 28%),
+    radial-gradient(circle at 82% 72%, rgba(106, 167, 122, 0.18), transparent 30%),
+    linear-gradient(135deg, #fff2d6 0%, #f3ddbd 46%, #dce8d5 100%);
   color: #1f2426;
   user-select: none;
 }
@@ -77,13 +78,13 @@ body {
   gap: 7px;
   min-height: 38px;
   padding: 8px 11px;
-  border: 1px solid rgba(54, 62, 66, 0.24);
+  border: 2px solid rgba(54, 48, 39, 0.22);
   border-radius: 8px;
-  background: rgba(255, 252, 245, 0.86);
+  background: rgba(255, 248, 231, 0.92);
   color: #22272a;
   font-weight: 900;
   line-height: 1;
-  box-shadow: 0 10px 28px rgba(35, 31, 24, 0.11);
+  box-shadow: 0 10px 0 rgba(71, 55, 35, 0.08), 0 18px 28px rgba(35, 31, 24, 0.1);
   backdrop-filter: blur(12px);
 }
 
@@ -122,12 +123,12 @@ body {
 .takoyaki-primary-button {
   background: #1f6f50;
   color: #ffffff;
-  box-shadow: 0 10px 24px rgba(31, 111, 80, 0.28);
+  box-shadow: 0 5px 0 #15513a, 0 10px 24px rgba(31, 111, 80, 0.22);
 }
 
 .takoyaki-secondary-button {
   border-color: rgba(54, 62, 66, 0.22);
-  background: rgba(255, 252, 245, 0.88);
+  background: rgba(255, 248, 231, 0.92);
   color: #1f2426;
 }
 

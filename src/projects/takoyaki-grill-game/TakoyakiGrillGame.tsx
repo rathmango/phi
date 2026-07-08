@@ -29,6 +29,7 @@ const TEMP_QUATERNION = new THREE.Quaternion();
 const TEMP_FROM_QUATERNION = new THREE.Quaternion();
 const TEMP_TO_QUATERNION = new THREE.Quaternion();
 const TEMP_EULER = new THREE.Euler();
+const FLAME_POSITIONS = [-1.18, -0.38, 0.38, 1.18];
 
 type PressState = {
   pieceId: string;
@@ -108,6 +109,50 @@ function pieceBasePosition(piece: TakoyakiPieceState) {
   return panHolePosition(holeIndex >= 0 ? holeIndex : 0);
 }
 
+function seededNoise(seed: number) {
+  return Math.sin(seed * 12.9898) * 43758.5453 % 1;
+}
+
+function pieceSeed(id: string) {
+  return id.split("").reduce((sum, char, index) => sum + char.charCodeAt(0) * (index + 3), 0);
+}
+
+function pieceBlobDetails(id: string) {
+  const seed = pieceSeed(id);
+  const bumps = Array.from({ length: 9 }, (_, index) => {
+    const a = seededNoise(seed + index * 7.1);
+    const b = seededNoise(seed + index * 11.4);
+    const theta = Math.PI * 0.18 + Math.abs(a) * Math.PI * 0.72;
+    const phi = Math.abs(b) * Math.PI * 2;
+    const radius = PIECE_RADIUS * (0.82 + Math.abs(seededNoise(seed + index * 3.9)) * 0.24);
+    return {
+      position: new THREE.Vector3(
+        Math.cos(phi) * Math.sin(theta) * radius,
+        Math.cos(theta) * radius * 0.7,
+        Math.sin(phi) * Math.sin(theta) * radius,
+      ),
+      scale: 0.055 + Math.abs(seededNoise(seed + index * 5.6)) * 0.045,
+    };
+  });
+  const spots = Array.from({ length: 7 }, (_, index) => {
+    const a = seededNoise(seed + index * 13.2);
+    const b = seededNoise(seed + index * 17.8);
+    const theta = Math.PI * 0.22 + Math.abs(a) * Math.PI * 0.62;
+    const phi = Math.abs(b) * Math.PI * 2;
+    const radius = PIECE_RADIUS * 1.018;
+    return {
+      position: new THREE.Vector3(
+        Math.cos(phi) * Math.sin(theta) * radius,
+        Math.cos(theta) * radius * 0.72,
+        Math.sin(phi) * Math.sin(theta) * radius,
+      ),
+      rotation: [Math.PI / 2 - theta, 0, phi] as [number, number, number],
+      scale: 0.045 + Math.abs(seededNoise(seed + index * 4.3)) * 0.035,
+    };
+  });
+  return { bumps, spots };
+}
+
 function GameTicker() {
   const tick = useTakoyakiGameStore((state) => state.tick);
   useFrame((_, delta) => tick(Math.min(delta, 0.05)));
@@ -117,10 +162,10 @@ function GameTicker() {
 function Lighting() {
   return (
     <>
-      <ambientLight intensity={0.42} />
-      <directionalLight castShadow intensity={2.15} position={[3.5, 6, 4]} shadow-mapSize={[1024, 1024]} />
-      <pointLight intensity={3.2} color="#ffb15f" position={[-2.6, 1.8, -2.7]} distance={5.4} />
-      <Environment preset="city" environmentIntensity={0.34} />
+      <ambientLight intensity={0.72} />
+      <directionalLight castShadow intensity={1.9} position={[3.5, 6, 4]} shadow-mapSize={[1024, 1024]} />
+      <pointLight intensity={2.8} color="#ffb15f" position={[-2.6, 1.5, -2.7]} distance={5.4} />
+      <Environment preset="apartment" environmentIntensity={0.18} />
     </>
   );
 }
@@ -142,7 +187,36 @@ function CameraRig() {
   return null;
 }
 
-function GrillPan() {
+function FlameStrip({ active }: { active: boolean }) {
+  const groupRef = useRef<THREE.Group | null>(null);
+
+  useFrame(({ clock }) => {
+    const group = groupRef.current;
+    if (!group) return;
+    const pulse = active ? 1 + Math.sin(clock.elapsedTime * 9) * 0.08 : 0.001;
+    group.scale.set(1, pulse, 1);
+  });
+
+  return (
+    <group ref={groupRef} visible={active} position={[-0.02, -0.42, 2.94]}>
+      {FLAME_POSITIONS.map((x, index) => (
+        <group key={`flame-${x}`} position={[x, 0, 0]}>
+          <mesh rotation={[0, 0, Math.sin(index) * 0.08]} position={[0, 0.04, 0]}>
+            <coneGeometry args={[0.2, 0.58, 4]} />
+            <meshBasicMaterial color="#ff6b1a" />
+          </mesh>
+          <mesh rotation={[0, 0, -Math.sin(index) * 0.07]} position={[0, 0.09, 0.02]}>
+            <coneGeometry args={[0.11, 0.4, 4]} />
+            <meshBasicMaterial color="#ffd166" />
+          </mesh>
+        </group>
+      ))}
+      <pointLight intensity={active ? 4 : 0} color="#ff8a2a" distance={4.8} position={[0, 0.48, 0]} />
+    </group>
+  );
+}
+
+function GrillPan({ fireActive }: { fireActive: boolean }) {
   const holes = useMemo(
     () => Array.from({ length: GAME_CONSTANTS.takoyakiCount }, (_, index) => panHolePosition(index)),
     [],
@@ -152,8 +226,8 @@ function GrillPan() {
     <group>
       <RigidBody type="fixed" colliders={false}>
         <mesh receiveShadow position={[0, 0, 0]}>
-          <boxGeometry args={[3.35, 0.32, 5.25]} />
-          <meshStandardMaterial color="#25221f" roughness={0.76} metalness={0.48} />
+          <boxGeometry args={[3.48, 0.34, 5.38]} />
+          <meshStandardMaterial color="#151312" roughness={0.92} metalness={0.34} />
         </mesh>
         <CuboidCollider args={[1.68, 0.16, 2.62]} position={[0, 0, 0]} />
       </RigidBody>
@@ -161,20 +235,25 @@ function GrillPan() {
       {holes.map((position, index) => (
         <group key={`hole-${index}`} position={[position.x, PAN_SURFACE_Y + 0.016, position.z]}>
           <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
-            <circleGeometry args={[0.39, 40]} />
-            <meshStandardMaterial color="#11100f" roughness={0.9} metalness={0.26} />
+            <circleGeometry args={[0.395, 34]} />
+            <meshStandardMaterial color="#050505" roughness={0.96} metalness={0.18} />
           </mesh>
           <mesh rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[0.395, 0.445, 40]} />
-            <meshStandardMaterial color="#4c4740" roughness={0.8} metalness={0.42} />
+            <ringGeometry args={[0.392, 0.454, 34]} />
+            <meshStandardMaterial color="#2b2825" roughness={0.88} metalness={0.38} />
+          </mesh>
+          <mesh position={[-0.08, 0.012, -0.07]} rotation={[-Math.PI / 2, 0, 0]}>
+            <circleGeometry args={[0.12, 16]} />
+            <meshBasicMaterial color="#ffffff" transparent opacity={0.055} />
           </mesh>
         </group>
       ))}
 
       <mesh receiveShadow position={[0, -0.18, 0]}>
-        <boxGeometry args={[3.82, 0.18, 5.72]} />
-        <meshStandardMaterial color="#5b5046" roughness={0.72} metalness={0.25} />
+        <boxGeometry args={[3.92, 0.18, 5.82]} />
+        <meshStandardMaterial color="#27211c" roughness={0.9} metalness={0.24} />
       </mesh>
+      <FlameStrip active={fireActive} />
     </group>
   );
 }
@@ -197,15 +276,15 @@ function PlateDish({ plateIndex }: { plateIndex: number }) {
       <group position={center}>
         <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]} scale={[0.96, 0.8, 1]}>
           <shapeGeometry args={[plateShape]} />
-          <meshStandardMaterial color="#f5e5bd" roughness={0.5} metalness={0.03} />
+          <meshStandardMaterial color="#ffd9a3" roughness={0.68} metalness={0.01} />
         </mesh>
         <mesh position={[0.03, 0.045, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[0.78, 0.55, 1]}>
           <shapeGeometry args={[plateShape]} />
-          <meshStandardMaterial color="#fff7df" roughness={0.42} metalness={0.02} />
+          <meshStandardMaterial color="#fff3cf" roughness={0.7} metalness={0.01} />
         </mesh>
-        <mesh position={[0.1, 0.075, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[1.25, 0.14]} />
-          <meshStandardMaterial color="#fffdf3" transparent opacity={0.78} roughness={0.3} />
+        <mesh position={[0.1, 0.078, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[0.62, 42]} />
+          <meshStandardMaterial color="#ffd08f" roughness={0.76} metalness={0.01} />
         </mesh>
         <group position={[0.79, 0.14, -0.42]}>
           <mesh castShadow>
@@ -227,8 +306,8 @@ function PlateDish({ plateIndex }: { plateIndex: number }) {
         </group>
         {slots.map((slot, index) => (
           <mesh key={`plate-${plateIndex}-slot-${index}`} position={[slot.x - center.x, 0.115, slot.z - center.z]} rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[0.24, 0.27, 28]} />
-            <meshStandardMaterial color="#cdbb8e" transparent opacity={0.42} />
+            <circleGeometry args={[0.22, 24]} />
+            <meshStandardMaterial color="#ffe6ba" roughness={0.78} metalness={0.01} />
           </mesh>
         ))}
       </group>
@@ -265,6 +344,7 @@ function TakoyakiPiece({
   const targetPosition = pieceBasePosition(piece);
   const currentPositionRef = useRef(targetPosition.clone());
   const isRevealing = piece.revealTimer > 0;
+  const blobDetails = useMemo(() => pieceBlobDetails(piece.id), [piece.id]);
 
   useFrame((_, delta) => {
     const body = bodyRef.current;
@@ -312,7 +392,7 @@ function TakoyakiPiece({
       >
         <mesh>
           <sphereGeometry args={[PIECE_RADIUS * 0.996, 32, 16]} />
-          <meshStandardMaterial color="#4b3827" roughness={0.88} metalness={0.02} />
+          <meshStandardMaterial color="#8a542d" roughness={0.92} metalness={0.01} />
         </mesh>
         {Array.from({ length: GAME_CONSTANTS.surfacePanelCount }, (_, panelIndex) => {
           const level = levelForPanel(piece, panelIndex);
@@ -322,14 +402,30 @@ function TakoyakiPiece({
           const phiStart = quadrant * phiLength + 0.01;
           const thetaStart = isTop ? 0.01 : Math.PI / 2 + 0.01;
           const thetaLength = Math.PI / 2 - 0.02;
-          const panelColor = level < 0.25 ? (panelIndex % 2 === 0 ? "#f4ddb1" : "#efd4a4") : colorForCookLevel(level);
+          const panelColor = level < 0.25 ? (panelIndex % 2 === 0 ? "#f5d18d" : "#eebf76") : colorForCookLevel(level);
           return (
             <mesh key={panelIndex} castShadow>
-              <sphereGeometry args={[PIECE_RADIUS, 12, 8, phiStart, phiLength - 0.02, thetaStart, thetaLength]} />
-              <meshStandardMaterial color={panelColor} roughness={0.76} metalness={0.02} />
+              <sphereGeometry args={[PIECE_RADIUS * 1.012, 10, 7, phiStart, phiLength - 0.02, thetaStart, thetaLength]} />
+              <meshStandardMaterial color={panelColor} roughness={0.9} metalness={0.01} />
             </mesh>
           );
         })}
+        {blobDetails.bumps.map((bump, index) => (
+          <mesh key={`bump-${piece.id}-${index}`} position={bump.position} castShadow>
+            <sphereGeometry args={[bump.scale, 10, 8]} />
+            <meshStandardMaterial color={index % 2 === 0 ? "#f0bd6d" : "#d99751"} roughness={0.96} metalness={0.01} />
+          </mesh>
+        ))}
+        {blobDetails.spots.map((spot, index) => (
+          <mesh key={`spot-${piece.id}-${index}`} position={spot.position} rotation={spot.rotation}>
+            <circleGeometry args={[spot.scale, 12]} />
+            <meshBasicMaterial color={index % 3 === 0 ? "#7b3d21" : "#b9632d"} transparent opacity={0.7} />
+          </mesh>
+        ))}
+        <mesh position={[-0.08, PIECE_RADIUS * 0.72, -0.03]} rotation={[-0.92, 0.2, -0.2]}>
+          <circleGeometry args={[0.06, 14]} />
+          <meshBasicMaterial color="#fff2cf" transparent opacity={0.38} />
+        </mesh>
         {charge > 0 && (
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.268, 0]}>
             <ringGeometry args={[0.43, 0.475, 42, 1, -Math.PI / 2, Math.max(0.04, charge * Math.PI * 2)]} />
@@ -471,11 +567,11 @@ function TakoyakiScene() {
         <RigidBody type="fixed" colliders={false}>
           <mesh receiveShadow position={[0.82, -0.31, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[8.2, 6.6]} />
-            <meshStandardMaterial color="#ebe5dc" roughness={0.84} />
+            <meshStandardMaterial color="#f0ddc3" roughness={0.86} />
           </mesh>
           <CuboidCollider args={[4.1, 0.08, 3.3]} position={[0.82, -0.36, 0]} />
         </RigidBody>
-        <GrillPan />
+        <GrillPan fireActive={phase === "playing"} />
         <Plates />
         {pieces.map((piece) => (
           <TakoyakiPiece
