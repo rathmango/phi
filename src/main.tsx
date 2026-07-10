@@ -1,13 +1,13 @@
 import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { ArrowLeft, FileText, FlaskConical, GitBranch, Home, ListTree, Play } from "lucide-react";
+import { ArrowLeft, FileText, FlaskConical, GitBranch, LayoutDashboard, ListTree, Play } from "lucide-react";
 import { GlossaryChatPrototype } from "./projects/glossary-chat/GlossaryChatPrototype";
 import { ImageZettelkastenPrototype } from "./projects/image-zettelkasten/ImageZettelkastenPrototype";
 import { MermaidDiagram } from "./shared/MermaidDiagram";
 import {
-  PinnedSessionHomeKeyScreen,
-  PinnedSessionHomePrototype,
-} from "./projects/pinned-session-home/PinnedSessionHomePrototype";
+  PinnedSessionDashboardKeyScreen,
+  PinnedSessionDashboardPrototype,
+} from "./projects/pinned-session-dashboard/PinnedSessionDashboardPrototype";
 import { QueuePrototype } from "./projects/queue-flow/QueuePrototype";
 import { RepeatRunPrototype } from "./projects/repeat-run/RepeatRunPrototype";
 import { BowScoreMazePrototype } from "./projects/score-maze/BowScoreMazePrototype";
@@ -27,9 +27,9 @@ const glossarySections: Array<{ id: ProjectSectionId; label: string; icon: React
   { id: "prototype", label: "프로토타입", icon: FlaskConical },
 ];
 
-const pinnedHomeSections: Array<{ id: ProjectSectionId; label: string; icon: React.ComponentType<{ size?: number }> }> = [
+const pinnedDashboardSections: Array<{ id: ProjectSectionId; label: string; icon: React.ComponentType<{ size?: number }> }> = [
   { id: "onepager", label: "1 Pager", icon: FileText },
-  { id: "keyscreen", label: "키스크린", icon: Home },
+  { id: "keyscreen", label: "키스크린", icon: LayoutDashboard },
   { id: "prototype", label: "프로토타입", icon: FlaskConical },
 ];
 
@@ -60,7 +60,7 @@ function getRoute() {
 }
 
 function defaultSection(project: Project) {
-  if (project.kind === "pinned-home") return "onepager";
+  if (project.kind === "pinned-dashboard") return "onepager";
   if (project.kind === "queue") return "brief";
   if (project.kind === "ct-decomposition") return "brief";
   if (project.kind === "ct-process") return "brief";
@@ -70,7 +70,7 @@ function defaultSection(project: Project) {
 }
 
 function projectSections(project: Project) {
-  if (project.kind === "pinned-home") return pinnedHomeSections;
+  if (project.kind === "pinned-dashboard") return pinnedDashboardSections;
   if (project.kind === "queue") return queueSections;
   if (project.kind === "ct-decomposition") return [ctSections[0], ctSections[1], ctSections[2], ctSections[3]];
   if (project.kind === "ct-process") return ctSections;
@@ -96,7 +96,10 @@ function PatternMetricCell({ text, metrics }: { text: string; metrics: string[] 
 
 function App() {
   const [route, setRoute] = useState(getRoute);
-  const project = useMemo(() => projects.find((item) => item.id === route.projectId), [route.projectId]);
+  const project = useMemo(() => {
+    const projectId = route.projectId === "hid-pinned-session-home" ? "hid-pinned-session-dashboard" : route.projectId;
+    return projects.find((item) => item.id === projectId);
+  }, [route.projectId]);
   const activeSection = project ? route.section || defaultSection(project) : undefined;
   const sections = project ? projectSections(project) : [];
 
@@ -117,6 +120,17 @@ function App() {
 
   if (route.appId === "takoyaki-grill-game") {
     return <TakoyakiGrillGame />;
+  }
+
+  if (
+    route.appId === "pinned-session-dashboard" ||
+    (project?.kind === "pinned-dashboard" && activeSection === "prototype")
+  ) {
+    return (
+      <main className="pinned-dashboard-app-page">
+        <PinnedSessionDashboardPrototype />
+      </main>
+    );
   }
 
   if (!project) {
@@ -168,6 +182,22 @@ function App() {
         {sections.map((section) => {
           const Icon = section.icon;
           const selected = activeSection === section.id;
+          if (project.kind === "pinned-dashboard" && section.id === "prototype") {
+            return (
+              <a
+                href="#/apps/pinned-session-dashboard"
+                key={section.id}
+                onClick={(event) => {
+                  event.preventDefault();
+                  navigate("#/apps/pinned-session-dashboard");
+                }}
+              >
+                <Icon size={17} />
+                {section.label}
+              </a>
+            );
+          }
+
           return (
             <button
               className={selected ? "selected" : ""}
@@ -270,7 +300,7 @@ function App() {
           </article>
         )}
 
-        {(project.kind === "glossary" || project.kind === "routine" || project.kind === "pinned-home") && activeSection === "onepager" && (
+        {(project.kind === "glossary" || project.kind === "routine" || project.kind === "pinned-dashboard") && activeSection === "onepager" && (
           <article className="onepager-view">
             <div className="onepager-layout">
               <section className="onepager-panel primary">
@@ -672,19 +702,19 @@ function App() {
           </article>
         )}
 
-        {project.kind === "pinned-home" && activeSection === "keyscreen" && (
+        {project.kind === "pinned-dashboard" && activeSection === "keyscreen" && (
           <article className="prototype-view">
             <div className="prototype-heading">
               <div>
                 <h2>키스크린</h2>
-                <p>반복해서 쓰는 채팅 세션을 홈에 고정하고, 4분할 패널에서 바로 입력하는 화면입니다.</p>
+                <p>반복해서 쓰는 채팅 세션을 대시보드에 고정하고, 4분할 패널에서 바로 입력하는 화면입니다.</p>
               </div>
             </div>
-            <PinnedSessionHomeKeyScreen />
+            <PinnedSessionDashboardKeyScreen />
           </article>
         )}
 
-        {activeSection === "prototype" && (
+        {activeSection === "prototype" && project.kind !== "pinned-dashboard" && (
           <article className="prototype-view">
             <div className="prototype-heading">
               <div>
@@ -692,8 +722,6 @@ function App() {
                 <p>
                   {project.kind === "glossary"
                     ? "채팅 안의 자연어 정정이 저장 가능한 번역 기준으로 바뀌고, 새 채팅에서 다시 적용되는 과정을 확인합니다."
-                    : project.kind === "pinned-home"
-                      ? "반복해서 쓰는 세션을 핀으로 Home에 고정하고, 고정된 패널에서 바로 입력하는 흐름을 확인합니다."
                     : project.kind === "routine"
                       ? "작업지시서를 고정하고, 각 입력을 독립 실행으로 처리한 뒤 완료된 실행을 기록으로 보관하는 흐름을 확인합니다."
                     : project.kind === "ct-process"
@@ -725,7 +753,6 @@ function App() {
             )}
 
             {project.kind === "glossary" && <GlossaryChatPrototype />}
-            {project.kind === "pinned-home" && <PinnedSessionHomePrototype />}
             {project.kind === "routine" && <RepeatRunPrototype />}
             {project.kind === "queue" && <QueuePrototype />}
             {project.kind === "ct" && <BowScoreMazePrototype />}

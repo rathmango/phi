@@ -1240,7 +1240,8 @@ button:disabled {
   margin-bottom: 14px;
 }
 
-.section-tabs button {
+.section-tabs button,
+.section-tabs a {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1251,12 +1252,30 @@ button:disabled {
   background: rgba(255, 255, 255, 0.78);
   color: var(--muted);
   font-weight: 750;
+  text-decoration: none;
 }
 
-.section-tabs button.selected {
+.section-tabs button.selected,
+.section-tabs a.selected {
   border-color: var(--blue);
   background: #e8f2ff;
   color: var(--blue-dark);
+}
+
+.pinned-dashboard-app-page {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: #ffffff;
+}
+
+.pinned-dashboard-app-page .chatgpt-dashboard-shell {
+  width: 100%;
+  min-height: 100vh;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .content-surface {
@@ -3118,7 +3137,7 @@ button:disabled {
   background: #28c840;
 }
 
-.chatgpt-home-shell {
+.chatgpt-dashboard-shell {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
   min-height: 760px;
@@ -3297,7 +3316,7 @@ button:disabled {
   background: #ffffff;
 }
 
-.chatgpt-main.home-main {
+.chatgpt-main.dashboard-main {
   grid-template-rows: minmax(0, 1fr);
 }
 
@@ -3348,7 +3367,7 @@ button:disabled {
   color: #111111;
 }
 
-.pinned-home-canvas {
+.pinned-dashboard-canvas {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 14px;
@@ -3356,15 +3375,15 @@ button:disabled {
   padding: 22px;
 }
 
-.pinned-home-title {
+.pinned-dashboard-title {
   display: block;
 }
 
-.pinned-home-title h3 {
+.pinned-dashboard-title h3 {
   margin: 0;
 }
 
-.pinned-home-title h3 {
+.pinned-dashboard-title h3 {
   font-size: 26px;
   line-height: 1.15;
 }
@@ -3375,6 +3394,123 @@ button:disabled {
   grid-auto-rows: minmax(292px, 1fr);
   gap: 14px;
   min-height: 0;
+}
+
+.chatgpt-dashboard-shell .pinned-card-grid.count-0 {
+  display: grid;
+  place-items: center;
+  padding: 28px;
+  background: #f7f7f7;
+}
+
+.chatgpt-dashboard-shell .pinned-empty-state {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  max-width: 440px;
+  text-align: center;
+}
+
+.chatgpt-dashboard-shell .pinned-empty-icon {
+  display: grid;
+  place-items: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 18px;
+  background: #ffffff;
+  color: #111111;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.08);
+}
+
+.chatgpt-dashboard-shell .pinned-empty-state h3 {
+  margin: 4px 0 0;
+  color: #151515;
+  font-size: 22px;
+  line-height: 1.2;
+}
+
+.chatgpt-dashboard-shell .pinned-empty-state p {
+  margin: 0;
+  color: #707070;
+  font-size: 14px;
+  font-weight: 720;
+  line-height: 1.5;
+}
+
+.chatgpt-dashboard-shell .pinned-empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.chatgpt-dashboard-shell .pinned-empty-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  max-width: 100%;
+  padding: 0 13px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 880;
+  white-space: nowrap;
+}
+
+.chatgpt-dashboard-shell .empty-primary-action {
+  border: 1px solid #111111;
+  background: #111111;
+  color: #ffffff;
+}
+
+.chatgpt-dashboard-shell .pinned-empty-slot {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 20px;
+  border: 0;
+  background: #f7f7f7;
+  color: #111111;
+  font: inherit;
+  text-align: center;
+  cursor: pointer;
+  transition: background 140ms ease;
+}
+
+.chatgpt-dashboard-shell .pinned-empty-slot:hover {
+  background: #f1f1f1;
+}
+
+.chatgpt-dashboard-shell .pinned-empty-slot:disabled {
+  color: #8a8a8a;
+  cursor: default;
+}
+
+.chatgpt-dashboard-shell .pinned-empty-slot .pinned-empty-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+}
+
+.chatgpt-dashboard-shell .pinned-empty-slot strong {
+  color: inherit;
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.chatgpt-dashboard-shell .pinned-empty-slot > span:last-child {
+  max-width: 220px;
+  color: #777777;
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.35;
 }
 
 .pinned-chat-card {
@@ -3741,127 +3877,53 @@ button:disabled {
   z-index: 30;
   display: flex;
   align-items: center;
-  gap: 10px;
-  max-width: min(560px, calc(100vw - 32px));
-  padding: 11px 12px;
+  gap: 0;
+  max-width: calc(100vw - 32px);
+  min-height: 34px;
+  overflow: hidden;
+  padding: 0;
   border: 1px solid #dedede;
   border-radius: 999px;
   background: #111111;
   color: #ffffff;
   box-shadow: 0 18px 44px rgba(15, 23, 42, 0.2);
-  font-size: 13px;
-  font-weight: 760;
+  font-size: 11px;
+  font-weight: 850;
   transform: translateX(-50%);
 }
 
 .pinned-feedback-toast span {
+  display: block;
+  min-width: 0;
+  max-width: min(220px, calc(100vw - 64px));
+  padding: 0 12px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.pinned-feedback-toast button {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 30px;
+.pinned-feedback-toast.has-action span {
+  max-width: min(150px, calc(100vw - 96px));
+}
+
+.pinned-feedback-toast .toast-action-button {
+  align-self: stretch;
+  flex: 0 0 auto;
+  min-width: 40px;
   padding: 0 10px;
   border: 0;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
+  border-left: 1px solid rgba(255, 255, 255, 0.24);
+  background: transparent;
   color: #ffffff;
-  font-size: 12px;
-  font-weight: 820;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 900;
+  text-align: center;
   white-space: nowrap;
 }
 
-.pinned-feedback-toast button:last-child {
-  width: 30px;
-  padding: 0;
-  justify-content: center;
-  font-size: 18px;
-}
-
-.pinned-replace-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 40;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: rgba(17, 17, 17, 0.22);
-}
-
-.pinned-replace-dialog {
-  display: grid;
-  gap: 14px;
-  width: min(480px, 100%);
-  padding: 18px;
-  border-radius: 18px;
-  background: #ffffff;
-  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.24);
-}
-
-.pinned-replace-dialog h3,
-.pinned-replace-dialog p {
-  margin: 0;
-}
-
-.pinned-replace-dialog h3 {
-  font-size: 20px;
-}
-
-.pinned-replace-dialog p {
-  margin-top: 6px;
-  color: #666666;
-  line-height: 1.5;
-}
-
-.pinned-replace-dialog p strong {
-  color: #111111;
-}
-
-.replace-option-list {
-  display: grid;
-  gap: 8px;
-}
-
-.replace-option-list button {
-  display: grid;
-  gap: 4px;
-  width: 100%;
-  min-height: 64px;
-  padding: 10px 12px;
-  border: 1px solid #e6e6e6;
-  border-radius: 12px;
-  background: #fafafa;
-  color: #111111;
-  text-align: left;
-}
-
-.replace-option-list button:hover {
-  border-color: #111111;
-  background: #ffffff;
-}
-
-.replace-option-list span {
-  color: #666666;
-  font-size: 12px;
-}
-
-.pinned-replace-dialog footer {
-  display: flex;
-  justify-content: flex-end;
-}
-
-.pinned-replace-dialog footer button {
-  min-height: 36px;
-  padding: 0 13px;
-  border: 0;
-  border-radius: 999px;
-  background: #efefef;
-  color: #111111;
-  font-weight: 760;
+.pinned-feedback-toast .toast-action-button:hover {
+  color: #dddddd;
 }
 
 @media (max-width: 900px) {
@@ -3880,7 +3942,7 @@ button:disabled {
   .onepager-layout,
   .glossary-prototype,
   .routine-chat-shell,
-  .chatgpt-home-shell,
+  .chatgpt-dashboard-shell,
   .score-maze-readout,
   .record-popover-layout {
     grid-template-columns: 1fr;
