@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronRight, Library, MoreHorizontal, RotateCcw, Search, Sparkles, Tags, X } from "lucide-react";
+import { ArrowLeft, Check, ChevronRight, Download, ImagePlus, Library, MoreHorizontal, RotateCcw, Search, SlidersHorizontal, Sparkles, Upload, X } from "lucide-react";
 import * as exifr from "exifr";
 import { toPng } from "html-to-image";
 import JSZip from "jszip";
@@ -9,7 +9,7 @@ import "react-easy-crop/react-easy-crop.css";
 
 type AppMode = "library" | "add";
 type AddStep = "refine" | "metadata" | "observe" | "insight" | "suggest";
-type TagCategory = "subject" | "form" | "composition" | "color" | "material" | "space" | "light" | "effect";
+type TagCategory = "subject" | "composition" | "color" | "material" | "effect";
 type GroupField = TagCategory | "collectedAt" | "collectedPlace";
 
 type Observation = {
@@ -59,14 +59,11 @@ type ImportRow = { id: string; fileName: string; observation: string; insight: s
 type ImportQueue = { rows: ImportRow[]; files: Record<string, File>; currentIndex: number; active: boolean };
 
 const tagCategories: Array<{ id: TagCategory; label: string; description: string; examples: string[] }> = [
-  { id: "subject", label: "대상", description: "이미지 속 관찰 대상", examples: ["간판", "타일", "벽면", "계단", "창문", "문", "의자", "조명", "식물"] },
-  { id: "form", label: "형태", description: "점, 선, 면, 덩어리 같은 기본 조형 단위", examples: ["점", "선", "면", "직선", "곡선", "원", "격자", "덩어리"] },
-  { id: "composition", label: "구성", description: "요소들이 조직되는 방식", examples: ["반복", "리듬", "정렬", "균형", "비대칭", "중첩", "분할", "밀도"] },
-  { id: "color", label: "색감", description: "색상, 명도, 채도, 대비의 작동 방식", examples: ["고채도", "저채도", "명도 대비", "색상 대비", "단색", "그라디언트", "무채색"] },
-  { id: "material", label: "재질", description: "표면과 물성", examples: ["거친 표면", "매끈한 표면", "유광", "무광", "반사", "투명", "금속", "유리", "페인트"] },
-  { id: "space", label: "공간", description: "여백, 깊이, 스케일, 거리감", examples: ["여백", "깊이감", "압축감", "평면성", "스케일 대비", "전경과 배경"] },
-  { id: "light", label: "빛", description: "빛, 그림자, 반사, 밝기의 작동 방식", examples: ["그림자", "직사광", "확산광", "역광", "반사광", "하이라이트"] },
-  { id: "effect", label: "효과", description: "조형 요소가 만드는 감각적 인상", examples: ["안정감", "긴장감", "낯섦", "가벼움", "무거움", "차가움", "따뜻함", "유쾌함"] },
+  { id: "subject", label: "대상", description: "관찰의 중심이 되는 대상", examples: ["간판", "벽면", "창문", "문", "의자", "조명", "식물"] },
+  { id: "composition", label: "구성", description: "형태, 배치, 여백과 깊이가 조직되는 방식", examples: ["직선", "곡선", "격자", "반복", "정렬", "비대칭", "중첩", "여백", "깊이감"] },
+  { id: "color", label: "색·빛", description: "색, 명도, 채도와 빛이 함께 작동하는 방식", examples: ["고채도", "무채색", "명도 대비", "색상 대비", "그라디언트", "그림자", "확산광", "역광"] },
+  { id: "material", label: "표면", description: "재료와 표면의 물성", examples: ["거친 표면", "매끈한 표면", "유광", "무광", "반사", "투명", "금속", "유리", "페인트"] },
+  { id: "effect", label: "인상", description: "조형 요소가 만드는 지배적인 감각", examples: ["안정감", "긴장감", "낯섦", "가벼움", "무거움", "차가움", "따뜻함", "고요함"] },
 ];
 const tagCategoryIds = tagCategories.map((category) => category.id);
 
@@ -90,13 +87,10 @@ const groupFieldLabels: Record<GroupField, string> = {
   collectedAt: "수집 시간",
   collectedPlace: "수집 공간",
   subject: "대상",
-  form: "형태",
   composition: "구성",
-  color: "색감",
-  material: "재질",
-  space: "공간",
-  light: "빛",
-  effect: "효과",
+  color: "색·빛",
+  material: "표면",
+  effect: "인상",
 };
 
 const emptyObservation: Observation = {
@@ -109,12 +103,9 @@ const emptyObservation: Observation = {
 
 const emptyTags: CardTags = {
   subject: [],
-  form: [],
   composition: [],
   color: [],
   material: [],
-  space: [],
-  light: [],
   effect: [],
 };
 
@@ -141,12 +132,9 @@ const sampleCards: ImageCard[] = [
     },
     tags: {
       subject: ["화분"],
-      form: ["수직선"],
-      composition: ["수직 리듬"],
+      composition: ["수직 리듬", "깊이감"],
       color: ["그라디언트"],
       material: ["유약", "균열"],
-      space: ["깊이감"],
-      light: [],
       effect: ["방향성"],
     },
   },
@@ -171,14 +159,11 @@ const sampleCards: ImageCard[] = [
       effect: "차분하게 갈라 앉은 그림자가 강렬한 붉은색을 덩어리로 나누어 준다.",
     },
     tags: {
-      subject: ["화단", "꽃"],
-      form: ["덩어리"],
+      subject: ["화단"],
       composition: ["군집", "분절"],
-      color: ["고채도"],
+      color: ["고채도", "명암 대비"],
       material: [],
-      space: [],
-      light: ["그림자", "직사광"],
-      effect: ["강렬함", "분절감"],
+      effect: ["강렬함"],
     },
   },
   {
@@ -202,13 +187,10 @@ const sampleCards: ImageCard[] = [
       effect: "복잡한 요소가 사라지고 선과 빈 하늘만 남아 시원하다.",
     },
     tags: {
-      subject: ["건물", "하늘"],
-      form: ["직선", "점"],
-      composition: ["소실점", "반복선"],
-      color: [],
+      subject: ["건물"],
+      composition: ["소실점", "여백"],
+      color: ["명암 대비"],
       material: [],
-      space: ["여백", "상승감"],
-      light: ["그늘"],
       effect: ["시원함"],
     },
   },
@@ -321,13 +303,19 @@ function tagStringToArray(value: string) {
 function normalizeTags(value: unknown): CardTags {
   const record = (value && typeof value === "object" ? value : {}) as Record<string, unknown>;
   const next: CardTags = { ...emptyTags };
+  const append = (category: TagCategory, source: unknown) => {
+    if (Array.isArray(source)) next[category] = [...next[category], ...tagStringToArray(source.join(","))];
+  };
   tagCategoryIds.forEach((category) => {
     next[category] = Array.isArray(record[category]) ? tagStringToArray(record[category].join(",")) : [];
   });
-  if (Array.isArray(record.topic)) next.effect = [...next.effect, ...tagStringToArray(record.topic.join(","))];
-  if (Array.isArray(record.element)) next.subject = [...next.subject, ...tagStringToArray(record.element.join(","))];
-  if (Array.isArray(record.condition)) next.material = [...next.material, ...tagStringToArray(record.condition.join(","))];
-  if (Array.isArray(record.context)) next.space = [...next.space, ...tagStringToArray(record.context.join(","))];
+  append("composition", record.form);
+  append("composition", record.space);
+  append("color", record.light);
+  append("effect", record.topic);
+  append("subject", record.element);
+  append("material", record.condition);
+  append("composition", record.context);
   tagCategoryIds.forEach((category) => {
     next[category] = Array.from(new Set(next[category].map((tag) => tag.trim()).filter(Boolean)));
   });
@@ -490,11 +478,11 @@ function suggestTitle(observation: Observation) {
 function suggestTags(observation: Observation) {
   const text = observationText(observation);
   const tags = normalizeTags({});
-  if (text.includes("그림자")) tags.light.push("그림자");
+  if (text.includes("그림자")) tags.color.push("그림자");
   if (text.includes("재질") || text.includes("질감") || text.includes("표면")) tags.material.push("질감");
-  if (text.includes("여백") || text.includes("하늘")) tags.space.push("여백");
+  if (text.includes("여백") || text.includes("하늘")) tags.composition.push("여백");
   if (text.includes("색") || text.includes("대비")) tags.color.push("색상 대비");
-  if (text.includes("선") || text.includes("직선")) tags.form.push("직선");
+  if (text.includes("선") || text.includes("직선")) tags.composition.push("직선");
   if (text.includes("반복")) tags.composition.push("반복");
   return tags;
 }
@@ -638,19 +626,19 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
   const title = card.title || "제목 미정";
   const observed = observationBody(card.observation);
   const insight = insightBody(card.observation);
-  const displayTags = flattenTags(normalizeTags(card.tags)).slice(0, 8);
+  const displayTags = flattenTags(normalizeTags(card.tags)).slice(0, 5);
   const timeLine = [card.collectedAt, card.collectedTime].filter(Boolean).join(" · ");
   const placeLine = card.collectedPlace;
   const imageNode = card.imageUrl ? <img className="h-full w-full object-cover" src={card.imageUrl} alt="" /> : <SampleVisual tone="cool" />;
-  const imageCardPadding = exportMode ? "p-[44px]" : compact ? "p-5" : "p-3 sm:p-3.5 lg:p-4";
-  const textCardPadding = exportMode ? "px-[54px] py-[54px]" : compact ? "px-6 py-6" : "px-4 py-4 sm:px-4 sm:py-4 lg:px-5 lg:py-5";
-  const titleSize = exportMode ? "text-[54px] leading-[1.08]" : compact ? "text-[21px] leading-[1.22]" : "text-[18px] leading-[1.14] sm:text-[16px] lg:text-[18px]";
+  const imageCardPadding = exportMode ? "p-[44px]" : compact ? "p-5" : "p-4 sm:p-5 lg:p-5";
+  const textCardPadding = exportMode ? "px-[54px] py-[54px]" : compact ? "px-6 py-6" : "px-4 pb-5 pt-4 sm:px-5 sm:pb-6 lg:px-6 lg:py-6";
+  const titleSize = exportMode ? "text-[54px] leading-[1.08]" : compact ? "text-[21px] leading-[1.22]" : "text-[20px] leading-[1.18] sm:text-[22px] lg:text-[19px]";
 
   return (
-    <div className={classNames("group/card relative grid min-w-0 max-w-full", exportMode && "h-[1417px] w-[2362px] grid-cols-2 overflow-hidden border border-[#b8b8bd] bg-white", !exportMode && (compact ? "grid-cols-1 gap-6" : "w-full grid-cols-1 overflow-hidden border border-[#b8b8bd] bg-white shadow-[0_10px_30px_rgba(0,0,0,0.12)] lg:grid-cols-2"))}>
+    <div className={classNames("group/card relative grid min-w-0 max-w-full", exportMode && "h-[1417px] w-[2362px] grid-cols-2 overflow-hidden border border-[#b8b8bd] bg-white", !exportMode && (compact ? "grid-cols-1 gap-6" : "w-full grid-cols-1 overflow-hidden rounded-[22px] border border-black/10 bg-white shadow-[0_12px_34px_rgba(18,18,18,0.06)] sm:rounded-[26px] lg:grid-cols-2 lg:rounded-none lg:border-[#b8b8bd] lg:shadow-[0_12px_34px_rgba(18,18,18,0.08)]"))}>
       {!exportMode && !hideActions && (onEdit || onDelete || onExport) && (
-        <div className={classNames("absolute right-3 top-3 z-30 transition-opacity duration-150 group-hover/card:opacity-100 group-focus-within/card:opacity-100", menuOpen ? "opacity-100" : "pointer-events-none opacity-0 group-hover/card:pointer-events-auto group-focus-within/card:pointer-events-auto")}>
-          <button className="grid h-8 w-8 place-items-center rounded-full bg-white/90 text-black shadow-md shadow-black/10 backdrop-blur" onClick={() => setMenuOpen((current) => !current)} type="button" aria-label="카드 메뉴">
+        <div className={classNames("absolute right-3 top-3 z-30 transition-opacity duration-150 lg:group-hover/card:opacity-100 lg:group-focus-within/card:opacity-100", menuOpen ? "opacity-100" : "opacity-100 lg:pointer-events-none lg:opacity-0 lg:group-hover/card:pointer-events-auto lg:group-focus-within/card:pointer-events-auto")}>
+          <button className="grid h-10 w-10 place-items-center rounded-full bg-white/92 text-black shadow-md shadow-black/10 backdrop-blur-xl" onClick={() => setMenuOpen((current) => !current)} type="button" aria-label="카드 메뉴">
             <MoreHorizontal size={18} />
           </button>
           {menuOpen && (
@@ -662,32 +650,32 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
           )}
         </div>
       )}
-      <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full border-r border-[#b8b8bd]" : "h-auto lg:aspect-[5/6]", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "border-b border-[#b8b8bd] lg:border-b-0 lg:border-r", imageCardPadding)}>
+      <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full border-r border-[#b8b8bd]" : "h-auto lg:aspect-[5/6]", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "border-b border-black/10 lg:border-b-0 lg:border-r lg:border-[#b8b8bd]", imageCardPadding)}>
         <div>
-          <div className="flex items-center gap-2.5">
-            <span className={classNames("inline-flex shrink-0 items-center justify-center rounded-full bg-black font-bold leading-none text-white", exportMode ? "h-[62px] w-[62px] text-[30px]" : compact ? "h-8 w-8 text-[16px]" : "h-7 w-7 text-[14px] sm:h-6 sm:w-6 sm:text-[12px]")}>{number}</span>
+          <div className="flex items-center gap-3 pr-10 lg:pr-0">
+            <span className={classNames("inline-flex shrink-0 items-center justify-center rounded-full bg-black font-bold leading-none text-white", exportMode ? "h-[62px] w-[62px] text-[30px]" : compact ? "h-8 w-8 text-[16px]" : "h-8 w-8 text-[14px] lg:h-7 lg:w-7 lg:text-[13px]")}>{number}</span>
             <h3 className={classNames("font-bold", titleSize)}>{title}</h3>
           </div>
-          <div className={classNames("mt-1.5 font-medium leading-tight text-black", exportMode ? "text-[24px]" : "text-[10px] sm:text-[9px] lg:text-[10px]")}>
+          <div className={classNames("mt-2 font-normal leading-[1.45] text-[#5f5f63]", exportMode ? "text-[24px]" : "text-[12px] lg:text-[10px]")}>
             <p>{timeLine}</p>
             {placeLine && <p>{placeLine}</p>}
           </div>
         </div>
-        <div className={classNames("aspect-square overflow-hidden bg-[#dfe0e4]", exportMode ? "absolute inset-x-[44px] bottom-[44px]" : "relative mt-4 w-full lg:absolute lg:inset-x-3 lg:bottom-3 lg:mt-0 lg:w-auto")}>{imageNode}</div>
+        <div className={classNames("aspect-square overflow-hidden bg-[#e6e6e3]", exportMode ? "absolute inset-x-[44px] bottom-[44px]" : "relative mt-4 w-full lg:absolute lg:inset-x-5 lg:bottom-5 lg:mt-0 lg:w-auto")}>{imageNode}</div>
       </article>
 
       <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full" : "h-auto lg:aspect-[5/6]", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "", textCardPadding)}>
-        <div className={classNames("flex flex-wrap", exportMode ? "absolute left-[54px] top-[54px] gap-[12px]" : "gap-1.5 lg:absolute lg:left-5 lg:top-5 lg:gap-1")}>
+        <div className={classNames("flex flex-wrap", exportMode ? "absolute left-[54px] top-[54px] gap-[12px]" : "gap-1.5 lg:absolute lg:left-6 lg:top-6")}>
           {(displayTags.length > 0 ? displayTags : [{ category: "effect" as TagCategory, label: "태그 미정" }]).map((tag) => <span className={classNames("whitespace-nowrap rounded-full border border-black/70 font-semibold leading-none text-black/70", exportMode ? "px-[18px] py-[8px] text-[24px]" : "px-2 py-1 text-[10px] sm:px-2 sm:py-1 sm:text-[10px] lg:text-[11px]")} key={`${tag.category}-${tag.label}`}>{tag.label}</span>)}
         </div>
         <div className={classNames("flex h-full flex-col", exportMode ? "gap-[42px] pt-[150px]" : "gap-5 pt-5 lg:pt-[54px]")}>
           <section>
-            <p className={classNames("mb-1.5 font-bold text-black sm:mb-2", exportMode ? "text-[34px] leading-[1.35]" : compact ? "text-[18px] leading-[1.55]" : "text-[15px] leading-[1.38] sm:text-[12px] lg:text-[15px]")}>관찰</p>
-            <p className={classNames("whitespace-pre-line font-medium", exportMode ? "text-[30px] leading-[1.5]" : compact ? "text-[16px] leading-[1.55]" : "text-[14px] leading-[1.5] sm:text-[11px] lg:text-[13px]")}>{observed}</p>
+            <p className={classNames("mb-2 font-semibold text-black", exportMode ? "text-[34px] leading-[1.35]" : compact ? "text-[18px] leading-[1.55]" : "text-[15px] leading-[1.4] lg:text-[14px]")}>관찰</p>
+            <p className={classNames("whitespace-pre-line font-normal text-[#252527]", exportMode ? "text-[30px] leading-[1.5]" : compact ? "text-[16px] leading-[1.55]" : "text-[14px] leading-[1.65] lg:text-[12px]")}>{observed}</p>
           </section>
           <section>
-            <p className={classNames("mb-1.5 font-bold text-black sm:mb-2", exportMode ? "text-[34px] leading-[1.35]" : compact ? "text-[18px] leading-[1.55]" : "text-[15px] leading-[1.38] sm:text-[12px] lg:text-[15px]")}>인사이트</p>
-            <p className={classNames("whitespace-pre-line font-medium", exportMode ? "text-[30px] leading-[1.5]" : compact ? "text-[16px] leading-[1.55]" : "text-[14px] leading-[1.5] sm:text-[11px] lg:text-[13px]")}>{insight}</p>
+            <p className={classNames("mb-2 font-semibold text-black", exportMode ? "text-[34px] leading-[1.35]" : compact ? "text-[18px] leading-[1.55]" : "text-[15px] leading-[1.4] lg:text-[14px]")}>인사이트</p>
+            <p className={classNames("whitespace-pre-line font-normal text-[#252527]", exportMode ? "text-[30px] leading-[1.5]" : compact ? "text-[16px] leading-[1.55]" : "text-[14px] leading-[1.65] lg:text-[12px]")}>{insight}</p>
           </section>
         </div>
       </article>
@@ -698,7 +686,7 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
 function ExportCardSpread({ card }: { card: ImageCard }) {
   const observed = observationBody(card.observation);
   const insight = insightBody(card.observation);
-  const displayTags = flattenTags(normalizeTags(card.tags)).slice(0, 8);
+  const displayTags = flattenTags(normalizeTags(card.tags)).slice(0, 5);
   const timeLine = [card.collectedAt, card.collectedTime].filter(Boolean).join(" · ");
   const imageNode = card.imageUrl ? <img className="h-full w-full object-cover" crossOrigin="anonymous" src={withExportCacheBust(card.imageUrl, card.id)} alt="" /> : <SampleVisual tone="cool" />;
 
@@ -768,6 +756,7 @@ export function ImageZettelkastenPrototype() {
   const [cardsLoading, setCardsLoading] = useState(true);
   const [pendingImportRows, setPendingImportRows] = useState<ImportRow[]>([]);
   const [importQueue, setImportQueue] = useState<ImportQueue | null>(null);
+  const [libraryMenuOpen, setLibraryMenuOpen] = useState(false);
 
   const filteredCards = useMemo(() => cards.filter((card) => cardMatchesQuery(card, query)), [cards, query]);
   const groups = useMemo(() => groupCards(filteredCards, groupBy), [filteredCards, groupBy]);
@@ -961,7 +950,6 @@ export function ImageZettelkastenPrototype() {
           collectedAt: draft.collectedAt,
           collectedTime: draft.collectedTime,
           collectedPlace: draft.collectedPlace,
-          existingTags: cards.flatMap((card) => flattenTags(normalizeTags(card.tags)).map((tag) => tag.label)),
           image: suggestionImage,
         }),
       });
@@ -1213,59 +1201,54 @@ export function ImageZettelkastenPrototype() {
 
   if (mode === "add") {
     return (
-      <div className="min-h-screen overflow-x-hidden bg-[#f5f5f7] font-sans text-[#1d1d1f]">
+    <div className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#fbfbf9_0%,#f2f2ef_42%,#ecece8_100%)] font-sans text-[#171719]">
         {addStep !== "refine" && (
-          <header className="sticky top-0 z-20 border-b border-black/10 bg-[#f5f5f7]/90 px-4 py-3 backdrop-blur-xl sm:px-6 sm:py-4">
-            <div className="mx-auto flex max-w-7xl items-center justify-between gap-5">
-              <button className="inline-flex items-center gap-2 rounded-full border border-black/10 bg-white px-4 py-2 text-sm font-semibold" onClick={goPrev} type="button">
-                <ArrowLeft size={16} /> 이전
+          <header className="sticky top-0 z-30 border-b border-black/8 bg-[#f8f8f6]/92 px-3 py-2.5 backdrop-blur-2xl sm:px-6 sm:py-3">
+            <div className="mx-auto flex max-w-7xl items-center gap-3 sm:gap-6">
+              <button className="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-2.5 text-sm font-medium transition-colors hover:bg-black/5 sm:px-3" onClick={goPrev} type="button">
+                <ArrowLeft size={19} /><span className="hidden sm:inline">이전</span>
               </button>
-              <div className="hidden flex-1 items-center justify-center gap-2 md:flex">
-                {addSteps.map((step, index) => {
-                  const active = step.id === addStep;
-                  const done = addSteps.findIndex((item) => item.id === addStep) > index;
-                  return (
-                    <div className="flex items-center gap-2" key={step.id}>
-                      <button className={classNames("rounded-full px-3 py-2 text-xs font-black", active && "bg-black text-white", done && "bg-[#0A84FF] text-white", !active && !done && "bg-white text-[#6e6e73]")} onClick={() => setAddStep(step.id)} type="button">
-                        {index + 1}. {step.label}
-                      </button>
-                      {index < addSteps.length - 1 && <ChevronRight className="text-[#8e8e93]" size={14} />}
-                    </div>
-                  );
-                })}
+              <div className="min-w-0 flex-1">
+                <div className="mb-1.5 flex items-center justify-between gap-3">
+                  <strong className="truncate text-sm font-semibold sm:text-base">{addSteps.find((step) => step.id === addStep)?.label}</strong>
+                  <span className="shrink-0 text-[11px] font-medium text-[#737377]">{addSteps.findIndex((step) => step.id === addStep) + 1} / {addSteps.length}</span>
+                </div>
+                <div className="h-1 overflow-hidden rounded-full bg-black/8">
+                  <div className="h-full rounded-full bg-[#1769ff] transition-[width] duration-300" style={{ width: `${((addSteps.findIndex((step) => step.id === addStep) + 1) / addSteps.length) * 100}%` }} />
+                </div>
               </div>
               {addStep === "suggest" ? (
-                <button className="inline-flex items-center gap-2 rounded-full bg-[#0A84FF] px-5 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45" disabled={savingCard} onClick={saveDraftAsCard} type="button">
+                <button className="hidden h-11 shrink-0 items-center gap-2 rounded-full bg-[#1769ff] px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-45 sm:inline-flex" disabled={savingCard} onClick={saveDraftAsCard} type="button">
                   {savingCard && <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />}
                   <span>{savingCard ? "저장 중" : "완료"}</span>
                 </button>
-              ) : <button className="rounded-full bg-black px-5 py-2 text-sm font-semibold text-white" onClick={goNext} type="button">다음</button>}
+              ) : <button className="hidden h-11 shrink-0 rounded-full bg-black px-5 text-sm font-semibold text-white sm:block" onClick={goNext} type="button">다음</button>}
             </div>
           </header>
         )}
 
-        <main className={classNames("mx-auto grid max-w-7xl gap-6", addStep === "refine" ? "px-0 py-0 sm:px-6 sm:py-6" : "px-6 py-8")}>
+        <main className={classNames("mx-auto grid w-full max-w-7xl gap-4 pb-28 sm:gap-6 sm:pb-10", addStep === "refine" ? "px-0 py-0 sm:px-6 sm:py-5" : "px-3 py-3 sm:px-6 sm:py-6")}>
           {importQueue && currentImportRow && (
             <div className="mx-4 mt-4 rounded-2xl bg-black px-4 py-3 text-sm font-semibold text-white sm:mx-0 sm:mt-0">
               대량 임포트 {importQueue.currentIndex + 1}/{importQueue.rows.length} · {currentImportRow.fileName}
             </div>
           )}
           {addStep === "refine" && (
-            <section className="overflow-hidden bg-white shadow-2xl shadow-black/10 sm:rounded-[28px] sm:border sm:border-black/10">
-              <div className="flex h-16 items-center justify-between border-b border-black/10 px-4 text-black sm:h-[76px] sm:px-6">
+            <section className="overflow-hidden bg-white sm:rounded-[24px] sm:border sm:border-black/8 sm:shadow-[0_20px_60px_rgba(18,18,18,0.08)]">
+              <div className="flex h-14 items-center justify-between border-b border-black/8 px-3 text-black sm:h-[68px] sm:px-5">
                 <div className="flex items-center gap-2">
-                  <button className="rounded-full px-2 py-2 text-sm font-black text-black/55 sm:px-4" onClick={closeAddMode} type="button">취소</button>
-                  {importQueue?.active && <button className="rounded-full border border-black/10 bg-white px-3 py-2 text-sm font-black text-black disabled:cursor-not-allowed disabled:opacity-45" disabled={savingCard} onClick={skipCurrentImportRow} type="button">스킵</button>}
+                  <button className="h-10 rounded-full px-2 text-sm font-medium text-[#66666a] sm:px-3" onClick={closeAddMode} type="button">취소</button>
+                  {importQueue?.active && <button className="h-10 rounded-full border border-black/10 bg-white px-3 text-sm font-semibold text-black disabled:cursor-not-allowed disabled:opacity-45" disabled={savingCard} onClick={skipCurrentImportRow} type="button">건너뛰기</button>}
                 </div>
                 <div className="text-center">
-                  <p className="text-[10px] font-black uppercase text-black/40 sm:text-xs">Crop</p>
-                  <h2 className="text-base font-black sm:text-lg">1:1 관찰 이미지화</h2>
+                  <p className="text-[10px] font-semibold text-black/40">1 / 5</p>
+                  <h2 className="text-sm font-semibold sm:text-base">관찰 이미지</h2>
                 </div>
-                <button className="rounded-full bg-[#0A84FF] px-4 py-2 text-sm font-black text-white sm:px-5" onClick={goNext} type="button">선택</button>
+                <button className="h-10 rounded-full bg-[#1769ff] px-4 text-sm font-semibold text-white sm:px-5" onClick={goNext} type="button">다음</button>
               </div>
 
-              <div className="relative h-[calc(100svh-212px)] min-h-[360px] bg-white sm:h-[620px]">
-                <button className="absolute right-4 top-4 z-20 grid h-10 w-10 place-items-center rounded-full bg-white/90 text-black shadow-lg shadow-black/10 backdrop-blur" onClick={() => updateCrop({ crop: { x: 0, y: 0 }, zoom: 1, rotation: 0 })} type="button" aria-label="크롭 리셋">
+              <div className="relative h-[calc(100svh-196px)] min-h-[380px] bg-[#ececea] sm:h-[min(66vh,680px)]">
+                <button className="absolute right-3 top-3 z-20 grid h-11 w-11 place-items-center rounded-full bg-white/92 text-black shadow-lg shadow-black/10 backdrop-blur-xl" onClick={() => updateCrop({ crop: { x: 0, y: 0 }, zoom: 1, rotation: 0 })} type="button" aria-label="크롭 리셋">
                   <RotateCcw size={18} />
                 </button>
                 <div className="absolute inset-0">
@@ -1283,16 +1266,16 @@ export function ImageZettelkastenPrototype() {
                       minZoom={0.25}
                       cropSize={{ width: cropFrameSize, height: cropFrameSize }}
                       classes={{
-                        containerClassName: "rounded-[28px]",
-                        cropAreaClassName: "rounded-[3px]",
+                        containerClassName: "",
+                        cropAreaClassName: "rounded-[2px]",
                       }}
                       style={{
                         containerStyle: {
-                          backgroundColor: "#ffffff",
+                          backgroundColor: "#ececea",
                         },
                         cropAreaStyle: {
                           border: "2px solid rgba(0,0,0,0.92)",
-                          boxShadow: "0 0 0 9999px rgba(255,255,255,0.5), 0 0 0 1px rgba(255,255,255,0.75)",
+                          boxShadow: "0 0 0 9999px rgba(246,246,243,0.66), 0 0 0 1px rgba(255,255,255,0.8)",
                         },
                       }}
                       onCropChange={(crop) => updateCrop({ crop })}
@@ -1314,7 +1297,7 @@ export function ImageZettelkastenPrototype() {
                 </div>
               </div>
 
-              <div className="border-t border-black/10 bg-[#f5f5f7] px-4 py-3 text-black sm:px-6 sm:pb-6 sm:pt-5">
+              <div className="border-t border-black/8 bg-[#f8f8f6] px-4 py-2.5 text-black sm:px-6 sm:py-4">
                 <div className="mx-auto max-w-3xl">
                   <Control compact label="크롭 배율" value={`${draft.crop.zoom.toFixed(3)}x`} min={0.25} max={6} step={0.005} rangeValue={draft.crop.zoom} onChange={(value) => updateCrop({ zoom: value })} />
                   <Control compact label="기울기 보정" value={`${draft.crop.rotation.toFixed(1)}°`} min={-15} max={15} step={0.1} rangeValue={draft.crop.rotation} onChange={(value) => updateCrop({ rotation: value })} />
@@ -1324,14 +1307,14 @@ export function ImageZettelkastenPrototype() {
           )}
 
           {addStep === "metadata" && (
-            <section className="grid grid-cols-1 overflow-hidden rounded-[28px] border border-black/10 bg-white shadow-2xl shadow-black/10 lg:min-h-[680px] lg:grid-cols-[0.85fr_1.15fr] lg:rounded-[36px]">
-              <div className="grid place-items-center bg-[#f5f5f7] p-4 lg:p-8">
-                <div className="aspect-square w-full overflow-hidden bg-[#dfe0e4]">
+            <section className="grid grid-cols-1 overflow-hidden rounded-[24px] border border-black/8 bg-white shadow-[0_20px_60px_rgba(18,18,18,0.07)] lg:min-h-[680px] lg:grid-cols-[0.85fr_1.15fr] lg:rounded-[30px]">
+              <div className="grid place-items-center bg-[#e9e9e6] p-3 sm:p-5 lg:p-8">
+                <div className="aspect-square w-full max-w-[560px] overflow-hidden bg-[#dededb]">
                   {draft.imageUrl ? <img className="h-full w-full object-cover" src={draft.imageUrl} alt="" /> : <SampleVisual tone="paper" />}
                 </div>
               </div>
-              <div className="grid content-center gap-5 p-5 lg:gap-6 lg:p-10">
-                <div><p className="text-xs font-semibold uppercase text-[#6e6e73] lg:text-sm">Metadata</p><h2 className="mt-2 text-2xl font-semibold lg:text-3xl">수집 정보</h2></div>
+              <div className="grid content-center gap-6 p-5 sm:p-7 lg:p-10">
+                <div><p className="text-xs font-medium text-[#77777b]">2 / 5</p><h2 className="mt-1 text-2xl font-semibold tracking-[-0.02em] lg:text-3xl">언제, 어디에서 발견했나요?</h2><p className="mt-2 text-sm font-normal leading-6 text-[#707074]">사진의 촬영 정보를 불러왔습니다. 필요한 부분만 고치면 됩니다.</p></div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Field label="수집 날짜" value={draft.collectedAt} onChange={(value) => updateDraft({ collectedAt: value })} />
                   <Field label="수집 시간" value={draft.collectedTime} onChange={(value) => updateDraft({ collectedTime: value })} />
@@ -1342,51 +1325,51 @@ export function ImageZettelkastenPrototype() {
           )}
 
           {addStep === "observe" && (
-            <section className="grid grid-cols-1 gap-4 lg:grid-cols-[420px_minmax(0,1fr)] lg:gap-6">
-              <div className="grid content-start rounded-[28px] bg-white p-4 shadow-2xl shadow-black/10 lg:sticky lg:top-28 lg:h-[680px] lg:rounded-[36px] lg:p-5">
-                <div className="aspect-square w-full overflow-hidden bg-[#dfe0e4]">
+            <section className="grid grid-cols-1 gap-3 lg:grid-cols-[360px_minmax(0,1fr)] lg:gap-5">
+              <div className="rounded-[22px] bg-white p-3 shadow-[0_14px_40px_rgba(18,18,18,0.06)] lg:sticky lg:top-24 lg:rounded-[26px] lg:p-4">
+                <div className="aspect-square w-full overflow-hidden bg-[#dededb]">
                   {draft.imageUrl ? <img className="h-full w-full object-cover" src={draft.imageUrl} alt="" /> : <SampleVisual tone="cool" />}
                 </div>
               </div>
-              <div className="grid gap-4">
-                <div className="rounded-[24px] bg-white p-5 lg:rounded-[30px] lg:p-6"><p className="text-xs font-semibold uppercase text-[#6e6e73] lg:text-sm">Observation</p><h2 className="mt-2 text-2xl font-semibold lg:text-4xl">관찰을 쓴다</h2></div>
-                <label className="grid gap-4 rounded-[24px] border border-black/10 bg-white p-5 lg:rounded-[28px] lg:p-6">
-                  <span className="grid gap-1"><strong className="text-base font-semibold sm:text-lg">관찰</strong><small className="text-xs font-medium leading-5 text-[#6e6e73] sm:text-sm">눈에 보이는 요소, 구성, 상태, 맥락을 나누지 말고 하나의 문장 흐름으로 적는다.</small></span>
-                  <textarea className="min-h-[260px] resize-y rounded-2xl border border-black/10 bg-white p-4 text-sm font-medium leading-7 sm:text-base sm:leading-8 lg:min-h-[460px] lg:p-5" value={observationBody(draft.observation) === "관찰 기록이 여기에 들어간다." ? "" : observationBody(draft.observation)} onChange={(event) => setDraft((current) => ({ ...current, observation: { ...current.observation, element: "", composition: "", condition: "", context: event.target.value } }))} />
+              <div className="grid gap-3">
+                <div className="rounded-[22px] bg-white px-5 py-4 lg:rounded-[26px] lg:px-6 lg:py-5"><p className="text-xs font-medium text-[#77777b]">3 / 5</p><h2 className="mt-1 text-2xl font-semibold tracking-[-0.02em] lg:text-3xl">무엇이 눈에 걸렸나요?</h2></div>
+                <label className="grid gap-4 rounded-[22px] border border-black/8 bg-white p-5 lg:rounded-[26px] lg:p-6">
+                  <span className="grid gap-1.5"><strong className="text-base font-semibold">관찰</strong><small className="text-xs font-normal leading-5 text-[#707074] sm:text-sm">보이는 요소와 배치, 빛, 재질, 발견한 상황을 자연스럽게 적어보세요.</small></span>
+                  <textarea autoFocus className="min-h-[300px] resize-none rounded-[18px] border border-black/8 bg-[#f7f7f5] p-4 text-[15px] font-normal leading-7 outline-none transition focus:border-[#1769ff] focus:bg-white lg:min-h-[500px] lg:p-5 lg:text-base lg:leading-8" value={observationBody(draft.observation) === "관찰 기록이 여기에 들어간다." ? "" : observationBody(draft.observation)} onChange={(event) => setDraft((current) => ({ ...current, observation: { ...current.observation, element: "", composition: "", condition: "", context: event.target.value } }))} placeholder="예: 얇은 철판의 모서리를 따라 빛이 번지고, 반복되는 수직선 사이로 작은 그림자가 생긴다…" />
                 </label>
               </div>
             </section>
           )}
 
           {addStep === "insight" && (
-            <section className="grid grid-cols-1 gap-4 lg:grid-cols-[420px_minmax(0,1fr)] lg:gap-6">
-              <div className="grid content-start rounded-[28px] bg-white p-4 shadow-2xl shadow-black/10 lg:sticky lg:top-28 lg:h-[680px] lg:rounded-[36px] lg:p-5">
-                <div className="aspect-square w-full overflow-hidden bg-[#dfe0e4]">
+            <section className="grid grid-cols-1 gap-3 lg:grid-cols-[360px_minmax(0,1fr)] lg:gap-5">
+              <div className="rounded-[22px] bg-white p-3 shadow-[0_14px_40px_rgba(18,18,18,0.06)] lg:sticky lg:top-24 lg:rounded-[26px] lg:p-4">
+                <div className="aspect-square w-full overflow-hidden bg-[#dededb]">
                   {draft.imageUrl ? <img className="h-full w-full object-cover" src={draft.imageUrl} alt="" /> : <SampleVisual tone="cool" />}
                 </div>
               </div>
-              <div className="grid gap-4">
-                <div className="rounded-[24px] bg-white p-5 lg:rounded-[30px] lg:p-6"><p className="text-xs font-semibold uppercase text-[#6e6e73] lg:text-sm">Insight</p><h2 className="mt-2 text-2xl font-semibold lg:text-4xl">인사이트를 쓴다</h2></div>
-                <label className="grid gap-4 rounded-[24px] border border-black/10 bg-white p-5 lg:rounded-[28px] lg:p-6">
-                  <span className="grid gap-1"><strong className="text-base font-semibold sm:text-lg">인사이트</strong><small className="text-xs font-medium leading-5 text-[#6e6e73] sm:text-sm">이 장면이 왜 눈에 걸렸는지, 어떤 조형적 효과를 만드는지 적는다.</small></span>
-                  <textarea className="min-h-[260px] resize-y rounded-2xl border border-black/10 bg-white p-4 text-sm font-medium leading-7 sm:text-base sm:leading-8 lg:min-h-[460px] lg:p-5" value={draft.observation.insight ?? ""} onChange={(event) => setDraft((current) => ({ ...current, observation: { ...current.observation, effect: "", insight: event.target.value } }))} />
+              <div className="grid gap-3">
+                <div className="rounded-[22px] bg-white px-5 py-4 lg:rounded-[26px] lg:px-6 lg:py-5"><p className="text-xs font-medium text-[#77777b]">4 / 5</p><h2 className="mt-1 text-2xl font-semibold tracking-[-0.02em] lg:text-3xl">왜 계속 보고 싶었나요?</h2></div>
+                <label className="grid gap-4 rounded-[22px] border border-black/8 bg-white p-5 lg:rounded-[26px] lg:p-6">
+                  <span className="grid gap-1.5"><strong className="text-base font-semibold">인사이트</strong><small className="text-xs font-normal leading-5 text-[#707074] sm:text-sm">이 장면이 만드는 조형적 효과와 다른 작업에 가져가고 싶은 원리를 적어보세요.</small></span>
+                  <textarea autoFocus className="min-h-[300px] resize-none rounded-[18px] border border-black/8 bg-[#f7f7f5] p-4 text-[15px] font-normal leading-7 outline-none transition focus:border-[#1769ff] focus:bg-white lg:min-h-[500px] lg:p-5 lg:text-base lg:leading-8" value={draft.observation.insight ?? ""} onChange={(event) => setDraft((current) => ({ ...current, observation: { ...current.observation, effect: "", insight: event.target.value } }))} placeholder="예: 동일한 간격의 선보다 미세하게 어긋난 간격이 표면에 더 살아 있는 리듬을 만든다…" />
                 </label>
               </div>
             </section>
           )}
 
           {addStep === "suggest" && (
-            <section className="grid grid-cols-1 gap-4 lg:min-h-[680px] lg:grid-cols-[1fr_1fr] lg:gap-6">
-              <div className="rounded-[28px] bg-black p-5 text-white lg:rounded-[36px] lg:p-8"><Sparkles className="text-[#0A84FF]" size={28} /><p className="mt-5 text-xs font-semibold text-[#0A84FF] lg:mt-8 lg:text-sm">제안</p><div className="mt-6 rounded-[24px] bg-white p-5 text-black lg:mt-10 lg:rounded-[30px] lg:p-6"><div className="flex items-center justify-between gap-3"><span className="text-xs font-semibold text-[#6e6e73]">이미지 제목과 조형 태그</span><button className="rounded-full border border-black/10 px-3 py-1.5 text-xs font-semibold disabled:opacity-40" disabled={suggestionStatus === "loading"} onClick={requestCardSuggestion} type="button">{suggestionStatus === "loading" ? "생성 중" : "다시 제안"}</button></div>{suggestionStatus === "loading" ? <div className="mt-8 grid place-items-center py-10"><span className="h-8 w-8 animate-spin rounded-full border-2 border-black/15 border-t-black" /></div> : <><p className="mt-3 text-xl font-semibold lg:text-3xl">{draft.title || suggestedTitle}</p><div className="mt-5 flex flex-wrap gap-2">{flattenTags(hasAnyTags(draft.tags) ? draft.tags : suggestedTags).map((tag) => <span className="rounded-full bg-[#0A84FF] px-3 py-2 text-xs font-semibold text-white lg:text-sm" key={`${tag.category}-${tag.label}`}>{tag.label}</span>)}</div></>}{suggestionError && <p className="mt-3 text-xs font-semibold text-[#ff3b30]">{suggestionError}</p>}</div></div>
-              <div className="grid content-center gap-5 rounded-[28px] bg-white p-5 lg:rounded-[36px] lg:p-8">
+            <section className="grid grid-cols-1 gap-3 lg:min-h-[680px] lg:grid-cols-[0.8fr_1.2fr] lg:gap-5">
+              <div className="rounded-[22px] bg-[#101012] p-5 text-white shadow-[0_18px_50px_rgba(18,18,18,0.12)] lg:rounded-[28px] lg:p-7"><div className="flex items-center justify-between"><div className="grid h-10 w-10 place-items-center rounded-full bg-[#1769ff]"><Sparkles size={19} /></div><span className="text-xs font-medium text-white/55">5 / 5</span></div><h2 className="mt-5 text-2xl font-semibold tracking-[-0.02em] lg:text-3xl">기록의 이름과<br />조형 언어를 정리합니다.</h2><div className="mt-6 rounded-[18px] bg-white/8 p-4 lg:mt-8"><div className="flex items-center justify-between gap-3"><span className="text-xs font-medium text-white/55">AI 제안</span><button className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-medium disabled:opacity-40" disabled={suggestionStatus === "loading"} onClick={requestCardSuggestion} type="button">다시 제안</button></div>{suggestionStatus === "loading" ? <div className="grid place-items-center py-12"><span className="h-7 w-7 animate-spin rounded-full border-2 border-white/20 border-t-white" /></div> : <><p className="mt-4 text-xl font-semibold leading-snug">{draft.title || suggestedTitle}</p><div className="mt-4 flex flex-wrap gap-1.5">{flattenTags(hasAnyTags(draft.tags) ? draft.tags : suggestedTags).map((tag) => <span className="rounded-full bg-white/10 px-2.5 py-1.5 text-xs font-medium text-white/85" key={`${tag.category}-${tag.label}`}>{tag.label}</span>)}</div></>}{suggestionError && <p className="mt-3 text-xs font-medium text-[#ff6961]">{suggestionError}</p>}</div></div>
+              <div className="grid content-start gap-5 rounded-[22px] bg-white p-5 lg:rounded-[28px] lg:p-7">
                 <Field label="제목" value={draft.title} onChange={(value) => updateDraft({ title: value })} />
-                <div className="grid gap-3">
+                <div className="grid gap-4 sm:grid-cols-2">
                   {tagCategories.map((category) => (
-                    <label className="grid gap-2 text-sm font-black text-black" key={category.id}>
+                    <label className="grid content-start gap-2 text-sm font-semibold text-black" key={category.id}>
                       <span>{category.label}</span>
-                      <input className="rounded-2xl border border-black/10 bg-white px-4 py-3" value={tagInputs[category.id]} onChange={(event) => updateCategoryTags(category.id, event.target.value)} placeholder={category.examples.slice(0, 4).join(", ")} />
+                      <input className="rounded-[15px] border border-black/8 bg-[#f7f7f5] px-3.5 py-3 font-normal outline-none transition focus:border-[#1769ff] focus:bg-white" value={tagInputs[category.id]} onChange={(event) => updateCategoryTags(category.id, event.target.value)} placeholder={category.examples.slice(0, 3).join(", ")} />
                       <div className="flex flex-wrap gap-2">
-                        {draft.tags[category.id].map((tag) => <span className="group inline-flex items-center gap-1 rounded-full border border-black/50 px-3 py-1.5 text-xs font-medium text-black/70" key={`${category.id}-${tag}`}>{tag}<button className="hidden rounded-full p-0.5 text-black/50 hover:bg-black hover:text-white group-hover:inline-flex" onClick={() => removeCategoryTag(category.id, tag)} type="button" aria-label={`${tag} 삭제`}><X size={12} /></button></span>)}
+                        {draft.tags[category.id].map((tag) => <span className="group inline-flex items-center gap-1 rounded-full border border-black/20 px-2.5 py-1.5 text-xs font-medium text-black/70" key={`${category.id}-${tag}`}>{tag}<button className="inline-flex rounded-full p-0.5 text-black/45 hover:bg-black hover:text-white" onClick={() => removeCategoryTag(category.id, tag)} type="button" aria-label={`${tag} 삭제`}><X size={12} /></button></span>)}
                       </div>
                     </label>
                   ))}
@@ -1397,53 +1380,73 @@ export function ImageZettelkastenPrototype() {
 
         </main>
 
+        {addStep !== "refine" && (
+          <div className="fixed inset-x-0 bottom-0 z-40 border-t border-black/8 bg-[#f8f8f6]/94 px-3 pb-[calc(10px+env(safe-area-inset-bottom))] pt-2.5 backdrop-blur-2xl sm:hidden">
+            <div className="mx-auto flex max-w-lg gap-2">
+              <button className="h-12 flex-1 rounded-full bg-black/6 text-sm font-semibold text-black" onClick={goPrev} type="button">이전</button>
+              {addStep === "suggest" ? (
+                <button className="inline-flex h-12 flex-[1.7] items-center justify-center gap-2 rounded-full bg-[#1769ff] text-sm font-semibold text-white disabled:opacity-45" disabled={savingCard} onClick={saveDraftAsCard} type="button">{savingCard ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" /> : <Check size={17} />}{savingCard ? "저장 중" : "기록 저장"}</button>
+              ) : <button className="h-12 flex-[1.7] rounded-full bg-black text-sm font-semibold text-white" onClick={goNext} type="button">다음</button>}
+            </div>
+          </div>
+        )}
+
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#f5f5f7] font-sans text-[#1d1d1f]">
+    <div className="min-h-screen overflow-x-hidden bg-[radial-gradient(circle_at_top_left,#fbfbf9_0%,#f2f2ef_42%,#ecece8_100%)] font-sans text-[#171719]">
       <input ref={addImageInputRef} className="hidden" type="file" accept="image/*" onChange={(event) => { readImage(event.target.files?.[0]); event.currentTarget.value = ""; }} />
       <input ref={importCsvInputRef} className="hidden" type="file" accept=".csv,text/csv" onChange={(event) => { void readImportCsv(event.target.files?.[0]); event.currentTarget.value = ""; }} />
       <input ref={importImageInputRef} className="hidden" type="file" multiple accept="image/*" onChange={(event) => { readImportImages(event.target.files); event.currentTarget.value = ""; }} />
-      <header className="sticky top-0 z-30 w-full border-b border-black/10 bg-[#f5f5f7]/95 px-2 py-2 backdrop-blur-xl sm:px-6 sm:py-4">
-        <div className="mx-auto grid w-full max-w-[1540px] gap-2 sm:flex sm:items-center sm:gap-5">
-          <div className="flex min-w-0 items-center gap-2">
-            <div className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-black text-white sm:h-12 sm:w-12 sm:rounded-2xl"><Library size={18} /></div>
-            <div className="min-w-0 flex-1"><h1 className="truncate text-base font-semibold sm:text-2xl sm:font-black">Image Zettelkasten</h1></div>
-            <button className="shrink-0 rounded-full bg-black px-4 py-2 text-sm font-semibold text-white sm:hidden" onClick={startAddMode} type="button">새 카드</button>
+      <header className="sticky top-0 z-30 w-full border-b border-black/8 bg-[#f8f8f6]/92 backdrop-blur-2xl">
+        <div className="mx-auto flex w-full max-w-[1500px] items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] bg-black text-white sm:h-11 sm:w-11"><Library size={19} strokeWidth={1.8} /></div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-baseline gap-2"><h1 className="truncate text-[19px] font-semibold tracking-[-0.025em] sm:text-[22px]">수집함</h1><span className="text-xs font-medium text-[#7b7b80]">{cards.length}</span></div>
+            <p className="hidden text-xs font-normal text-[#85858a] sm:block">매일 발견한 조형 언어의 아카이브</p>
           </div>
-          <div className="flex min-w-0 items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 sm:contents sm:overflow-visible sm:pb-0">
-          <label className="hidden min-w-[320px] items-center gap-3 rounded-full border border-black/10 bg-white px-4 py-3 md:flex"><Search size={17} className="text-[#6e6e73]" /><input className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-[#8e8e93]" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="제목, 태그, 장소, 관찰 문장 검색" /></label>
-          <a className="hidden shrink-0 rounded-full bg-white px-4 py-3 text-sm font-semibold text-black sm:inline-flex" href="/image-zettelkasten-import-template.csv" download>CSV 템플릿</a>
-          <button className="shrink-0 rounded-full bg-white px-3 py-2 text-xs font-semibold text-black sm:px-5 sm:py-3 sm:text-sm" onClick={() => importCsvInputRef.current?.click()} type="button">대량 임포트</button>
-          <button className="shrink-0 rounded-full bg-white px-3 py-2 text-xs font-semibold text-black disabled:opacity-45 sm:px-5 sm:py-3 sm:text-sm" disabled={exporting} onClick={exportAllCards} type="button">{exporting ? "내보내는 중" : "내보내기"}</button>
-          <button className="hidden shrink-0 rounded-full bg-black px-4 py-2 text-sm font-semibold text-white sm:inline-flex sm:px-5 sm:py-3 sm:font-black" onClick={startAddMode} type="button">새 카드</button>
+          <button className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-black px-3.5 text-[13px] font-semibold text-white sm:hidden" onClick={startAddMode} type="button"><ImagePlus size={16} /> 새 기록</button>
+          <label className="hidden h-11 min-w-[280px] max-w-[380px] flex-1 items-center gap-2.5 rounded-full bg-black/5 px-4 md:flex"><Search size={17} className="text-[#77777b]" /><input className="w-full bg-transparent text-sm font-normal outline-none placeholder:text-[#8c8c91]" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="장면, 장소, 태그 검색" /></label>
+          <div className="relative shrink-0">
+            <button className="grid h-10 w-10 place-items-center rounded-full bg-white text-black shadow-sm shadow-black/5 transition hover:bg-black/5 sm:h-11 sm:w-11" aria-label="가져오기 및 내보내기" aria-expanded={libraryMenuOpen} onClick={() => setLibraryMenuOpen((current) => !current)} type="button"><MoreHorizontal size={19} /></button>
+            {libraryMenuOpen && <div className="absolute right-0 z-50 mt-2 grid w-48 overflow-hidden rounded-[18px] border border-black/8 bg-white p-1.5 text-sm font-medium shadow-[0_18px_50px_rgba(18,18,18,0.15)]">
+              <button className="flex h-11 items-center gap-3 rounded-[13px] px-3 text-left hover:bg-black/5" onClick={() => { setLibraryMenuOpen(false); importCsvInputRef.current?.click(); }} type="button"><Upload size={16} /> 대량 임포트</button>
+              <button className="flex h-11 items-center gap-3 rounded-[13px] px-3 text-left hover:bg-black/5 disabled:opacity-45" disabled={exporting} onClick={() => { setLibraryMenuOpen(false); void exportAllCards(); }} type="button"><Download size={16} /> {exporting ? "내보내는 중" : "전체 내보내기"}</button>
+              <a className="flex h-11 items-center gap-3 rounded-[13px] px-3 hover:bg-black/5" href="/image-zettelkasten-import-template.csv" onClick={() => setLibraryMenuOpen(false)} download>CSV 템플릿</a>
+            </div>}
           </div>
+          <button className="hidden h-11 shrink-0 items-center gap-2 rounded-full bg-black px-5 text-sm font-semibold text-white sm:inline-flex" onClick={startAddMode} type="button"><ImagePlus size={17} /> 새 기록</button>
+        </div>
+        <div className="px-4 pb-3 md:hidden">
+          <label className="mx-auto flex h-11 w-full max-w-[720px] items-center gap-2.5 rounded-[14px] bg-black/5 px-3.5"><Search size={17} className="text-[#77777b]" /><input className="w-full bg-transparent text-[15px] font-normal outline-none placeholder:text-[#8c8c91]" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="장면, 장소, 태그 검색" /></label>
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-[1500px] gap-4 px-1 py-2 sm:px-6 sm:py-6">
-        <section className="rounded-[20px] bg-[#e8e8eb] p-1.5 shadow-inner shadow-black/5 sm:rounded-[38px] sm:p-5">
-          <div className="mb-3 sm:mb-5">
-            <div className="flex max-w-full items-center gap-1.5 overflow-x-auto whitespace-nowrap py-1">
-              <label className="relative flex shrink-0 items-center gap-1.5 rounded-full bg-white px-2.5 font-medium" style={{ height: 26, fontSize: 10, lineHeight: 1 }}>
-                <Tags size={12} />
-                <span style={{ fontSize: 10, lineHeight: 1 }}>정렬</span>
+      <main className="mx-auto grid w-full max-w-[1500px] gap-4 px-3 pb-10 pt-4 sm:px-6 sm:pt-6">
+        <section className="min-w-0">
+          <div className="mb-4 sm:mb-5">
+            <div className="flex max-w-full items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <label className="relative flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-black/8 bg-white px-3 text-xs font-medium shadow-sm shadow-black/[0.03]">
+                <SlidersHorizontal size={13} />
+                <span>{groupFieldLabels[groupBy]}</span>
                 <ChevronRight className="rotate-90" size={11} />
                 <select className="absolute inset-0 h-full w-full cursor-pointer opacity-0" aria-label="정렬 기준" value={groupBy} onChange={(event) => { setGroupBy(event.target.value as GroupField); setSelectedGroupValue(null); }}>
                   {(Object.keys(groupFieldLabels) as GroupField[]).map((field) => <option key={field} value={field}>{groupFieldLabels[field]}</option>)}
                 </select>
               </label>
-              <button className={classNames("shrink-0 rounded-full px-2.5 font-medium", selectedGroupValue === null ? "bg-black text-white" : "bg-white text-black")} style={{ height: 26, fontSize: 10, lineHeight: 1 }} onClick={() => setSelectedGroupValue(null)} type="button">전체 {filteredCards.length}</button>
+              <button className={classNames("h-9 shrink-0 rounded-full px-3 text-xs font-medium transition-colors", selectedGroupValue === null ? "bg-black text-white" : "border border-black/8 bg-white text-black")} onClick={() => setSelectedGroupValue(null)} type="button">전체 <span className="ml-1 opacity-60">{filteredCards.length}</span></button>
               {groups.map((group) => (
-                <button className={classNames("shrink-0 rounded-full px-2.5 font-medium", selectedGroupValue === group.value ? "bg-[#0A84FF] text-white" : "bg-white text-black")} style={{ height: 26, fontSize: 10, lineHeight: 1 }} key={group.value} onClick={() => setSelectedGroupValue(group.value)} type="button">{group.value} {group.cards.length}</button>
+                <button className={classNames("h-9 shrink-0 rounded-full px-3 text-xs font-medium transition-colors", selectedGroupValue === group.value ? "bg-[#1769ff] text-white" : "border border-black/8 bg-white text-black")} key={group.value} onClick={() => setSelectedGroupValue(group.value)} type="button">{group.value} <span className="ml-1 opacity-60">{group.cards.length}</span></button>
               ))}
             </div>
           </div>
 
-          {visibleCards.length > 0 ? (
-            <div className="grid grid-cols-1 gap-3 sm:gap-5 xl:grid-cols-2">
+          {cardsLoading ? (
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">{[0, 1, 2, 3].map((item) => <div className="aspect-[5/6] animate-pulse rounded-[22px] bg-black/5 sm:rounded-[26px] lg:aspect-[10/6] lg:rounded-none" key={item} />)}</div>
+          ) : visibleCards.length > 0 ? (
+            <div className="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-2">
               {visibleCards.map((card) => (
                 <div className="min-w-0" key={card.id}>
                   <CardSpread card={card} hideActions={exporting} onEdit={() => startEditCard(card)} onExport={() => exportSingleCard(card)} onDelete={() => setDeleteTarget(card)} />
@@ -1451,7 +1454,7 @@ export function ImageZettelkastenPrototype() {
               ))}
             </div>
           ) : (
-            <div className="grid min-h-[520px] place-items-center rounded-[28px] bg-white text-xl font-black">표시할 카드가 없습니다.</div>
+            <div className="grid min-h-[52svh] place-items-center rounded-[24px] border border-dashed border-black/15 bg-white/55 px-6 text-center"><div><p className="text-lg font-semibold">아직 보이는 기록이 없습니다.</p><p className="mt-2 text-sm font-normal text-[#77777b]">필터를 바꾸거나 새 장면을 수집해보세요.</p></div></div>
           )}
         </section>
       </main>
@@ -1486,12 +1489,12 @@ export function ImageZettelkastenPrototype() {
 
 function Control({ label, value, min, max, step, rangeValue, onChange, dark = false, compact = false }: { label: string; value: string; min: number; max: number; step: number; rangeValue: number; onChange: (value: number) => void; dark?: boolean; compact?: boolean }) {
   if (compact) {
-    return <div className="grid grid-cols-[96px_minmax(0,1fr)_72px] items-center gap-4 py-2"><span className="text-sm font-black text-black">{label}</span><input className="w-full accent-[#0A84FF]" min={min} max={max} step={step} type="range" value={rangeValue} onChange={(event) => onChange(Number(event.target.value))} /><strong className="text-right font-mono text-sm font-black text-[#6e6e73]">{value}</strong></div>;
+    return <div className="grid grid-cols-[76px_minmax(0,1fr)_58px] items-center gap-3 py-1.5 sm:grid-cols-[96px_minmax(0,1fr)_72px] sm:gap-4"><span className="text-xs font-semibold text-black sm:text-sm">{label}</span><input className="w-full accent-[#1769ff]" min={min} max={max} step={step} type="range" value={rangeValue} onChange={(event) => onChange(Number(event.target.value))} /><strong className="text-right font-mono text-xs font-semibold text-[#707074] sm:text-sm">{value}</strong></div>;
   }
 
-  return <div className={classNames("rounded-[24px] border p-4", dark ? "border-white/10 bg-[#2c2c2e]" : "border-black/10 bg-[#f5f5f7]")}><div className="flex items-center justify-between"><span className={classNames("text-sm font-black", dark ? "text-white" : "text-black")}>{label}</span><strong className={classNames("font-mono text-sm font-black", dark ? "text-white/55" : "text-[#6e6e73]")}>{value}</strong></div><input className="mt-4 w-full accent-[#0A84FF]" min={min} max={max} step={step} type="range" value={rangeValue} onChange={(event) => onChange(Number(event.target.value))} /></div>;
+  return <div className={classNames("rounded-[18px] border p-4", dark ? "border-white/10 bg-[#2c2c2e]" : "border-black/8 bg-[#f7f7f5]")}><div className="flex items-center justify-between"><span className={classNames("text-sm font-semibold", dark ? "text-white" : "text-black")}>{label}</span><strong className={classNames("font-mono text-sm font-semibold", dark ? "text-white/55" : "text-[#707074]")}>{value}</strong></div><input className="mt-4 w-full accent-[#1769ff]" min={min} max={max} step={step} type="range" value={rangeValue} onChange={(event) => onChange(Number(event.target.value))} /></div>;
 }
 
 function Field({ label, value, onChange, placeholder, wide = false }: { label: string; value: string; onChange: (value: string) => void; placeholder?: string; wide?: boolean }) {
-  return <label className={classNames("grid gap-2 text-sm font-semibold text-black", wide && "sm:col-span-2")}><span>{label}</span><input className="rounded-2xl border border-black/10 bg-white px-4 py-3" value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} /></label>;
+  return <label className={classNames("grid gap-2 text-sm font-semibold text-black", wide && "sm:col-span-2")}><span>{label}</span><input className="h-12 rounded-[15px] border border-black/8 bg-[#f7f7f5] px-4 font-normal outline-none transition placeholder:text-[#9a9a9e] focus:border-[#1769ff] focus:bg-white" value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} /></label>;
 }

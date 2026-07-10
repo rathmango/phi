@@ -211,16 +211,43 @@ function slugifyTag(value: string) {
   return slug || String(Date.now());
 }
 
+const activeTagCategories = new Set(["subject", "composition", "color", "material", "effect"]);
+
+function canonicalTag(categoryValue: string, labelValue: string) {
+  let category = categoryValue.trim();
+  let label = labelValue.trim();
+  if (category === "form" || category === "space") category = "composition";
+  if (category === "light") category = "color";
+  if (categoryValue === "color" && label === "우드") {
+    category = "material";
+    label = "목재";
+  }
+  if (categoryValue === "form" && label === "연기") category = "subject";
+  if (categoryValue === "color" && label === "대비") label = "색상 대비";
+  if (categoryValue === "effect" && label === "빈티지") label = "시간감";
+  if (categoryValue === "effect" && label === "일체감") label = "통일감";
+  if (categoryValue === "effect" && label === "사악함") return null;
+  if (!activeTagCategories.has(category) || !label) return null;
+  return { category, label };
+}
+
 export async function seedTagCategories(categories: Array<Record<string, unknown>>) {
   const existing = await listTagCategoriesFromFirestore();
-  if (existing.length > 0) return existing;
-  await Promise.all(categories.map((category: any) => savePayloadDocument("tag_categories", String(category.id), category)));
+  const activeIds = new Set(categories.map((category: any) => String(category.id)));
+  await Promise.all([
+    ...categories.map((category: any) => savePayloadDocument("tag_categories", String(category.id), { ...category, active: true })),
+    ...existing.filter((category: any) => !activeIds.has(String(category.id))).map((category: any) => savePayloadDocument("tag_categories", String(category.id), { ...category, active: false })),
+  ]);
   return categories;
 }
 
 export async function upsertTagsFromCard(tags: Record<string, string[]>) {
   const existingTags = await listTagsFromFirestore();
-  const existingMap = new Map(existingTags.map((tag: any) => [`${tag.category}:${tag.label}`, tag]));
+  const existingMap = new Map<string, any>();
+  existingTags.forEach((tag: any) => {
+    const normalized = canonicalTag(String(tag.category || ""), String(tag.label || ""));
+    if (normalized) existingMap.set(`${normalized.category}:${normalized.label}`, tag);
+  });
   const now = new Date().toISOString();
   const writes: Promise<unknown>[] = [];
 
@@ -228,12 +255,13 @@ export async function upsertTagsFromCard(tags: Record<string, string[]>) {
     if (!Array.isArray(labels)) return;
     labels.forEach((label) => {
       const cleanLabel = typeof label === "string" ? label.trim() : "";
-      if (!cleanLabel) return;
-      const existing = existingMap.get(`${category}:${cleanLabel}`);
+      const normalized = canonicalTag(category, cleanLabel);
+      if (!normalized) return;
+      const existing = existingMap.get(`${normalized.category}:${normalized.label}`);
       const payload = {
-        id: `${category}-${slugifyTag(cleanLabel)}`,
-        label: cleanLabel,
-        category,
+        id: `${normalized.category}-${slugifyTag(normalized.label)}`,
+        label: normalized.label,
+        category: normalized.category,
         aliases: existing?.aliases || [],
         source: existing?.source || "user",
         usageCount: Number(existing?.usageCount || 0) + 1,
@@ -250,16 +278,22 @@ export async function upsertTagsFromCard(tags: Record<string, string[]>) {
 export async function syncTagsFromCards() {
   const cards = await listCardsFromFirestore();
   const existingTags = await listTagsFromFirestore();
-  const existingMap = new Map(existingTags.map((tag: any) => [`${tag.category}:${tag.label}`, tag]));
+  const existingMap = new Map<string, any>();
+  existingTags.forEach((tag: any) => {
+    const normalized = canonicalTag(String(tag.category || ""), String(tag.label || ""));
+    if (normalized) existingMap.set(`${normalized.category}:${normalized.label}`, tag);
+  });
   const counts = new Map<string, { category: string; label: string; count: number }>();
 
   cards.forEach((card: any) => {
     Object.entries(card.tags || {}).forEach(([category, labels]) => {
       if (!Array.isArray(labels)) return;
       Array.from(new Set(labels.map((label) => (typeof label === "string" ? label.trim() : "")).filter(Boolean))).forEach((label) => {
-        const key = `${category}:${label}`;
+        const normalized = canonicalTag(category, label);
+        if (!normalized) return;
+        const key = `${normalized.category}:${normalized.label}`;
         const current = counts.get(key);
-        counts.set(key, { category, label, count: (current?.count || 0) + 1 });
+        counts.set(key, { category: normalized.category, label: normalized.label, count: (current?.count || 0) + 1 });
       });
     });
   });
@@ -270,7 +304,7 @@ export async function syncTagsFromCards() {
   counts.forEach(({ category, label, count }) => {
     const existing = existingMap.get(`${category}:${label}`);
     const payload = {
-      id: existing?.id || `${category}-${slugifyTag(label)}`,
+      id: `${category}-${slugifyTag(label)}`,
       label,
       category,
       aliases: existing?.aliases || [],
