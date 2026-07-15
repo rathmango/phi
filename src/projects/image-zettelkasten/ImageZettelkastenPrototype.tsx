@@ -768,8 +768,9 @@ export function ImageZettelkastenPrototype() {
   const fallbackTags = useMemo(() => suggestTags(draft.observation), [draft.observation]);
   const suggestedTitle = llmSuggestion?.title || fallbackTitle;
   const suggestedTags = llmSuggestion && hasAnyTags(llmSuggestion.tags) ? llmSuggestion.tags : fallbackTags;
-  const finalTitle = draft.title.trim() || suggestedTitle;
-  const finalTags = hasAnyTags(draft.tags) ? draft.tags : suggestedTags;
+  const canAutoSuggest = !draft.title.trim() && !hasAnyTags(draft.tags);
+  const finalTitle = canAutoSuggest ? suggestedTitle : draft.title.trim();
+  const finalTags = canAutoSuggest ? suggestedTags : draft.tags;
   const currentImportRow = importQueue?.active ? importQueue.rows[importQueue.currentIndex] : null;
   const suggestionRequestKey = useMemo(() => JSON.stringify({
     observation: observationBody(draft.observation),
@@ -781,10 +782,11 @@ export function ImageZettelkastenPrototype() {
 
   useEffect(() => {
     if (addStep !== "suggest") return;
+    if (!canAutoSuggest) return;
     if (lastSuggestionRequestKey.current === suggestionRequestKey) return;
     lastSuggestionRequestKey.current = suggestionRequestKey;
     void requestCardSuggestion();
-  }, [addStep, suggestionRequestKey]);
+  }, [addStep, canAutoSuggest, suggestionRequestKey]);
 
   useEffect(() => {
     let cancelled = false;
