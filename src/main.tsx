@@ -123,6 +123,7 @@ function App() {
   }
 
   if (
+    route.appId === "pinned-chat-dashboard" ||
     route.appId === "pinned-session-dashboard" ||
     (project?.kind === "pinned-dashboard" && activeSection === "prototype")
   ) {
@@ -185,11 +186,11 @@ function App() {
           if (project.kind === "pinned-dashboard" && section.id === "prototype") {
             return (
               <a
-                href="#/apps/pinned-session-dashboard"
+                href="#/apps/pinned-chat-dashboard"
                 key={section.id}
                 onClick={(event) => {
                   event.preventDefault();
-                  navigate("#/apps/pinned-session-dashboard");
+                  navigate("#/apps/pinned-chat-dashboard");
                 }}
               >
                 <Icon size={17} />

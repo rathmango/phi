@@ -1866,7 +1866,7 @@ export const projects: Project[] = [
   {
     id: "hid-pinned-session-dashboard",
     kind: "pinned-dashboard",
-    title: "Pinned Session Dashboard",
+    title: "Pinned Chat Dashboard",
     status: "HID Final",
     summary: "여러 채팅 세션에 흩어진 반복 작업지시를 대시보드에 고정하고, 한 화면에서 바로 입력하는 LLM 채팅 대시보드",
     onePager: {
