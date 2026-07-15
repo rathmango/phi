@@ -1,4 +1,6 @@
-import { GameConstants, TakoyakiPieceState } from "./gameTypes";
+import { GameConstants, QuaternionTuple, TakoyakiPieceState } from "./gameTypes";
+
+const TARGET_CONTACT_SECONDS = 44;
 
 export const GAME_CONSTANTS: GameConstants = {
   panWidthCount: 3,
@@ -16,9 +18,11 @@ export const GAME_CONSTANTS: GameConstants = {
   requiredDoneCoverage: 0.75,
   maxOverdoneCoverage: 0,
   timeLimit: 120,
-  stateChangeRate: 0.34,
-  revealDuration: 0.54,
+  stateChangeRate: 7 / TARGET_CONTACT_SECONDS,
+  revealDuration: 0.32,
   rotationStep: 2,
+  rotationVarianceChance: 0.26,
+  rotationVarianceStep: 1,
 };
 
 export function panHoleId(index: number) {
@@ -34,6 +38,11 @@ export function createInitialPieces(constants = GAME_CONSTANTS): TakoyakiPieceSt
     plateSlotIndex: null,
     rotationIndex: 0,
     previousRotationIndex: 0,
+    visualQuaternion: [0, 0, 0, 1],
+    previousVisualQuaternion: [0, 0, 0, 1],
+    flipAxisX: 1,
+    flipAxisZ: 0,
+    flipAngle: 0,
     panelContactSeconds: Array.from({ length: constants.surfacePanelCount }, () => 0),
     panelStateLevels: Array.from({ length: constants.surfacePanelCount }, () => constants.initialStateLevel),
     revealTimer: 0,
@@ -51,6 +60,39 @@ export function contactPanels(rotationIndex: number, constants = GAME_CONSTANTS)
     ((baseBottomStart + rotationIndex) % constants.surfacePanelCount + constants.surfacePanelCount) %
     constants.surfacePanelCount;
   return Array.from({ length: count }, (_, offset) => (start + offset) % constants.surfacePanelCount);
+}
+
+function panelLocalNormal(panelIndex: number) {
+  const quadrant = panelIndex % 4;
+  const phi = quadrant * (Math.PI / 2) + Math.PI / 4;
+  const theta = panelIndex < 4 ? Math.PI / 4 : (Math.PI * 3) / 4;
+  return {
+    x: -Math.cos(phi) * Math.sin(theta),
+    y: Math.cos(theta),
+    z: Math.sin(phi) * Math.sin(theta),
+  };
+}
+
+function rotatedWorldY(
+  vector: { x: number; y: number; z: number },
+  [qx, qy, qz, qw]: QuaternionTuple,
+) {
+  const ix = qw * vector.x + qy * vector.z - qz * vector.y;
+  const iy = qw * vector.y + qz * vector.x - qx * vector.z;
+  const iz = qw * vector.z + qx * vector.y - qy * vector.x;
+  const iw = -qx * vector.x - qy * vector.y - qz * vector.z;
+  return iy * qw + iw * -qy + iz * -qx - ix * -qz;
+}
+
+export function contactPanelsForQuaternion(quaternion: QuaternionTuple, constants = GAME_CONSTANTS) {
+  const contactCount = Math.round(constants.surfacePanelCount * constants.contactRatio);
+  return Array.from({ length: constants.surfacePanelCount }, (_, panelIndex) => ({
+    panelIndex,
+    worldY: rotatedWorldY(panelLocalNormal(panelIndex), quaternion),
+  }))
+    .sort((left, right) => left.worldY - right.worldY)
+    .slice(0, contactCount)
+    .map(({ panelIndex }) => panelIndex);
 }
 
 export function visiblePanels(rotationIndex: number, constants = GAME_CONSTANTS) {
@@ -96,8 +138,10 @@ export function colorForCookLevel(level: number) {
   if (level >= 9) return "#3a2920";
   if (level >= 8) return "#9d522b";
   if (level >= 7) return "#c97938";
-  if (level >= 5) return "#e0aa5a";
-  if (level >= 3) return "#f0c979";
+  if (level >= 5) return "#df9c4c";
+  if (level >= 3) return "#edbf62";
+  if (level >= 1.2) return "#e9b457";
+  if (level >= 0.35) return "#f1cf7c";
   return "#f7dea1";
 }
 

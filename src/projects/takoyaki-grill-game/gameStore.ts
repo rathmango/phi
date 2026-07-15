@@ -1,13 +1,39 @@
 import { create } from "zustand";
 import {
-  contactPanels,
+  contactPanelsForQuaternion,
   createInitialPieces,
   doneCoverage,
   GAME_CONSTANTS,
   isPlatePieceAccepted,
   overdoneCoverage,
 } from "./gameRules";
-import { GameSnapshot, GameStore, TakoyakiPieceState } from "./gameTypes";
+import { GameSnapshot, GameStore, PlateCheckReason, PlateEvaluation, QuaternionTuple, TakoyakiPieceState } from "./gameTypes";
+
+const IDENTITY_QUATERNION: QuaternionTuple = [0, 0, 0, 1];
+
+function normalizeQuaternion(quaternion: QuaternionTuple): QuaternionTuple {
+  const [x, y, z, w] = quaternion;
+  const length = Math.hypot(x, y, z, w) || 1;
+  return [x / length, y / length, z / length, w / length];
+}
+
+function multiplyQuaternion(left: QuaternionTuple, right: QuaternionTuple): QuaternionTuple {
+  const [ax, ay, az, aw] = left;
+  const [bx, by, bz, bw] = right;
+  return normalizeQuaternion([
+    aw * bx + ax * bw + ay * bz - az * by,
+    aw * by - ax * bz + ay * bw + az * bx,
+    aw * bz + ax * by - ay * bx + az * bw,
+    aw * bw - ax * bx - ay * by - az * bz,
+  ]);
+}
+
+function axisAngleQuaternion(axisX: number, axisZ: number, angle: number): QuaternionTuple {
+  const length = Math.hypot(axisX, axisZ) || 1;
+  const halfAngle = angle / 2;
+  const sin = Math.sin(halfAngle);
+  return normalizeQuaternion([(axisX / length) * sin, 0, (axisZ / length) * sin, Math.cos(halfAngle)]);
+}
 
 function initialSnapshot(): GameSnapshot {
   return {
@@ -16,6 +42,13 @@ function initialSnapshot(): GameSnapshot {
     pieces: createInitialPieces(),
     platePieceIds: [],
     completedPlateCount: 0,
+    completedPlateIndexes: [],
+    plateCheck: {
+      plateIndex: null,
+      phase: "idle",
+      accepted: null,
+      reason: null,
+    },
     selectedPieceId: null,
     lastPlateResult: "none",
   };
@@ -43,6 +76,42 @@ function nextFreePlateSlot(pieces: TakoyakiPieceState[], plateIndex: number) {
 
 function isPanHoleOccupied(pieces: TakoyakiPieceState[], panHoleId: string) {
   return pieces.some((piece) => piece.location === "pan" && piece.panHoleId === panHoleId);
+}
+
+function evaluatePlate(pieces: TakoyakiPieceState[], plateIndex: number): PlateEvaluation | null {
+  const targetPlatePieceIds = platePieceIds(pieces, plateIndex);
+  if (targetPlatePieceIds.length !== GAME_CONSTANTS.plateCapacity) {
+    return null;
+  }
+
+  const platePieces = targetPlatePieceIds
+    .map((id) => pieces.find((piece) => piece.id === id))
+    .filter((piece): piece is TakoyakiPieceState => Boolean(piece));
+  const accepted =
+    platePieces.length === GAME_CONSTANTS.plateCapacity && platePieces.every((piece) => isPlatePieceAccepted(piece));
+  return {
+    accepted,
+    doneCoverageMin: Math.min(...platePieces.map((piece) => doneCoverage(piece))),
+    overdoneCoverageMax: Math.max(...platePieces.map((piece) => overdoneCoverage(piece))),
+  };
+}
+
+function reasonForEvaluation(evaluation: PlateEvaluation): PlateCheckReason {
+  if (evaluation.accepted) return null;
+  const hasUndercookedPiece = evaluation.doneCoverageMin < GAME_CONSTANTS.requiredDoneCoverage;
+  const hasOvercookedPiece = evaluation.overdoneCoverageMax > GAME_CONSTANTS.maxOverdoneCoverage;
+  if (hasUndercookedPiece && hasOvercookedPiece) return "mixed";
+  if (hasOvercookedPiece) return "overcooked";
+  return "undercooked";
+}
+
+function emptyPanHoleIds(pieces: TakoyakiPieceState[]) {
+  const occupied = new Set(
+    pieces.filter((piece) => piece.location === "pan" && piece.panHoleId).map((piece) => piece.panHoleId),
+  );
+  return Array.from({ length: GAME_CONSTANTS.takoyakiCount }, (_, index) => `hole-${index}`).filter(
+    (holeId) => !occupied.has(holeId),
+  );
 }
 
 export const useTakoyakiGameStore = create<GameStore>((set, get) => ({
@@ -77,7 +146,7 @@ export const useTakoyakiGameStore = create<GameStore>((set, get) => ({
         };
       }
 
-      const contact = new Set(contactPanels(piece.rotationIndex));
+      const contact = new Set(contactPanelsForQuaternion(piece.visualQuaternion));
       const panelContactSeconds = piece.panelContactSeconds.map((seconds, panelIndex) =>
         contact.has(panelIndex) ? seconds + deltaSeconds : seconds,
       );
@@ -99,22 +168,30 @@ export const useTakoyakiGameStore = create<GameStore>((set, get) => ({
     });
   },
 
-  rotatePiece: (pieceId: string, rotationStep: number) => {
+  rotatePiece: (pieceId: string, rotationStep: number, flipAxisX: number, flipAxisZ: number, flipAngle: number) => {
     const state = get();
     if (state.phase !== "playing") return;
+    if (Math.round(Math.abs(rotationStep)) === 0) return;
     const sign = rotationStep < 0 ? -1 : 1;
     const safeStep = sign * Math.max(1, Math.min(GAME_CONSTANTS.surfacePanelCount / 2, Math.round(Math.abs(rotationStep))));
+    const deltaQuaternion = axisAngleQuaternion(flipAxisX, flipAxisZ, flipAngle);
 
     set({
-      selectedPieceId: pieceId,
+      selectedPieceId: null,
       lastPlateResult: "none",
       pieces: state.pieces.map((piece) => {
         if (piece.id !== pieceId || piece.location !== "pan" || piece.revealTimer > 0) return piece;
+        const nextVisualQuaternion = multiplyQuaternion(deltaQuaternion, piece.visualQuaternion);
         return {
           ...piece,
           previousRotationIndex: piece.rotationIndex,
+          previousVisualQuaternion: piece.visualQuaternion,
           rotationIndex:
-            (piece.rotationIndex + safeStep + GAME_CONSTANTS.surfacePanelCount) % GAME_CONSTANTS.surfacePanelCount,
+            (piece.rotationIndex + safeStep + GAME_CONSTANTS.surfacePanelCount * 10) % GAME_CONSTANTS.surfacePanelCount,
+          visualQuaternion: nextVisualQuaternion,
+          flipAxisX,
+          flipAxisZ,
+          flipAngle,
           revealTimer: GAME_CONSTANTS.revealDuration,
         };
       }),
@@ -124,7 +201,9 @@ export const useTakoyakiGameStore = create<GameStore>((set, get) => ({
   movePieceToPlate: (pieceId: string, plateIndex: number) => {
     const state = get();
     if (state.phase !== "playing") return false;
+    if (state.plateCheck.phase !== "idle") return false;
     if (plateIndex < 0 || plateIndex >= GAME_CONSTANTS.targetPlateCount) return false;
+    if (state.completedPlateIndexes.includes(plateIndex)) return false;
     if (platePieceIds(state.pieces, plateIndex).length >= GAME_CONSTANTS.plateCapacity) {
       set({ lastPlateResult: "not-full", selectedPieceId: pieceId });
       return false;
@@ -144,16 +223,31 @@ export const useTakoyakiGameStore = create<GameStore>((set, get) => ({
             panHoleId: null,
             plateIndex,
             plateSlotIndex: slot,
+            previousVisualQuaternion: IDENTITY_QUATERNION,
+            visualQuaternion: IDENTITY_QUATERNION,
+            flipAxisX: 1,
+            flipAxisZ: 0,
+            flipAngle: 0,
             revealTimer: 0,
           }
         : item,
     );
 
+    const plateEvaluation = evaluatePlate(nextPieces, plateIndex);
+
     set({
-      selectedPieceId: pieceId,
+      selectedPieceId: null,
       lastPlateResult: "none",
       platePieceIds: allPlatePieceIds(nextPieces),
       pieces: nextPieces,
+      plateCheck: plateEvaluation
+        ? {
+            plateIndex,
+            phase: "checking",
+            accepted: plateEvaluation.accepted,
+            reason: reasonForEvaluation(plateEvaluation),
+          }
+        : state.plateCheck,
     });
     return true;
   },
@@ -161,10 +255,12 @@ export const useTakoyakiGameStore = create<GameStore>((set, get) => ({
   returnPieceToPan: (pieceId: string, panHoleId: string) => {
     const state = get();
     if (state.phase !== "playing") return false;
+    if (state.plateCheck.phase !== "idle") return false;
     if (isPanHoleOccupied(state.pieces, panHoleId)) return false;
 
     const piece = state.pieces.find((item) => item.id === pieceId);
     if (!piece || piece.location !== "plate") return false;
+    if (piece.plateIndex !== null && state.completedPlateIndexes.includes(piece.plateIndex)) return false;
 
     set({
       selectedPieceId: pieceId,
@@ -189,61 +285,100 @@ export const useTakoyakiGameStore = create<GameStore>((set, get) => ({
   submitPlate: (plateIndex?: number) => {
     const state = get();
     if (state.phase !== "playing") return null;
+    if (state.plateCheck.phase !== "idle") return null;
     const targetPlateIndex =
       plateIndex ??
       Array.from({ length: GAME_CONSTANTS.targetPlateCount }, (_, index) => index).find(
-        (index) => platePieceIds(state.pieces, index).length === GAME_CONSTANTS.plateCapacity,
+        (index) =>
+          !state.completedPlateIndexes.includes(index) &&
+          platePieceIds(state.pieces, index).length === GAME_CONSTANTS.plateCapacity,
       );
     if (targetPlateIndex === undefined) {
       set({ lastPlateResult: "not-full" });
       return null;
     }
-    const targetPlatePieceIds = platePieceIds(state.pieces, targetPlateIndex);
-    if (targetPlatePieceIds.length !== GAME_CONSTANTS.plateCapacity) {
+    if (state.completedPlateIndexes.includes(targetPlateIndex)) return null;
+    const plateEvaluation = evaluatePlate(state.pieces, targetPlateIndex);
+    if (!plateEvaluation) {
       set({ lastPlateResult: "not-full" });
       return null;
     }
 
-    const platePieces = targetPlatePieceIds
-      .map((id) => state.pieces.find((piece) => piece.id === id))
-      .filter((piece): piece is TakoyakiPieceState => Boolean(piece));
-    const accepted =
-      platePieces.length === GAME_CONSTANTS.plateCapacity && platePieces.every((piece) => isPlatePieceAccepted(piece));
+    set({
+      selectedPieceId: null,
+      lastPlateResult: "none",
+      plateCheck: {
+        plateIndex: targetPlateIndex,
+        phase: "checking",
+        accepted: plateEvaluation.accepted,
+        reason: reasonForEvaluation(plateEvaluation),
+      },
+    });
+    return plateEvaluation;
+  },
 
-    const evaluation = {
-      accepted,
-      doneCoverageMin: Math.min(...platePieces.map((piece) => doneCoverage(piece))),
-      overdoneCoverageMax: Math.max(...platePieces.map((piece) => overdoneCoverage(piece))),
-    };
+  revealPlateCheck: () => {
+    const state = get();
+    if (state.plateCheck.phase !== "checking" || state.plateCheck.accepted === null) return;
+    set({
+      plateCheck: {
+        ...state.plateCheck,
+        phase: state.plateCheck.accepted ? "accepted" : "rejected",
+      },
+      lastPlateResult: state.plateCheck.accepted ? "accepted" : "rejected",
+    });
+  },
 
-    if (!accepted) {
-      set({ lastPlateResult: "rejected" });
-      return evaluation;
+  settlePlateCheck: () => {
+    const state = get();
+    const { plateCheck } = state;
+    if (plateCheck.plateIndex === null || (plateCheck.phase !== "accepted" && plateCheck.phase !== "rejected")) {
+      return;
     }
 
-    const completedPlateCount = state.completedPlateCount + 1;
-    const phase = completedPlateCount >= GAME_CONSTANTS.targetPlateCount ? "success" : "playing";
-    const nextPieces = state.pieces.map((piece) =>
-      targetPlatePieceIds.includes(piece.id)
-        ? {
-            ...piece,
-            location: "completed" as const,
-            plateIndex: null,
-            plateSlotIndex: null,
-            panHoleId: null,
-            revealTimer: 0,
-          }
-        : piece,
-    );
-    set({
-      phase,
-      completedPlateCount,
-      selectedPieceId: null,
-      lastPlateResult: "accepted",
-      platePieceIds: allPlatePieceIds(nextPieces),
-      pieces: nextPieces,
+    if (plateCheck.phase === "accepted") {
+      const completedPlateIndexes = [...state.completedPlateIndexes, plateCheck.plateIndex];
+      const completedPlateCount = completedPlateIndexes.length;
+      set({
+        completedPlateIndexes,
+        completedPlateCount,
+        phase: completedPlateCount >= GAME_CONSTANTS.targetPlateCount ? "success" : "playing",
+        plateCheck: {
+          plateIndex: null,
+          phase: "idle",
+          accepted: null,
+          reason: null,
+        },
+      });
+      return;
+    }
+
+    const rejectedPieceIds = platePieceIds(state.pieces, plateCheck.plateIndex);
+    const openHoleIds = emptyPanHoleIds(state.pieces);
+    let nextHoleIndex = 0;
+    const pieces = state.pieces.map((piece) => {
+      if (!rejectedPieceIds.includes(piece.id)) return piece;
+      const panHoleId = openHoleIds[nextHoleIndex] ?? `hole-${nextHoleIndex}`;
+      nextHoleIndex += 1;
+      return {
+        ...piece,
+        location: "pan" as const,
+        panHoleId,
+        plateIndex: null,
+        plateSlotIndex: null,
+        revealTimer: 0,
+      };
     });
-    return evaluation;
+    set({
+      pieces,
+      platePieceIds: allPlatePieceIds(pieces),
+      plateCheck: {
+        plateIndex: null,
+        phase: "idle",
+        accepted: null,
+        reason: null,
+      },
+    });
   },
 
   clearPlateResult: () => {

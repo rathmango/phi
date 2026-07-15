@@ -1278,9 +1278,9 @@ export const projects: Project[] = [
     abstraction: {
       title: "Timed Contact State Rotation Model",
       oneLine:
-        "제한 시간 안에서 여러 처리 대상을 동시에 관리하고, 각 대상의 관찰 가능한 표면과 실제 접촉 표면을 회전 입력으로 바꾸며, 정해진 묶음 단위가 목표 상태에 도달했는지 판정하는 시스템.",
+        "제한 시간 안에서 여러 처리 대상을 동시에 관리하고, 각 대상의 관찰 가능한 표면과 실제 접촉 표면을 회전 입력으로 바꾸며, 약간의 굴림 편차를 포함해 정해진 묶음 단위가 목표 상태에 도달했는지 판정하는 시스템.",
       description:
-        "모래시계에서는 제한 시간, 자동 진행, 명확한 종료 판정을 가져오고, 타코야끼에서는 접촉면만 익는 구조와 굴림으로 접촉면을 바꾸는 개입을 가져온다. 반죽 양, 재료 양, 기름칠, 팬 온도 조절 같은 실제 조리 세부값은 제외하고, 가로 3 x 세로 6 배치의 18개 대상, 표면 패널의 상태 변화, 접시 이동, 6개 단위 제출, 제출 통과 3회에 필요한 상태값만 남긴다.",
+        "모래시계에서는 제한 시간, 자동 진행, 명확한 종료 판정을 가져오고, 타코야끼에서는 접촉면만 익는 구조와 굴림으로 접촉면을 바꾸는 개입을 가져온다. 또한 실제 굴림처럼 입력 방향과 세기는 유지되지만 결과가 매번 완전히 같은 칸 수로 고정되지는 않는 작은 편차를 남긴다. 반죽 양, 재료 양, 기름칠, 팬 온도 조절 같은 실제 조리 세부값은 제외하고, 가로 3 x 세로 6 배치의 18개 대상, 표면 패널의 상태 변화, 접시 이동, 6개 단위 제출, 제출 통과 3회에 필요한 상태값만 남긴다.",
       elements: [
         {
           key: "1. 대상 배치와 완료 단위",
@@ -1294,10 +1294,10 @@ export const projects: Project[] = [
         {
           key: "2. 제한 시간",
           text:
-            "수행이 시작되면 남은 시간이 줄어든다. 시간은 모래시계처럼 전체 과정을 닫는 기준이지만, 목표 상태 도달을 자동으로 보장하지는 않는다.",
+            "수행이 시작되면 남은 가스량이 줄고, 가스가 남아 있는 동안만 불이 유지된다. 시간은 별도의 숫자가 아니라 불을 켜는 연료의 지속 시간으로 표현되며, 모래시계처럼 전체 과정을 닫는 기준이지만 목표 상태 도달을 자동으로 보장하지는 않는다.",
           tagGroups: [
-            { label: "변수", items: ["remaining_time"] },
-            { label: "상수", items: ["time_limit"] },
+            { label: "변수", items: ["remaining_time", "gas_remaining_ratio"] },
+            { label: "상수", items: ["time_limit", "initial_gas_amount"] },
           ],
         },
         {
@@ -1318,6 +1318,16 @@ export const projects: Project[] = [
             { label: "변수", items: ["piece_rotation_indices"] },
             { label: "파생 변수", items: ["visible_panels_by_piece", "contact_panels_by_piece"] },
             { label: "상수", items: ["contact_ratio", "rotation_step"] },
+          ],
+        },
+        {
+          key: "4-1. 굴림 입력의 작은 불확실성",
+          text:
+            "사용자는 굴릴 방향과 세기를 정하지만, 실제 결과가 매번 완전히 같은 칸 수로 고정되지는 않는다. 입력값을 기준으로 계산한 회전 단위에 작은 편차가 붙고, 사용자는 회전 직후 드러난 표면을 보고 다음 개입을 다시 판단한다.",
+          tagGroups: [
+            { label: "변수", items: ["selected_piece_id", "piece_rotation_indices"] },
+            { label: "파생 변수", items: ["resolved_rotation_step"] },
+            { label: "상수", items: ["rotation_variance_chance", "rotation_variance_step"] },
           ],
         },
         {
@@ -1361,7 +1371,8 @@ export const projects: Project[] = [
         },
       ],
       variables: [
-        { name: "remaining_time", text: "결과 확정까지 남은 시간" },
+        { name: "remaining_time", text: "불을 유지할 수 있는 남은 가스 지속 시간" },
+        { name: "gas_remaining_ratio", text: "처음 가스량 대비 현재 남은 가스 비율" },
         { name: "active_piece_ids", text: "아직 팬 위에 남아 있어 익힘 상태가 갱신되는 대상 id 목록" },
         { name: "piece_rotation_indices", text: "각 대상이 현재 어느 방향으로 놓여 있는지 나타내는 방향값 목록" },
         { name: "piece_panel_state_levels", text: "각 대상의 표면 패널별 처리 상태 레벨 목록. 타코야끼에 대입하면 각 알의 패널별 익힘 정도가 된다" },
@@ -1375,13 +1386,15 @@ export const projects: Project[] = [
         { name: "surface_panels_by_piece", text: "각 대상마다 surface_panel_count에 따라 만들어지는 표면 패널 목록" },
         { name: "contact_panels_by_piece", text: "piece_rotation_indices, contact_ratio, surface_panel_count로 계산되는 대상별 현재 접촉 패널" },
         { name: "visible_panels_by_piece", text: "각 대상의 surface_panels 중 contact_panels에 포함되지 않아 위쪽에서 관찰 가능한 패널" },
+        { name: "resolved_rotation_step", text: "사용자의 굴림 입력값에 작은 편차를 반영해 실제로 적용된 회전 단위" },
         { name: "is_revealing", text: "reveal_timer가 0보다 큰 동안 true가 되는 짧은 노출 상태" },
         { name: "done_coverage_by_piece", text: "대상별 panel_state_levels 중 target_state_range에 들어온 패널 비율" },
         { name: "overdone_coverage_by_piece", text: "대상별 panel_state_levels 중 overdone_threshold 이상인 패널 비율" },
         { name: "is_plate_condition_satisfied", text: "plate_piece_ids에 포함된 6개 모두가 done_coverage와 overdone_coverage 기준을 만족하는지 여부" },
       ],
       constants: [
-        { name: "time_limit", text: "한 번의 수행을 끝내야 하는 제한 시간" },
+        { name: "time_limit", text: "처음 LPG 가스가 불을 유지할 수 있는 전체 지속 시간" },
+        { name: "initial_gas_amount", text: "수행 시작 시 제공되는 가스 총량. 이번 모델에서는 time_limit과 같은 역할을 한다" },
         { name: "pan_width_count", text: "팬 구멍의 가로 배치 수. 이번 모델에서는 3" },
         { name: "pan_height_count", text: "팬 구멍의 세로 배치 수. 이번 모델에서는 6" },
         { name: "takoyaki_count", text: "팬에 올라가는 전체 대상 수. pan_width_count x pan_height_count로 계산되며 이번 모델에서는 18" },
@@ -1391,6 +1404,8 @@ export const projects: Project[] = [
         { name: "contact_ratio", text: "한 번에 접촉되는 표면 비율. 기본값은 1/2" },
         { name: "initial_rotation_index", text: "수행 시작 시 대상이 놓이는 초기 방향값" },
         { name: "rotation_step", text: "한 번 회전할 때 방향이 바뀌는 단위" },
+        { name: "rotation_variance_chance", text: "굴림 입력 결과에 작은 편차가 붙을 확률" },
+        { name: "rotation_variance_step", text: "편차가 생겼을 때 회전 단위가 흔들리는 최대 폭" },
         { name: "state_change_rate", text: "접촉 패널의 상태 레벨이 올라가는 속도" },
         { name: "initial_state_level", text: "수행 시작 시 각 패널이 갖는 초기 상태 레벨" },
         { name: "max_state_level", text: "상태 레벨이 올라갈 수 있는 최대값" },
@@ -1409,12 +1424,12 @@ export const projects: Project[] = [
         {
           condition: "time_tick",
           result:
-            "is_finalized가 false이면 remaining_time이 줄어든다. 회전 중이 아니라면 active_piece_ids에 포함된 대상들의 contact_panels_by_piece만 state_change_rate만큼 증가한다.",
+            "is_finalized가 false이면 remaining_time과 gas_remaining_ratio가 줄어든다. gas_remaining_ratio가 0보다 큰 동안만 불이 유지되고, 회전 중이 아니라면 active_piece_ids에 포함된 대상들의 contact_panels_by_piece만 state_change_rate만큼 증가한다.",
         },
         {
           condition: "rotate_input",
           result:
-            "is_finalized가 false이고 remaining_time이 0보다 크면 selected_piece_id를 정하고 reveal_timer를 reveal_duration으로 설정한다. 회전 중에는 panel_state_levels가 변하지 않고, 회전이 끝나면 선택한 대상의 piece_rotation_indices가 rotation_step만큼 바뀌며 contact_panels_by_piece와 visible_panels_by_piece가 다시 계산된다.",
+            "is_finalized가 false이고 remaining_time이 0보다 크면 selected_piece_id를 정하고 reveal_timer를 reveal_duration으로 설정한다. 회전 중에는 panel_state_levels가 변하지 않고, 회전이 끝나면 입력 방향과 세기로 계산한 rotation_step에 작은 편차를 반영한 resolved_rotation_step만큼 선택한 대상의 piece_rotation_indices가 바뀌며 contact_panels_by_piece와 visible_panels_by_piece가 다시 계산된다.",
         },
         {
           condition: "drag_to_plate_input",

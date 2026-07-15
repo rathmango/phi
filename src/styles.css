@@ -32,70 +32,497 @@ body {
 .takoyaki-game {
   position: relative;
   width: 100vw;
-  height: 100vh;
-  min-height: 620px;
+  height: 100dvh;
+  min-height: 560px;
+  box-sizing: border-box;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 16% 18%, rgba(255, 184, 88, 0.24), transparent 28%),
-    radial-gradient(circle at 82% 72%, rgba(106, 167, 122, 0.18), transparent 30%),
-    linear-gradient(135deg, #fff2d6 0%, #f3ddbd 46%, #dce8d5 100%);
-  color: #1f2426;
+  overscroll-behavior: none;
+  padding: 0;
+  background: #071614;
+  color: #f8f0df;
   user-select: none;
 }
 
-.takoyaki-canvas {
+.takoyaki-shell {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.takoyaki-stage {
   position: absolute;
   inset: 0;
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M4 28 27 5' stroke='%236f4424' stroke-width='3' stroke-linecap='round'/%3E%3Cpath d='M25 3 31 0 29 7Z' fill='%23d7a15c'/%3E%3Cpath d='M7 25 3 29' stroke='%23f5d8a8' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E") 4 28, crosshair;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 58px, rgba(255, 255, 255, 0.018) 58px 59px),
+    linear-gradient(180deg, #102b27 0%, #091d1b 54%, #061210 100%);
+}
+
+.takoyaki-playfield {
+  position: relative;
+  z-index: 2;
+  width: min(980px, calc(100vw - 34px));
+  height: min(780px, calc(100dvh - 30px));
+  min-height: 560px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 229, 177, 0.2);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(239, 178, 83, 0.1), transparent 19%),
+    linear-gradient(180deg, #173c35 0%, #0c2421 55%, #091815 100%);
+  box-shadow:
+    0 34px 90px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 244, 220, 0.12),
+    inset 0 -54px 80px rgba(0, 0, 0, 0.2);
+}
+
+.takoyaki-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    radial-gradient(ellipse at 50% 18%, rgba(255, 177, 68, 0.12), transparent 34%),
+    radial-gradient(ellipse at 50% 100%, rgba(0, 0, 0, 0.42), transparent 56%);
+  pointer-events: none;
+}
+
+.takoyaki-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  background: radial-gradient(ellipse at 50% 48%, transparent 36%, rgba(0, 0, 0, 0.36) 100%);
+  pointer-events: none;
+}
+
+.takoyaki-playfield::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1;
+  height: 58px;
+  border-bottom: 3px solid #d48b38;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 40%),
+    repeating-linear-gradient(90deg, #b83b31 0 78px, #f1d39b 78px 156px);
+  box-shadow: 0 7px 22px rgba(0, 0, 0, 0.26);
+}
+
+.takoyaki-playfield::after {
+  content: "";
+  position: absolute;
+  inset: 58px 0 0;
+  z-index: 4;
+  background: radial-gradient(ellipse at 50% 45%, transparent 45%, rgba(0, 0, 0, 0.22) 100%);
+  pointer-events: none;
+}
+
+.takoyaki-canvas-frame {
+  position: absolute;
+  inset: 56px 8px 80px;
+  z-index: 2;
+  transform: none;
+}
+
+.takoyaki-canvas {
+  touch-action: none;
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cfilter id='s' x='-20%25' y='-20%25' width='140%25' height='140%25'%3E%3CfeDropShadow dx='1.5' dy='2' stdDeviation='1.2' flood-color='%23000000' flood-opacity='0.28'/%3E%3C/filter%3E%3Cg filter='url(%23s)'%3E%3Cpath d='M6 58 25 39' stroke='%23141210' stroke-width='4.2' stroke-linecap='round'/%3E%3Cpath d='M4.5 59.5 8 55.4' stroke='%23141210' stroke-width='2.2' stroke-linecap='round'/%3E%3Cpath d='M21.5 42.5 43.5 20.5' stroke='%23976224' stroke-width='13' stroke-linecap='round'/%3E%3Cpath d='M22.7 41.2 44.5 19.4' stroke='%23efc462' stroke-width='9.2' stroke-linecap='round'/%3E%3Cpath d='M28 36.1 40.4 23.7' stroke='%23ffe29a' stroke-width='3.2' stroke-linecap='round' opacity='0.65'/%3E%3Cellipse cx='47.8' cy='16.4' rx='10.3' ry='9.1' transform='rotate(-25 47.8 16.4)' fill='%23d94135' stroke='%23982824' stroke-width='2'/%3E%3Ccircle cx='44.6' cy='15.5' r='1.15' fill='%23251714'/%3E%3Ccircle cx='50.7' cy='13' r='1.15' fill='%23251714'/%3E%3Cellipse cx='48.3' cy='17.7' rx='1.9' ry='1.25' transform='rotate(-25 48.3 17.7)' fill='none' stroke='%23fff0df' stroke-width='1.1'/%3E%3Cpath d='M40.3 22.4c2.5 2 8.3 0.4 10.1-2.3' stroke='%23bd2c28' stroke-width='4' stroke-linecap='round'/%3E%3Cpath d='M45.5 25.3c1.9 0.7 4.9-0.1 6.1-1.8' stroke='%23bd2c28' stroke-width='3.6' stroke-linecap='round'/%3E%3Cpath d='M52.4 21.4c1.8 0.4 4.3-0.5 5.1-2.1' stroke='%23bd2c28' stroke-width='3.4' stroke-linecap='round'/%3E%3Cpath d='M49.2 6.4 54.5 3.9 53 9' fill='%23fff0df' opacity='0.9'/%3E%3C/g%3E%3C/svg%3E") 6 58, grab;
 }
 
 .takoyaki-canvas:active {
-  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Cpath d='M4 28 27 5' stroke='%2357341c' stroke-width='3.4' stroke-linecap='round'/%3E%3Cpath d='M25 3 31 0 29 7Z' fill='%23c8823b'/%3E%3Cpath d='M7 25 3 29' stroke='%23f5d8a8' stroke-width='1.4' stroke-linecap='round'/%3E%3C/svg%3E") 4 28, crosshair;
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cfilter id='s' x='-20%25' y='-20%25' width='140%25' height='140%25'%3E%3CfeDropShadow dx='1.5' dy='2' stdDeviation='1.2' flood-color='%23000000' flood-opacity='0.3'/%3E%3C/filter%3E%3Cg filter='url(%23s)'%3E%3Cpath d='M6 58 25 39' stroke='%230f0d0c' stroke-width='4.6' stroke-linecap='round'/%3E%3Cpath d='M4.5 59.5 8 55.4' stroke='%230f0d0c' stroke-width='2.4' stroke-linecap='round'/%3E%3Cpath d='M21.2 42.8 43.8 20.2' stroke='%238a541e' stroke-width='13.5' stroke-linecap='round'/%3E%3Cpath d='M22.6 41.4 44.8 19.2' stroke='%23eeb94e' stroke-width='9.5' stroke-linecap='round'/%3E%3Cpath d='M28 36.1 40.4 23.7' stroke='%23ffe29a' stroke-width='3.2' stroke-linecap='round' opacity='0.58'/%3E%3Cellipse cx='48.1' cy='16.1' rx='10.8' ry='9.5' transform='rotate(-25 48.1 16.1)' fill='%23c9322d' stroke='%238a211f' stroke-width='2.1'/%3E%3Ccircle cx='44.7' cy='15.4' r='1.25' fill='%23251714'/%3E%3Ccircle cx='51' cy='12.8' r='1.25' fill='%23251714'/%3E%3Cellipse cx='48.5' cy='17.7' rx='2' ry='1.3' transform='rotate(-25 48.5 17.7)' fill='none' stroke='%23fff0df' stroke-width='1.15'/%3E%3Cpath d='M39.9 22.6c2.7 2.2 8.7 0.5 10.5-2.4' stroke='%23af2825' stroke-width='4.2' stroke-linecap='round'/%3E%3Cpath d='M45.4 25.7c2 0.8 5.1-0.1 6.4-1.9' stroke='%23af2825' stroke-width='3.8' stroke-linecap='round'/%3E%3Cpath d='M52.5 21.7c1.9 0.4 4.5-0.5 5.4-2.2' stroke='%23af2825' stroke-width='3.5' stroke-linecap='round'/%3E%3Cpath d='M49.4 6.1 54.9 3.5 53.3 8.8' fill='%23fff0df' opacity='0.9'/%3E%3C/g%3E%3C/svg%3E") 6 58, grabbing;
+}
+
+.takoyaki-bottom-gas {
+  position: absolute;
+  left: 50%;
+  bottom: 9px;
+  z-index: 5;
+  width: min(360px, calc(100% - 48px));
+  height: 58px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.takoyaki-bottom-gas::before {
+  content: "";
+  position: absolute;
+  right: 10%;
+  bottom: -8px;
+  left: 10%;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.38);
+  filter: blur(8px);
+}
+
+.takoyaki-gas-hose {
+  position: absolute;
+  left: 50%;
+  bottom: 64px;
+  z-index: 1;
+  width: 11px;
+  height: 120px;
+  box-sizing: border-box;
+  border: 2px solid #9f3d1e;
+  border-radius: 7px;
+  background: linear-gradient(90deg, #f6a144, #ef792a 52%, #bd4c20);
+  box-shadow:
+    inset 2px 0 0 rgba(255, 198, 105, 0.7),
+    2px 2px 0 rgba(40, 18, 11, 0.28);
+  transform: translateX(-50%);
+}
+
+.takoyaki-bottom-gas-tank {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  box-sizing: border-box;
+  border: 3px solid #812b24;
+  border-radius: 32px;
+  background:
+    linear-gradient(180deg, rgba(255, 227, 183, 0.5) 0%, transparent 27%),
+    linear-gradient(180deg, #ee715b 0%, #d7483b 54%, #ad332b 100%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 235, 206, 0.55),
+    inset 0 -7px 0 rgba(115, 27, 23, 0.24),
+    0 11px 24px rgba(0, 0, 0, 0.36);
+}
+
+.takoyaki-bottom-gas-tank::before {
+  content: "";
+  position: absolute;
+  inset: 5px 8px 8px;
+  z-index: 1;
+  border: 1px solid rgba(255, 226, 191, 0.3);
+  border-radius: 26px;
+  pointer-events: none;
+}
+
+.takoyaki-bottom-gas-tank::after {
+  content: "";
+  position: absolute;
+  top: 9px;
+  right: 22px;
+  left: 84px;
+  z-index: 4;
+  height: 3px;
+  border-radius: 3px;
+  background: rgba(255, 235, 208, 0.42);
+  pointer-events: none;
+}
+
+.takoyaki-bottom-gas-icon {
+  position: absolute;
+  top: 50%;
+  left: 26px;
+  z-index: 5;
+  color: #ffe5af;
+  filter: drop-shadow(0 2px 0 rgba(111, 29, 22, 0.48));
+  transform: translateY(-50%);
+}
+
+.takoyaki-bottom-gas-valve {
+  position: absolute;
+  top: -21px;
+  left: 50%;
+  z-index: 6;
+  width: 20px;
+  height: 23px;
+  border: 3px solid #6b4a22;
+  border-radius: 5px 5px 2px 2px;
+  background: linear-gradient(90deg, #d49a42, #ffd47e 48%, #a66b2e);
+  box-shadow: 0 4px 0 rgba(93, 25, 20, 0.3);
+  transform: translateX(-50%);
+}
+
+.takoyaki-bottom-gas-valve i {
+  position: absolute;
+  top: -9px;
+  left: 50%;
+  width: 30px;
+  height: 9px;
+  border: 3px solid #272621;
+  border-radius: 7px;
+  background:
+    linear-gradient(90deg, transparent 0 12%, #58554b 12% 25%, transparent 25% 42%, #58554b 42% 58%, transparent 58% 75%, #58554b 75% 88%, transparent 88%),
+    #191a18;
+  transform: translateX(-50%);
+}
+
+.takoyaki-bottom-gas-band {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  z-index: 3;
+  width: 10px;
+  border-right: 2px solid rgba(105, 27, 22, 0.38);
+  border-left: 2px solid rgba(255, 208, 168, 0.25);
+  background: rgba(126, 35, 29, 0.22);
+}
+
+.takoyaki-bottom-gas-band.band-left { left: 70px; }
+.takoyaki-bottom-gas-band.band-right { right: 20px; }
+
+.takoyaki-bottom-gas-foot {
+  position: absolute;
+  bottom: -8px;
+  z-index: -1;
+  width: 38px;
+  height: 16px;
+  border: 3px solid #75251f;
+  border-radius: 0 0 8px 8px;
+  background: #ad332b;
+}
+
+.takoyaki-bottom-gas-foot.foot-left { left: 66px; }
+.takoyaki-bottom-gas-foot.foot-right { right: 55px; }
+
+.takoyaki-bottom-gas-track {
+  position: absolute;
+  top: 18px;
+  right: 31px;
+  bottom: 16px;
+  left: 91px;
+  z-index: 5;
+  overflow: hidden;
+  border: 3px solid #65231e;
+  border-radius: 10px;
+  background: #1b211e;
+  box-shadow:
+    inset 0 3px 6px rgba(0, 0, 0, 0.55),
+    0 1px 0 rgba(255, 219, 181, 0.28);
+}
+
+.takoyaki-bottom-gas-fill {
+  position: absolute;
+  top: 2px;
+  bottom: 2px;
+  left: 2px;
+  z-index: 2;
+  max-width: calc(100% - 4px);
+  border-radius: 6px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.38), transparent 50%),
+    linear-gradient(90deg, #dd5638 0 18%, #e5a33e 40%, #55c98c 72%, #79dfac 100%);
+  box-shadow:
+    inset 0 -2px 0 rgba(13, 55, 41, 0.28),
+    0 0 8px rgba(89, 214, 148, 0.16);
+  transition: width 180ms linear;
+}
+
+.takoyaki-bottom-gas-glass {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 44%);
+  box-shadow: inset 0 0 0 1px rgba(255, 244, 214, 0.12);
 }
 
 .takoyaki-hud {
   position: absolute;
-  top: 18px;
-  left: 18px;
-  right: 18px;
-  z-index: 5;
+  top: 12px;
+  left: 50%;
+  z-index: 10;
   display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: start;
-  gap: 12px;
+  justify-items: center;
+  gap: 10px;
+  transform: translateX(-50%);
   pointer-events: none;
 }
 
-.takoyaki-stat-strip {
+.takoyaki-hud-bar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  max-width: 100%;
+  min-height: 38px;
+  padding: 3px;
+  border: 2px solid #c58b42;
+  border-radius: 10px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 48%),
+    #142c28;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 248, 226, 0.13),
+    0 8px 20px rgba(0, 0, 0, 0.32);
 }
 
 .takoyaki-stat {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  min-height: 38px;
-  padding: 8px 11px;
-  border: 2px solid rgba(54, 48, 39, 0.22);
-  border-radius: 8px;
-  background: rgba(255, 248, 231, 0.92);
-  color: #22272a;
-  font-weight: 900;
+  min-height: 32px;
+  padding: 0 12px;
+  border-right: 1px solid rgba(255, 231, 188, 0.14);
+  color: #fff7e8;
+  font-weight: 950;
   line-height: 1;
-  box-shadow: 0 10px 0 rgba(71, 55, 35, 0.08), 0 18px 28px rgba(35, 31, 24, 0.1);
-  backdrop-filter: blur(12px);
+  white-space: nowrap;
+  text-shadow: 0 2px 5px rgba(0, 0, 0, 0.42);
 }
 
 .takoyaki-stat svg {
-  color: #a74723;
+  color: #f0b34d;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.38));
+}
+
+.takoyaki-progress-label {
+  color: rgba(255, 247, 232, 0.78);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.takoyaki-plate-progress {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.takoyaki-plate-progress-item {
+  display: grid;
+  width: 24px;
+  height: 17px;
+  box-sizing: border-box;
+  place-items: center;
+  border: 2px solid rgba(255, 239, 205, 0.34);
+  border-radius: 50%;
+  background: rgba(255, 248, 231, 0.07);
+  color: rgba(255, 247, 232, 0.62);
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 900;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.takoyaki-plate-progress-item.checking {
+  border-color: #f0a447;
+  background: rgba(240, 164, 71, 0.2);
+  color: #ffd692;
+  animation: takoyaki-hud-plate-pulse 820ms ease-in-out infinite alternate;
+}
+
+.takoyaki-plate-progress-item.accepted,
+.takoyaki-plate-progress-item.completed {
+  border-color: #efbd58;
+  background: #d99a31;
+  color: #fff9e9;
+}
+
+.takoyaki-plate-progress-item.rejected {
+  border-color: #ef7357;
+  background: rgba(201, 61, 50, 0.34);
+  color: #ffe4dc;
+}
+
+@keyframes takoyaki-hud-plate-pulse {
+  from { transform: scale(0.94); }
+  to { transform: scale(1.06); }
+}
+
+.takoyaki-plate-check {
+  position: absolute;
+  top: 70px;
+  left: 50%;
+  z-index: 11;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: min(390px, calc(100% - 36px));
+  min-height: 58px;
+  box-sizing: border-box;
+  padding: 9px 14px 9px 10px;
+  border: 2px solid #d58c39;
+  border-radius: 12px;
+  background: rgba(15, 42, 37, 0.96);
+  color: #fff7e8;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 248, 226, 0.13),
+    0 12px 26px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: takoyaki-plate-check-in 220ms ease-out both;
+}
+
+.takoyaki-plate-check-icon {
+  display: grid;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(223, 145, 50, 0.2);
+  color: #f5b85d;
+}
+
+.takoyaki-plate-check.checking .takoyaki-plate-check-icon svg {
+  animation: takoyaki-plate-check-spin 900ms linear infinite;
+}
+
+.takoyaki-plate-check.accepted {
+  border-color: #3f9b78;
+  background: rgba(19, 64, 52, 0.97);
+}
+
+.takoyaki-plate-check.accepted .takoyaki-plate-check-icon {
+  background: #2f8f68;
+  color: #ffffff;
+}
+
+.takoyaki-plate-check.rejected {
+  border-color: #d75a3c;
+  background: rgba(72, 32, 25, 0.97);
+}
+
+.takoyaki-plate-check.rejected .takoyaki-plate-check-icon {
+  background: rgba(215, 90, 60, 0.24);
+  color: #ff9f82;
+}
+
+.takoyaki-plate-check-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.takoyaki-plate-check-copy strong {
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.takoyaki-plate-check-copy small {
+  color: rgba(255, 247, 232, 0.7);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+@keyframes takoyaki-plate-check-in {
+  from { opacity: 0; transform: translate(-50%, -8px) scale(0.97); }
+  to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+}
+
+@keyframes takoyaki-plate-check-spin {
+  to { transform: rotate(360deg); }
 }
 
 .takoyaki-actions {
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
+  justify-content: center;
+  gap: 5px;
+  padding-left: 5px;
   pointer-events: auto;
 }
 
@@ -105,12 +532,12 @@ body {
   align-items: center;
   justify-content: center;
   gap: 7px;
-  min-height: 40px;
+  min-height: 34px;
   border: 1px solid transparent;
   border-radius: 8px;
-  padding: 9px 13px;
+  padding: 8px 11px;
   font: inherit;
-  font-weight: 950;
+  font-weight: 850;
   white-space: nowrap;
   cursor: pointer;
   transition:
@@ -121,15 +548,36 @@ body {
 }
 
 .takoyaki-primary-button {
-  background: #1f6f50;
+  background: #26735f;
   color: #ffffff;
-  box-shadow: 0 5px 0 #15513a, 0 10px 24px rgba(31, 111, 80, 0.22);
+  box-shadow: 0 8px 20px rgba(31, 111, 80, 0.2);
 }
 
 .takoyaki-secondary-button {
-  border-color: rgba(54, 62, 66, 0.22);
-  background: rgba(255, 248, 231, 0.92);
-  color: #1f2426;
+  border-color: rgba(255, 228, 190, 0.16);
+  background: rgba(255, 245, 226, 0.06);
+  color: #fff8ea;
+}
+
+.takoyaki-actions .takoyaki-primary-button,
+.takoyaki-actions .takoyaki-secondary-button {
+  width: 34px;
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0;
+}
+
+.takoyaki-actions .takoyaki-primary-button {
+  width: 34px;
+}
+
+.takoyaki-actions .takoyaki-primary-button span,
+.takoyaki-actions .takoyaki-secondary-button span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
 }
 
 .takoyaki-primary-button:hover:not(:disabled),
@@ -143,18 +591,326 @@ body {
   box-shadow: none;
 }
 
+.takoyaki-start-overlay {
+  position: absolute;
+  inset: 58px 0 48px;
+  z-index: 7;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(2, 12, 11, 0.48);
+  backdrop-filter: none;
+}
+
+.takoyaki-start-content {
+  display: grid;
+  justify-items: center;
+  gap: 24px;
+}
+
+.takoyaki-start-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 166px;
+  min-height: 56px;
+  border: 2px solid #ffce78;
+  border-radius: 9px;
+  background:
+    linear-gradient(180deg, rgba(255, 246, 198, 0.3), transparent 45%),
+    #e67f2f;
+  color: #fff8e9;
+  font: inherit;
+  font-size: 21px;
+  font-weight: 950;
+  cursor: pointer;
+  margin-left: 0;
+  text-shadow: 0 2px 0 rgba(88, 38, 10, 0.4);
+  box-shadow:
+    inset 0 -4px 0 rgba(113, 42, 8, 0.26),
+    0 5px 0 #843d17,
+    0 18px 34px rgba(0, 0, 0, 0.38);
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease;
+}
+
+.takoyaki-start-button:hover {
+  transform: translateY(-2px);
+  background: #f18c38;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.36);
+}
+
+.takoyaki-start-button:active {
+  transform: translateY(1px);
+  box-shadow: 0 10px 24px rgba(21, 15, 9, 0.22);
+}
+
+.takoyaki-start-guide {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  width: min(430px, calc(100vw - 44px));
+  box-sizing: border-box;
+  padding: 14px 16px 14px 12px;
+  border: 2px solid rgba(197, 139, 66, 0.9);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 46%),
+    rgba(13, 43, 38, 0.96);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 247, 224, 0.13),
+    0 18px 34px rgba(0, 0, 0, 0.32);
+  color: #fff7e8;
+}
+
+.takoyaki-start-guide-copy {
+  display: grid;
+  flex: 1;
+  gap: 9px;
+  min-width: 0;
+}
+
+.takoyaki-start-guide-copy > strong {
+  color: #ffd78e;
+  font-size: 15px;
+  letter-spacing: 0;
+}
+
+.takoyaki-start-guide-copy ol {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.takoyaki-start-guide-copy li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: rgba(255, 247, 232, 0.86);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.takoyaki-start-guide-copy li b {
+  display: grid;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  border: 1px solid rgba(255, 216, 146, 0.5);
+  border-radius: 50%;
+  background: rgba(230, 127, 47, 0.24);
+  color: #ffd78e;
+  font-size: 11px;
+}
+
+.takoyaki-guide-dialogue {
+  position: absolute;
+  left: 22px;
+  bottom: 18px;
+  z-index: 12;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  width: min(490px, calc(100% - 44px));
+  pointer-events: none;
+  animation: takoyaki-guide-visit 4.2s ease both;
+}
+
+.takoyaki-guide-bubble {
+  position: relative;
+  display: grid;
+  gap: 4px;
+  max-width: 310px;
+  min-height: 58px;
+  box-sizing: border-box;
+  padding: 10px 14px 11px;
+  border: 2px solid #c58b42;
+  border-radius: 12px 12px 12px 4px;
+  background: #fff1d2;
+  color: #1b302b;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 10px 24px rgba(0, 0, 0, 0.34);
+}
+
+.takoyaki-guide-bubble::before {
+  content: "";
+  position: absolute;
+  bottom: 8px;
+  left: -9px;
+  width: 14px;
+  height: 14px;
+  border-bottom: 2px solid #c58b42;
+  border-left: 2px solid #c58b42;
+  background: #fff1d2;
+  transform: rotate(45deg);
+}
+
+.takoyaki-guide-speaker {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #af5b24;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.takoyaki-guide-bubble p {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.38;
+  word-break: keep-all;
+}
+
+.takoyaki-guide-dialogue.danger .takoyaki-guide-bubble {
+  border-color: #d75a3c;
+  background: #fff0df;
+}
+
+.takoyaki-guide-dialogue.danger .takoyaki-guide-bubble::before {
+  border-color: #d75a3c;
+  background: #fff0df;
+}
+
+.takoyaki-guide-dialogue.danger .takoyaki-guide-speaker {
+  color: #b83b31;
+}
+
+.takoyaki-guide-dialogue.success .takoyaki-guide-bubble,
+.takoyaki-guide-dialogue.ready .takoyaki-guide-bubble {
+  border-color: #2f8f75;
+  background: #eaf6e8;
+}
+
+.takoyaki-guide-dialogue.success .takoyaki-guide-bubble::before,
+.takoyaki-guide-dialogue.ready .takoyaki-guide-bubble::before {
+  border-color: #2f8f75;
+  background: #eaf6e8;
+}
+
+.takoyaki-guide-dialogue.success .takoyaki-guide-speaker,
+.takoyaki-guide-dialogue.ready .takoyaki-guide-speaker {
+  color: #26735f;
+}
+
+.takoyaki-guide-mascot {
+  position: relative;
+  display: block;
+  flex: 0 0 64px;
+  width: 64px;
+  height: 68px;
+  filter: drop-shadow(0 8px 8px rgba(0, 0, 0, 0.34));
+}
+
+.takoyaki-guide-mascot.compact {
+  flex-basis: 54px;
+  width: 54px;
+  height: 60px;
+}
+
+.takoyaki-guide-mascot-head {
+  position: absolute;
+  top: 2px;
+  left: 7px;
+  z-index: 2;
+  width: 50px;
+  height: 48px;
+  border: 3px solid #7d281f;
+  border-radius: 48% 48% 42% 42%;
+  background:
+    radial-gradient(circle at 35% 24%, rgba(255, 214, 180, 0.45) 0 7%, transparent 8%),
+    linear-gradient(180deg, #ef7357, #c93d32);
+  box-shadow: inset 0 -5px 0 rgba(114, 29, 24, 0.16);
+}
+
+.takoyaki-guide-mascot.compact .takoyaki-guide-mascot-head {
+  left: 6px;
+  width: 42px;
+  height: 41px;
+  border-width: 2px;
+}
+
+.takoyaki-guide-eye {
+  position: absolute;
+  top: 18px;
+  width: 5px;
+  height: 7px;
+  border-radius: 50%;
+  background: #2b1713;
+}
+
+.takoyaki-guide-eye.left {
+  left: 14px;
+}
+
+.takoyaki-guide-eye.right {
+  right: 14px;
+}
+
+.takoyaki-guide-mouth {
+  position: absolute;
+  top: 28px;
+  left: 50%;
+  width: 8px;
+  height: 6px;
+  border: 2px solid #ffe7d2;
+  border-radius: 50%;
+  transform: translateX(-50%);
+}
+
+.takoyaki-guide-leg {
+  position: absolute;
+  bottom: 5px;
+  z-index: 1;
+  width: 18px;
+  height: 24px;
+  border: 3px solid #7d281f;
+  border-radius: 50%;
+  background: #c93d32;
+}
+
+.takoyaki-guide-leg.leg-one { left: 4px; transform: rotate(-24deg); }
+.takoyaki-guide-leg.leg-two { left: 18px; transform: rotate(-7deg); }
+.takoyaki-guide-leg.leg-three { right: 18px; transform: rotate(7deg); }
+.takoyaki-guide-leg.leg-four { right: 4px; transform: rotate(24deg); }
+
+.takoyaki-guide-dialogue.danger .takoyaki-guide-mascot {
+  animation: takoyaki-guide-shake 420ms ease 2;
+}
+
+@keyframes takoyaki-guide-visit {
+  0% { opacity: 0; transform: translateY(90px) scale(0.94); }
+  10% { opacity: 1; transform: translateY(0) scale(1); }
+  86% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(80px) scale(0.96); }
+}
+
+@keyframes takoyaki-guide-shake {
+  0%, 100% { transform: rotate(0); }
+  35% { transform: rotate(-4deg); }
+  70% { transform: rotate(4deg); }
+}
+
 .takoyaki-toast {
-  justify-self: center;
   max-width: min(360px, 100%);
   min-height: 38px;
   padding: 10px 13px;
-  border: 1px solid rgba(54, 62, 66, 0.18);
+  border: 1px solid rgba(255, 218, 158, 0.2);
   border-radius: 8px;
-  background: rgba(255, 252, 245, 0.9);
-  color: #1f2426;
-  font-weight: 950;
-  box-shadow: 0 12px 28px rgba(35, 31, 24, 0.13);
-  backdrop-filter: blur(12px);
+  background: rgba(10, 30, 27, 0.92);
+  color: #fff7e8;
+  font-weight: 850;
+  box-shadow: 0 12px 26px rgba(35, 31, 24, 0.16);
+  backdrop-filter: blur(10px);
   pointer-events: none;
 }
 
@@ -178,8 +934,8 @@ body {
   display: grid;
   place-items: center;
   padding: 22px;
-  background: rgba(31, 35, 33, 0.36);
-  backdrop-filter: blur(9px);
+  background: rgba(2, 12, 11, 0.72);
+  backdrop-filter: blur(8px);
 }
 
 .takoyaki-result-panel {
@@ -187,24 +943,24 @@ body {
   gap: 14px;
   width: min(420px, 100%);
   padding: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 8px;
-  background: rgba(255, 252, 245, 0.92);
-  box-shadow: 0 24px 70px rgba(21, 24, 24, 0.28);
+  border: 2px solid #c58b42;
+  border-radius: 12px;
+  background: #132c28;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.46);
   text-align: center;
 }
 
 .takoyaki-result-panel p {
   margin: 0;
-  color: #a74723;
+  color: #f0b34d;
   font-size: 13px;
-  font-weight: 950;
+  font-weight: 850;
   letter-spacing: 0;
 }
 
 .takoyaki-result-panel h1 {
   margin: 0;
-  color: #202426;
+  color: #fff7e8;
   font-size: 30px;
   line-height: 1.16;
   letter-spacing: 0;
@@ -214,43 +970,157 @@ body {
   justify-self: center;
 }
 
-@media (max-width: 760px) {
+@media (max-width: 760px), (orientation: portrait) {
   .takoyaki-game {
-    min-height: 560px;
+    min-height: 100vh;
+  }
+
+  .takoyaki-playfield {
+    width: 100vw;
+    height: 100dvh;
+    min-height: 0;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .takoyaki-canvas-frame {
+    inset: 52px 0 48px;
+    transform: translateY(-4px);
   }
 
   .takoyaki-hud {
-    top: 12px;
-    left: 12px;
-    right: 12px;
-    grid-template-columns: 1fr;
+    top: 9px;
+    left: 50%;
+    gap: 6px;
+    transform: translateX(-50%);
   }
 
-  .takoyaki-stat-strip {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .takoyaki-hud-bar {
+    min-height: 38px;
+    border-radius: 9px;
+    padding: 3px;
   }
 
   .takoyaki-stat {
     justify-content: center;
-    padding: 8px 7px;
-    font-size: 13px;
+    min-height: 32px;
+    padding: 0 7px;
+    font-size: 12px;
+    gap: 5px;
+  }
+
+  .takoyaki-bottom-gas {
+    top: calc(50% + min(36vh, 520px));
+    bottom: auto;
+    width: min(360px, calc(100vw - 40px));
+    height: 52px;
+  }
+
+  .takoyaki-gas-hose {
+    top: calc(50% + min(36vh, 520px) - 150px);
+    bottom: auto;
+    height: 150px;
   }
 
   .takoyaki-actions {
-    justify-content: stretch;
+    justify-content: center;
+    gap: 4px;
+    width: auto;
+    padding-left: 4px;
   }
 
   .takoyaki-primary-button,
   .takoyaki-secondary-button {
-    flex: 1;
-    min-width: 0;
-    padding-inline: 8px;
+    flex: 0 0 auto;
+    min-height: 32px;
+  }
+
+  .takoyaki-actions .takoyaki-primary-button,
+  .takoyaki-actions .takoyaki-secondary-button {
+    width: 33px;
+    min-height: 32px;
   }
 
   .takoyaki-toast {
+    flex-basis: auto;
     justify-self: stretch;
     text-align: center;
+  }
+
+  .takoyaki-playfield::before {
+    height: 50px;
+    border-bottom-width: 2px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.07), transparent 42%),
+      repeating-linear-gradient(90deg, #b83b31 0 46px, #f1d39b 46px 92px);
+  }
+
+  .takoyaki-playfield::after {
+    inset: 50px 0 0;
+  }
+
+  .takoyaki-start-overlay {
+    inset: 50px 0 46px;
+  }
+
+  .takoyaki-start-content {
+    gap: 20px;
+  }
+
+  .takoyaki-start-guide {
+    gap: 11px;
+    width: min(360px, calc(100vw - 30px));
+    padding: 12px;
+  }
+
+  .takoyaki-start-guide-copy > strong {
+    font-size: 14px;
+  }
+
+  .takoyaki-start-guide-copy li {
+    font-size: 12px;
+  }
+
+  .takoyaki-guide-dialogue {
+    left: 12px;
+    bottom: 136px;
+    gap: 7px;
+    width: calc(100% - 24px);
+  }
+
+  .takoyaki-guide-bubble {
+    max-width: calc(100% - 61px);
+    min-height: 54px;
+    padding: 9px 11px 10px;
+  }
+
+  .takoyaki-guide-bubble p {
+    font-size: 12px;
+  }
+
+  .takoyaki-guide-mascot {
+    flex-basis: 54px;
+    width: 54px;
+    height: 60px;
+    transform: scale(0.92);
+    transform-origin: bottom left;
+  }
+}
+
+@media (min-width: 600px) and (orientation: portrait) {
+  .takoyaki-bottom-gas {
+    width: min(380px, calc(100vw - 96px));
+    height: 58px;
+  }
+
+  .takoyaki-guide-dialogue {
+    left: 28px;
+    bottom: 154px;
+    width: min(520px, calc(100% - 56px));
+  }
+
+  .takoyaki-guide-bubble {
+    max-width: 420px;
   }
 }
 
