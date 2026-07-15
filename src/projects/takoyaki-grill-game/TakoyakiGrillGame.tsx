@@ -24,6 +24,8 @@ const PLATE_CENTERS = [
 ];
 const PLATE_SIZE = { width: 0.92, depth: 1.18 };
 const FLIP_DEAD_ZONE_DISTANCE = 12;
+const TAP_MAX_DISTANCE = 18;
+const DOUBLE_TAP_WINDOW_MS = 900;
 const FLIP_ASSIST_DISTANCE = 110;
 const FLIP_ASSIST_STRENGTH = 0.36;
 const FLIP_FULL_PULL_DISTANCE = 420;
@@ -39,6 +41,7 @@ const FLAME_POSITIONS = [-1.18, -0.38, 0.38, 1.18];
 
 type PressState = {
   pieceId: string;
+  canFlip: boolean;
   charge: number;
   startClient: { x: number; y: number };
   currentClient: { x: number; y: number };
@@ -673,13 +676,11 @@ function TakoyakiPiece({
   charging,
   charge,
   onPointerDown,
-  onDoubleClick,
 }: {
   piece: TakoyakiPieceState;
   charging: boolean;
   charge: number;
   onPointerDown: (piece: TakoyakiPieceState, event: ThreeEvent<PointerEvent>) => void;
-  onDoubleClick: (piece: TakoyakiPieceState, event: ThreeEvent<MouseEvent>) => void;
 }) {
   const bodyRef = useRef<RapierRigidBody | null>(null);
   const groupRef = useRef<THREE.Group | null>(null);
@@ -743,7 +744,6 @@ function TakoyakiPiece({
         <group
           ref={groupRef}
           onPointerDown={(event) => onPointerDown(piece, event)}
-          onDoubleClick={(event) => onDoubleClick(piece, event)}
         >
           <mesh position={[0.035, -0.286, 0.04]} rotation={[-Math.PI / 2, 0, 0]} scale={[1.16, 0.82, 1]}>
             <circleGeometry args={[PIECE_RADIUS * 0.98, 36]} />
@@ -807,28 +807,24 @@ function TakoyakiPiece({
 }
 
 function SceneInteraction({
-  press,
+  pressRef,
   setPress,
   onFlipRequest,
+  onTapRequest,
 }: {
-  press: PressState | null;
+  pressRef: React.MutableRefObject<PressState | null>;
   setPress: React.Dispatch<React.SetStateAction<PressState | null>>;
   onFlipRequest: (pieceId: string, intent: FlipIntent) => void;
+  onTapRequest: (pieceId: string) => void;
 }) {
-  const pressRef = useRef<PressState | null>(press);
-
   useEffect(() => {
-    pressRef.current = press;
-  }, [press]);
-
-  useEffect(() => {
-    if (!press) return undefined;
-
     function handlePointerMove(event: PointerEvent) {
+      if (!pressRef.current) return;
       event.preventDefault();
       setPress((latest) => {
-        if (!latest) return latest;
-        const nextPress = samplePress(latest, { x: event.clientX, y: event.clientY });
+        const currentPress = pressRef.current ?? latest;
+        if (!currentPress) return latest;
+        const nextPress = samplePress(currentPress, { x: event.clientX, y: event.clientY });
         pressRef.current = nextPress;
         return nextPress;
       });
@@ -839,18 +835,25 @@ function SceneInteraction({
       const currentPress = pressRef.current;
       if (!currentPress) return;
       const sampledPress = samplePress(currentPress, { x: event.clientX, y: event.clientY });
+      const pull = pullVectorFromClient(sampledPress);
       pressRef.current = null;
       setPress(null);
-      onFlipRequest(sampledPress.pieceId, flipIntentFromPress(sampledPress));
+      if (pull.distance <= TAP_MAX_DISTANCE) {
+        onTapRequest(sampledPress.pieceId);
+        return;
+      }
+      if (sampledPress.canFlip) {
+        onFlipRequest(sampledPress.pieceId, flipIntentFromPress(sampledPress));
+      }
     }
 
     window.addEventListener("pointermove", handlePointerMove, { passive: false });
-    window.addEventListener("pointerup", handlePointerUp, { once: true, passive: false });
+    window.addEventListener("pointerup", handlePointerUp, { passive: false });
     return () => {
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
     };
-  }, [onFlipRequest, press, setPress]);
+  }, [onFlipRequest, onTapRequest, pressRef, setPress]);
 
   return null;
 }
@@ -865,6 +868,8 @@ function TakoyakiScene() {
   const movePieceToPlate = useTakoyakiGameStore((state) => state.movePieceToPlate);
   const returnPieceToPan = useTakoyakiGameStore((state) => state.returnPieceToPan);
   const [press, setPress] = useState<PressState | null>(null);
+  const pressRef = useRef<PressState | null>(null);
+  const lastTapRef = useRef<{ pieceId: string; timestamp: number } | null>(null);
   const gasRatio = remainingTime / GAME_CONSTANTS.timeLimit;
   const gasActive = phase === "playing" && gasRatio > 0;
 
@@ -875,31 +880,9 @@ function TakoyakiScene() {
     [rotatePiece],
   );
 
-  const handlePiecePointerDown = useCallback(
-    (piece: TakoyakiPieceState, event: ThreeEvent<PointerEvent>) => {
-      if (phase !== "playing" || piece.location !== "pan") return;
-      event.stopPropagation();
-      event.nativeEvent.preventDefault();
-      const target = event.nativeEvent.target;
-      if (target instanceof Element && "setPointerCapture" in target) {
-        target.setPointerCapture(event.nativeEvent.pointerId);
-      }
-      const client = { x: event.nativeEvent.clientX, y: event.nativeEvent.clientY };
-      setPress({
-        pieceId: piece.id,
-        charge: 0,
-        startClient: client,
-        currentClient: client,
-      });
-    },
-    [phase],
-  );
-
-  const handlePieceDoubleClick = useCallback(
-    (piece: TakoyakiPieceState, event: ThreeEvent<MouseEvent>) => {
+  const activatePiece = useCallback(
+    (piece: TakoyakiPieceState) => {
       if (phase !== "playing" || piece.location === "completed" || plateCheck.phase !== "idle") return;
-      event.stopPropagation();
-      setPress(null);
 
       if (piece.location === "pan") {
         const plateIndex = firstAvailablePlateIndex(pieces, completedPlateIndexes);
@@ -914,6 +897,48 @@ function TakoyakiScene() {
       }
     },
     [completedPlateIndexes, movePieceToPlate, phase, pieces, plateCheck.phase, returnPieceToPan],
+  );
+
+  const handlePieceTap = useCallback(
+    (pieceId: string) => {
+      const now = window.performance.now();
+      const lastTap = lastTapRef.current;
+      if (!lastTap || lastTap.pieceId !== pieceId || now - lastTap.timestamp > DOUBLE_TAP_WINDOW_MS) {
+        lastTapRef.current = { pieceId, timestamp: now };
+        return;
+      }
+
+      lastTapRef.current = null;
+      const piece = pieces.find((item) => item.id === pieceId);
+      if (piece) activatePiece(piece);
+    },
+    [activatePiece, pieces],
+  );
+
+  const handlePiecePointerDown = useCallback(
+    (piece: TakoyakiPieceState, event: ThreeEvent<PointerEvent>) => {
+      if (phase !== "playing" || piece.location === "completed" || plateCheck.phase !== "idle") return;
+      if (piece.location === "plate" && piece.plateIndex !== null && completedPlateIndexes.includes(piece.plateIndex)) {
+        return;
+      }
+      event.stopPropagation();
+      event.nativeEvent.preventDefault();
+      const target = event.nativeEvent.target;
+      if (target instanceof Element && "setPointerCapture" in target) {
+        target.setPointerCapture(event.nativeEvent.pointerId);
+      }
+      const client = { x: event.nativeEvent.clientX, y: event.nativeEvent.clientY };
+      const nextPress: PressState = {
+        pieceId: piece.id,
+        canFlip: piece.location === "pan",
+        charge: 0,
+        startClient: client,
+        currentClient: client,
+      };
+      pressRef.current = nextPress;
+      setPress(nextPress);
+    },
+    [completedPlateIndexes, phase, plateCheck.phase],
   );
 
   return (
@@ -933,12 +958,16 @@ function TakoyakiScene() {
             charging={press?.pieceId === piece.id}
             charge={press?.pieceId === piece.id ? press.charge : 0}
             onPointerDown={handlePiecePointerDown}
-            onDoubleClick={handlePieceDoubleClick}
           />
         ))}
       </Physics>
       <ContactShadows position={[0, -0.29, 0.55]} opacity={0.26} scale={5.2} blur={2.2} far={2.1} />
-      <SceneInteraction press={press} setPress={setPress} onFlipRequest={handleFlipRequest} />
+      <SceneInteraction
+        pressRef={pressRef}
+        setPress={setPress}
+        onFlipRequest={handleFlipRequest}
+        onTapRequest={handlePieceTap}
+      />
     </>
   );
 }
@@ -1065,7 +1094,9 @@ function PlateCheckExperience() {
             : accepted
               ? `완성 ${completedPlateCount + 1}/3 · 이 접시는 서빙 준비 완료`
               : rejected
-                ? "잠시 후 빈 불판으로 돌려보냅니다"
+                ? plateCheck.reason === "undercooked"
+                  ? "접시의 타코야끼를 두 번 눌러 다시 구워보세요"
+                  : "잠시 후 빈 불판으로 돌려보냅니다"
                 : ""}
         </small>
       </span>
@@ -1098,6 +1129,7 @@ function GameplayGuide() {
   const activeCueRef = useRef<GuideCue | null>(null);
   const cueQueueRef = useRef<GuideCue[]>([]);
   const seenCueIdsRef = useRef(new Set<string>());
+  const pendingUndercookedGuideRef = useRef(false);
 
   const enqueueCue = useCallback((cue: GuideCue) => {
     if (seenCueIdsRef.current.has(cue.id)) return;
@@ -1126,8 +1158,24 @@ function GameplayGuide() {
     activeCueRef.current = null;
     cueQueueRef.current = [];
     seenCueIdsRef.current.clear();
+    pendingUndercookedGuideRef.current = false;
     setActiveCue(null);
   }, [phase]);
+
+  useEffect(() => {
+    if (plateCheck.phase === "rejected" && plateCheck.reason === "undercooked") {
+      pendingUndercookedGuideRef.current = true;
+      return;
+    }
+    if (plateCheck.phase === "idle" && pendingUndercookedGuideRef.current) {
+      pendingUndercookedGuideRef.current = false;
+      enqueueCue({
+        id: "first-undercooked-plate",
+        tone: "tip",
+        text: "아직 덜 익었어! 접시의 타코야끼를 두 번 누르면 빈 불판으로 돌아가. 조금 더 익혀보자!",
+      });
+    }
+  }, [enqueueCue, plateCheck.phase, plateCheck.reason]);
 
   useEffect(() => {
     if (phase !== "playing") return undefined;

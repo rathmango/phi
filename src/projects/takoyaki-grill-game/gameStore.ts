@@ -353,6 +353,18 @@ export const useTakoyakiGameStore = create<GameStore>((set, get) => ({
       return;
     }
 
+    if (plateCheck.reason === "undercooked") {
+      set({
+        plateCheck: {
+          plateIndex: null,
+          phase: "idle",
+          accepted: null,
+          reason: null,
+        },
+      });
+      return;
+    }
+
     const rejectedPieceIds = platePieceIds(state.pieces, plateCheck.plateIndex);
     const openHoleIds = emptyPanHoleIds(state.pieces);
     let nextHoleIndex = 0;
