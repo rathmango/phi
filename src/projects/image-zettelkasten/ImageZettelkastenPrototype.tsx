@@ -59,7 +59,7 @@ type IntroCard = { id: string; title: string; description: string; signature: st
 
 const introCard: IntroCard = {
   id: "main",
-  title: "MINGYU\nJEONG",
+  title: "MINGYU JEONG",
   description: "'디자이너는 아니지만, 디자이너와 같은 미감을 갖고 싶다.'\n\n이런 생각으로 수업에 참가하게 되었다. 지난 2개월 동안 나의 시선이 닿은 사진들을 모아, 11가지 주제로 분류했다.\n\n아직 서툴지만 미감이 무엇이고 취향이 무엇인지, 어떻게 사물을 바라보고, 생각하고, 기록하며 나만의 미감과 취향을 다듬어 나가야 할지, 나름의 갈피를 잡을 수 있게 되었다고 생각한다.\n\n이 책이 그 시작이다.",
   signature: "2026년 7월 16일, 정민규",
 };
@@ -816,25 +816,24 @@ function IntroCardSpread({ card, exportMode = false, onExport }: { card: IntroCa
 
 function TitleCardSpread({ themes, imageUrl, exportMode = false, onExport, onUpload }: { themes: ThemeCard[]; imageUrl: string; exportMode?: boolean; onExport?: () => void; onUpload?: () => void }) {
   return (
-    <div className={classNames("group/title relative grid overflow-hidden border border-black bg-[#0b0b0b] text-white", exportMode ? "h-[1417px] w-[2362px] grid-cols-2" : "grid-cols-1 rounded-[22px] shadow-[0_18px_50px_rgba(0,0,0,0.22)] sm:rounded-[26px] lg:aspect-[10/6] lg:grid-cols-2 lg:rounded-none")}>
-      {!exportMode && onExport && <button className="absolute right-3 top-3 z-20 grid h-10 w-10 place-items-center rounded-full bg-white text-black opacity-100 shadow-lg transition lg:pointer-events-none lg:opacity-0 lg:group-hover/title:pointer-events-auto lg:group-hover/title:opacity-100" onClick={onExport} type="button" aria-label="제목 카드 내보내기"><Download size={17} /></button>}
-      <article className={classNames("relative min-w-0 border-white/20 bg-[#0b0b0b]", exportMode ? "h-full border-r" : "aspect-[5/6] border-b lg:aspect-auto lg:border-b-0 lg:border-r")}>
-        <div className={classNames("absolute overflow-hidden bg-[#202020]", exportMode ? "inset-[70px]" : "inset-7 lg:inset-8")}>
-          {imageUrl ? <img className="h-full w-full object-cover" src={imageUrl} alt="제목 카드 사진" /> : <div className="grid h-full place-items-center text-center text-white/45"><div><ImagePlus className="mx-auto mb-3" size={exportMode ? 52 : 28} /><p className={classNames(exportMode ? "text-[28px]" : "text-sm")}>표지 사진을 선택하세요</p></div></div>}
+    <div className={classNames("group/title relative grid overflow-hidden border border-black/25 bg-white text-black", exportMode ? "h-[1417px] w-[2362px] grid-cols-2" : "grid-cols-1 rounded-[22px] shadow-[0_18px_50px_rgba(0,0,0,0.12)] sm:rounded-[26px] lg:aspect-[10/6] lg:grid-cols-2 lg:rounded-none")}>
+      {!exportMode && onExport && <button className="absolute right-3 top-3 z-20 grid h-10 w-10 place-items-center rounded-full bg-black text-white opacity-100 shadow-lg transition lg:pointer-events-none lg:opacity-0 lg:group-hover/title:pointer-events-auto lg:group-hover/title:opacity-100" onClick={onExport} type="button" aria-label="제목 카드 내보내기"><Download size={17} /></button>}
+      <article className={classNames("relative min-w-0 border-black/15 bg-white", exportMode ? "h-full border-r" : "aspect-[5/6] border-b lg:aspect-auto lg:border-b-0 lg:border-r")}>
+        <div className={classNames("absolute overflow-hidden bg-[#f1f1f1]", exportMode ? "inset-[70px]" : "inset-7 lg:inset-8")}>
+          {imageUrl ? <img className="h-full w-full object-cover" src={imageUrl} alt="제목 카드 사진" /> : <div className="grid h-full place-items-center text-center text-black/35"><div><ImagePlus className="mx-auto mb-3" size={exportMode ? 52 : 28} /><p className={classNames(exportMode ? "text-[28px]" : "text-sm")}>표지 사진을 선택하세요</p></div></div>}
           {!exportMode && onUpload && <button className="absolute inset-0 grid place-items-center bg-black/0 text-sm font-semibold text-transparent transition hover:bg-black/45 hover:text-white" onClick={onUpload} type="button">{imageUrl ? "사진 바꾸기" : "사진 선택"}</button>}
         </div>
       </article>
-      <article className={classNames("relative flex min-w-0 flex-col bg-[#0b0b0b]", exportMode ? "h-full px-[76px] py-[70px]" : "aspect-[5/6] px-7 py-7 lg:aspect-auto lg:px-8 lg:py-8")}>
-        <div className="flex items-end justify-between border-b border-white/35 pb-4">
+      <article className={classNames("relative flex min-w-0 flex-col bg-white", exportMode ? "h-full px-[76px] py-[70px]" : "aspect-[5/6] px-7 py-7 lg:aspect-auto lg:px-8 lg:py-8")}>
+        <div className="flex items-end border-b border-black/30 pb-4">
           <h3 className={classNames("font-bold tracking-[-0.035em]", exportMode ? "text-[62px]" : "text-[30px] lg:text-[28px]")}>목차</h3>
-          <span className={classNames("font-medium text-white/45", exportMode ? "text-[26px]" : "text-xs")}>{themes.length}개의 주제</span>
         </div>
         <ol className={classNames("grid flex-1 content-center", exportMode ? "gap-[20px]" : "gap-2.5 sm:gap-3 lg:gap-2.5")}>
           {themes.map((theme) => (
-            <li className={classNames("grid grid-cols-[auto_minmax(0,1fr)_auto] items-baseline border-b border-white/12", exportMode ? "gap-[28px] pb-[15px]" : "gap-3 pb-2")} key={theme.id}>
-              <span className={classNames("font-medium tabular-nums text-white/38", exportMode ? "text-[25px]" : "text-[11px]")}>{String(theme.order).padStart(2, "0")}</span>
+            <li className={classNames("grid grid-cols-[auto_minmax(0,1fr)_auto] items-baseline border-b border-black/10", exportMode ? "gap-[28px] pb-[15px]" : "gap-3 pb-2")} key={theme.id}>
+              <span className={classNames("font-medium tabular-nums text-black/38", exportMode ? "text-[25px]" : "text-[11px]")}>{String(theme.order).padStart(2, "0")}</span>
               <span className={classNames("truncate font-medium tracking-[-0.025em]", exportMode ? "text-[34px]" : "text-[15px] sm:text-[16px] lg:text-[14px]")}>{theme.title.replace(/\n/g, " ")}</span>
-              <span className={classNames("font-medium tabular-nums text-white/45", exportMode ? "text-[25px]" : "text-[11px]")}>{theme.cardNumbers.length}</span>
+              <span className={classNames("font-medium tabular-nums text-black/45", exportMode ? "text-[25px]" : "text-[11px]")}>{theme.cardNumbers.length}</span>
             </li>
           ))}
         </ol>
