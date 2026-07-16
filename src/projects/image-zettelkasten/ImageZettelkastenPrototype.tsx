@@ -60,7 +60,7 @@ type IntroCard = { id: string; title: string; description: string; signature: st
 const introCard: IntroCard = {
   id: "main",
   title: "정민규",
-  description: "‘디자이너는 아니지만, 디자이너와 같은 미감을 갖고 싶다.’ 이런 생각으로 수업에 참가하게 되었다. 지난 2개월 동안 나의 시선이 닿은 사진들을 모아, 11가지 주제로 분류했다.\n\n아직 서툴지만 미감이 무엇이고 취향이 무엇인지, 어떻게 사물을 바라보고, 생각하고, 기록하며 나만의 미감과 취향을 다듬어 나가야 할지, 나름의 갈피를 잡을 수 있게 되었다고 생각한다. 이 책은 그 시작이다.",
+  description: "'디자이너는 아니지만, 디자이너와 같은 미감을 갖고 싶다.'\n\n이런 생각으로 수업에 참가하게 되었다. 지난 2개월 동안 나의 시선이 닿은 사진들을 모아, 11가지 주제로 분류했다.\n\n아직 서툴지만 미감이 무엇이고 취향이 무엇인지, 어떻게 사물을 바라보고, 생각하고, 기록하며 나만의 미감과 취향을 다듬어 나가야 할지, 나름의 갈피를 잡을 수 있게 되었다고 생각한다.\n\n이 책이 그 시작이다.",
   signature: "2026년 7월 16일, 정민규",
 };
 
@@ -802,6 +802,7 @@ function IntroCardSpread({ card, exportMode = false, onExport }: { card: IntroCa
     <div className={classNames("group/intro relative grid overflow-hidden border border-[#1746d1] bg-[#1746d1] text-white", exportMode ? "h-[1417px] w-[2362px] grid-cols-2" : "grid-cols-1 rounded-[22px] shadow-[0_18px_50px_rgba(23,70,209,0.24)] sm:rounded-[26px] lg:aspect-[10/6] lg:grid-cols-2 lg:rounded-none")}>
       {!exportMode && onExport && <button className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/14 text-white opacity-100 shadow-md shadow-black/15 backdrop-blur-xl transition lg:pointer-events-none lg:opacity-0 lg:group-hover/intro:pointer-events-auto lg:group-hover/intro:opacity-100" onClick={onExport} type="button" aria-label="메인 카드 내보내기"><Download size={17} /></button>}
       <article className={classNames("relative flex min-w-0 items-end border-white/25", exportMode ? "h-full border-r p-[70px]" : "aspect-[5/6] border-b p-7 lg:aspect-auto lg:border-b-0 lg:border-r lg:p-8")}>
+        <p className={classNames("absolute font-bold tracking-[-0.045em] text-white", exportMode ? "left-[70px] top-[70px] text-[64px] leading-[0.96]" : "left-7 top-7 text-[28px] leading-[0.98] lg:left-8 lg:top-8 lg:text-[26px]")}>IMAGE<br />ZETTELKASTEN</p>
         <h2 className={classNames("font-bold tracking-[-0.04em]", exportMode ? "mb-[120px] text-[132px] leading-none" : "mb-[16%] text-[54px] leading-none sm:text-[62px] lg:text-[54px]")}>{card.title}</h2>
       </article>
       <article className={classNames("relative flex min-w-0 flex-col", exportMode ? "h-full px-[76px] pb-[76px] pt-[230px]" : "aspect-[5/6] px-7 pb-7 pt-[22%] lg:aspect-auto lg:px-8 lg:pb-8 lg:pt-[20%]")}>
@@ -816,12 +817,8 @@ function TitleCardSpread({ themes, imageUrl, exportMode = false, onExport, onUpl
   return (
     <div className={classNames("group/title relative grid overflow-hidden border border-black bg-[#0b0b0b] text-white", exportMode ? "h-[1417px] w-[2362px] grid-cols-2" : "grid-cols-1 rounded-[22px] shadow-[0_18px_50px_rgba(0,0,0,0.22)] sm:rounded-[26px] lg:aspect-[10/6] lg:grid-cols-2 lg:rounded-none")}>
       {!exportMode && onExport && <button className="absolute right-3 top-3 z-20 grid h-10 w-10 place-items-center rounded-full bg-white text-black opacity-100 shadow-lg transition lg:pointer-events-none lg:opacity-0 lg:group-hover/title:pointer-events-auto lg:group-hover/title:opacity-100" onClick={onExport} type="button" aria-label="제목 카드 내보내기"><Download size={17} /></button>}
-      <article className={classNames("relative flex min-w-0 flex-col border-white/20 bg-[#0b0b0b]", exportMode ? "h-full border-r p-[70px]" : "aspect-[5/6] border-b p-7 lg:aspect-auto lg:border-b-0 lg:border-r lg:p-8")}>
-        <div>
-          <p className={classNames("font-medium text-white/45", exportMode ? "text-[28px]" : "text-xs")}>정민규의 미감 기록</p>
-          <h2 className={classNames("mt-3 font-bold tracking-[-0.045em]", exportMode ? "text-[74px] leading-[0.96]" : "text-[34px] leading-[0.98] sm:text-[40px] lg:text-[34px]")}>IMAGE<br />ZETTELKASTEN</h2>
-        </div>
-        <div className={classNames("absolute overflow-hidden bg-[#202020]", exportMode ? "inset-x-[70px] bottom-[70px] aspect-square" : "inset-x-7 bottom-7 aspect-square lg:inset-x-8 lg:bottom-8")}>
+      <article className={classNames("relative min-w-0 border-white/20 bg-[#0b0b0b]", exportMode ? "h-full border-r" : "aspect-[5/6] border-b lg:aspect-auto lg:border-b-0 lg:border-r")}>
+        <div className={classNames("absolute overflow-hidden bg-[#202020]", exportMode ? "inset-[70px]" : "inset-7 lg:inset-8")}>
           {imageUrl ? <img className="h-full w-full object-cover" src={imageUrl} alt="제목 카드 사진" /> : <div className="grid h-full place-items-center text-center text-white/45"><div><ImagePlus className="mx-auto mb-3" size={exportMode ? 52 : 28} /><p className={classNames(exportMode ? "text-[28px]" : "text-sm")}>표지 사진을 선택하세요</p></div></div>}
           {!exportMode && onUpload && <button className="absolute inset-0 grid place-items-center bg-black/0 text-sm font-semibold text-transparent transition hover:bg-black/45 hover:text-white" onClick={onUpload} type="button">{imageUrl ? "사진 바꾸기" : "사진 선택"}</button>}
         </div>
