@@ -804,8 +804,14 @@ function IntroCardSpread({ card, exportMode = false, onExport }: { card: IntroCa
       {!exportMode && onExport && <button className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/14 text-white opacity-100 shadow-md shadow-black/15 backdrop-blur-xl transition lg:pointer-events-none lg:opacity-0 lg:group-hover/intro:pointer-events-auto lg:group-hover/intro:opacity-100" onClick={onExport} type="button" aria-label="메인 카드 내보내기"><Download size={17} /></button>}
       <article className={classNames("relative flex min-w-0 items-end border-white/25", exportMode ? "h-full border-r p-[70px]" : "aspect-[5/6] border-b p-7 lg:aspect-auto lg:border-b-0 lg:border-r lg:p-8")}>
         <p className={classNames("absolute font-bold tracking-[-0.045em] text-white", exportMode ? "left-[70px] top-[70px] text-[64px] leading-[0.96]" : "left-7 top-7 text-[28px] leading-[0.98] lg:left-8 lg:top-8 lg:text-[26px]")}>IMAGE<br />ZETTELKASTEN</p>
-        <p className={classNames("absolute whitespace-pre-line font-bold tracking-[-0.045em] text-white", exportMode ? "left-[70px] top-[42%] text-[106px] leading-[0.95]" : "left-7 top-[42%] text-[44px] leading-[0.96] sm:text-[50px] lg:left-8 lg:text-[44px]")}>WHERE MY{`\n`}EYES LINGER</p>
-        <h2 className={classNames("whitespace-pre-line font-bold tracking-[-0.04em]", exportMode ? "mb-[40px] text-[84px] leading-none" : "mb-0 text-[38px] leading-none sm:text-[44px] lg:text-[38px]")}>{card.title}</h2>
+        <div className={classNames("absolute", exportMode ? "left-[70px] top-[42%]" : "left-7 top-[42%] lg:left-8")}>
+          <p className={classNames("whitespace-pre-line font-bold tracking-[-0.045em] text-white", exportMode ? "text-[106px] leading-[0.95]" : "text-[44px] leading-[0.96] sm:text-[50px] lg:text-[44px]")}>WHERE MY{`\n`}EYES LINGER</p>
+          <p className={classNames("font-normal text-white/72", exportMode ? "mt-[30px] text-[32px]" : "mt-3 text-[13px] sm:text-[14px]")}>시선이 머무는 곳</p>
+        </div>
+        <div className={classNames(exportMode ? "mb-[40px]" : "mb-0")}>
+          <h2 className={classNames("whitespace-pre-line font-bold tracking-[-0.04em]", exportMode ? "text-[78px] leading-none" : "text-[36px] leading-none sm:text-[42px] lg:text-[36px]")}>{card.title}</h2>
+          <p className={classNames("font-normal text-white/72", exportMode ? "mt-[22px] text-[28px]" : "mt-2 text-[12px] sm:text-[13px]")}>정민규</p>
+        </div>
       </article>
       <article className={classNames("relative flex min-w-0 flex-col", exportMode ? "h-full px-[76px] pb-[76px] pt-[230px]" : "aspect-[5/6] px-7 pb-7 pt-[22%] lg:aspect-auto lg:px-8 lg:pb-8 lg:pt-[20%]")}>
         <p className={classNames("whitespace-pre-line text-white/94", exportMode ? "text-[43px] font-light leading-[1.62]" : "text-[17px] font-normal leading-[1.75] sm:text-[19px] lg:text-[16px]")}>{card.description}</p>
