@@ -66,12 +66,13 @@ function parseCsv(text) {
   }
   return rows.slice(1).filter((values) => values.some(Boolean)).map((values, index) => {
     const topicLabel = values[0].trim();
+    const description = values[1].trim();
     return {
       id: `theme-${String(index + 1).padStart(2, "0")}`,
       order: index + 1,
       title: titleLineBreaks.get(topicLabel) || topicLabel,
       topicLabel,
-      description: values[1].trim(),
+      description: topicLabel === "기능하는 것들의 패턴" ? description.replace("시작한다. 이토록", "시작한다.\n\n이토록") : description,
       cardNumbers: values[2].split(",").map((value) => Number(value.trim())).filter(Number.isFinite),
     };
   });

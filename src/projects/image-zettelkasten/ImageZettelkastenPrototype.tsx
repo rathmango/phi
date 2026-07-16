@@ -767,7 +767,7 @@ function ThemeCardSpread({ theme, exportMode = false, onExport }: { theme: Theme
         <p className={classNames("absolute font-medium text-white/45", exportMode ? "bottom-[70px] left-[70px] text-[28px]" : "bottom-7 left-7 text-xs lg:bottom-8 lg:left-8")}>{theme.cardNumbers.length} cards</p>
       </article>
       <article className={classNames("relative flex min-w-0 items-start bg-black", exportMode ? "h-full px-[76px] pt-[360px]" : "aspect-[5/6] px-7 pt-[30%] lg:aspect-auto lg:px-8 lg:pt-[28%]")}>
-        <p className={classNames("whitespace-pre-line text-white/90", exportMode ? "text-[44px] font-light leading-[1.55]" : "text-[18px] font-normal leading-[1.7] sm:text-[20px] lg:text-[17px]")}>{theme.description}</p>
+        <p className={classNames("whitespace-pre-line text-white/90", exportMode ? "text-[48px] font-light leading-[1.55]" : "text-[19px] font-normal leading-[1.7] sm:text-[21px] lg:text-[18px]")}>{theme.description}</p>
       </article>
     </div>
   );
