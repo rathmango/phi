@@ -55,6 +55,14 @@ type ImageCard = {
 };
 
 type ThemeCard = { id: string; order: number; title: string; description: string; cardNumbers: number[] };
+type IntroCard = { id: string; title: string; description: string; signature: string };
+
+const introCard: IntroCard = {
+  id: "main",
+  title: "정민규",
+  description: "‘디자이너는 아니지만, 디자이너와 같은 미감을 갖고 싶다.’ 이런 생각으로 수업에 참가하게 되었다. 지난 2개월 동안 나의 시선이 닿은 사진들을 모아, 11가지 주제로 분류했다.\n\n아직 서툴지만 미감이 무엇이고 취향이 무엇인지, 어떻게 사물을 바라보고, 생각하고, 기록하며 나만의 미감과 취향을 다듬어 나가야 할지, 나름의 갈피를 잡을 수 있게 되었다고 생각한다. 이 책은 그 시작이다.",
+  signature: "2026년 7월 16일, 정민규",
+};
 
 type DraftCard = Omit<ImageCard, "id" | "number">;
 type CardLike = (ImageCard | DraftCard) & { number?: string };
@@ -583,6 +591,22 @@ async function getCroppedImage(imageSrc: string, cropState: CropState, frameSize
   return canvas.toDataURL("image/jpeg", 0.86);
 }
 
+async function getCroppedAreaImage(imageSrc: string, area: Area) {
+  const image = await createImage(imageSrc);
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return imageSrc;
+
+  canvas.width = 1800;
+  canvas.height = 1800;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(image, area.x, area.y, area.width, area.height, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", 0.86);
+}
+
 async function resizeImageDataUrl(imageSrc: string, maxSide: number, quality: number) {
   if (!imageSrc) return imageSrc;
   try {
@@ -773,6 +797,54 @@ function ThemeCardSpread({ theme, exportMode = false, onExport }: { theme: Theme
   );
 }
 
+function IntroCardSpread({ card, exportMode = false, onExport }: { card: IntroCard; exportMode?: boolean; onExport?: () => void }) {
+  return (
+    <div className={classNames("group/intro relative grid overflow-hidden border border-[#1746d1] bg-[#1746d1] text-white", exportMode ? "h-[1417px] w-[2362px] grid-cols-2" : "grid-cols-1 rounded-[22px] shadow-[0_18px_50px_rgba(23,70,209,0.24)] sm:rounded-[26px] lg:aspect-[10/6] lg:grid-cols-2 lg:rounded-none")}>
+      {!exportMode && onExport && <button className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/14 text-white opacity-100 shadow-md shadow-black/15 backdrop-blur-xl transition lg:pointer-events-none lg:opacity-0 lg:group-hover/intro:pointer-events-auto lg:group-hover/intro:opacity-100" onClick={onExport} type="button" aria-label="메인 카드 내보내기"><Download size={17} /></button>}
+      <article className={classNames("relative flex min-w-0 items-end border-white/25", exportMode ? "h-full border-r p-[70px]" : "aspect-[5/6] border-b p-7 lg:aspect-auto lg:border-b-0 lg:border-r lg:p-8")}>
+        <h2 className={classNames("font-bold tracking-[-0.04em]", exportMode ? "mb-[120px] text-[132px] leading-none" : "mb-[16%] text-[54px] leading-none sm:text-[62px] lg:text-[54px]")}>{card.title}</h2>
+      </article>
+      <article className={classNames("relative flex min-w-0 flex-col", exportMode ? "h-full px-[76px] pb-[76px] pt-[230px]" : "aspect-[5/6] px-7 pb-7 pt-[22%] lg:aspect-auto lg:px-8 lg:pb-8 lg:pt-[20%]")}>
+        <p className={classNames("whitespace-pre-line text-white/94", exportMode ? "text-[43px] font-light leading-[1.62]" : "text-[17px] font-normal leading-[1.75] sm:text-[19px] lg:text-[16px]")}>{card.description}</p>
+        <p className={classNames("mt-auto font-medium text-white/62", exportMode ? "text-[30px]" : "text-xs sm:text-sm lg:text-xs")}>{card.signature}</p>
+      </article>
+    </div>
+  );
+}
+
+function TitleCardSpread({ themes, imageUrl, exportMode = false, onExport, onUpload }: { themes: ThemeCard[]; imageUrl: string; exportMode?: boolean; onExport?: () => void; onUpload?: () => void }) {
+  return (
+    <div className={classNames("group/title relative grid overflow-hidden border border-black bg-[#0b0b0b] text-white", exportMode ? "h-[1417px] w-[2362px] grid-cols-2" : "grid-cols-1 rounded-[22px] shadow-[0_18px_50px_rgba(0,0,0,0.22)] sm:rounded-[26px] lg:aspect-[10/6] lg:grid-cols-2 lg:rounded-none")}>
+      {!exportMode && onExport && <button className="absolute right-3 top-3 z-20 grid h-10 w-10 place-items-center rounded-full bg-white text-black opacity-100 shadow-lg transition lg:pointer-events-none lg:opacity-0 lg:group-hover/title:pointer-events-auto lg:group-hover/title:opacity-100" onClick={onExport} type="button" aria-label="제목 카드 내보내기"><Download size={17} /></button>}
+      <article className={classNames("relative flex min-w-0 flex-col border-white/20 bg-[#0b0b0b]", exportMode ? "h-full border-r p-[70px]" : "aspect-[5/6] border-b p-7 lg:aspect-auto lg:border-b-0 lg:border-r lg:p-8")}>
+        <div>
+          <p className={classNames("font-medium text-white/45", exportMode ? "text-[28px]" : "text-xs")}>정민규의 미감 기록</p>
+          <h2 className={classNames("mt-3 font-bold tracking-[-0.045em]", exportMode ? "text-[74px] leading-[0.96]" : "text-[34px] leading-[0.98] sm:text-[40px] lg:text-[34px]")}>IMAGE<br />ZETTELKASTEN</h2>
+        </div>
+        <div className={classNames("absolute overflow-hidden bg-[#202020]", exportMode ? "inset-x-[70px] bottom-[70px] aspect-square" : "inset-x-7 bottom-7 aspect-square lg:inset-x-8 lg:bottom-8")}>
+          {imageUrl ? <img className="h-full w-full object-cover" src={imageUrl} alt="제목 카드 사진" /> : <div className="grid h-full place-items-center text-center text-white/45"><div><ImagePlus className="mx-auto mb-3" size={exportMode ? 52 : 28} /><p className={classNames(exportMode ? "text-[28px]" : "text-sm")}>표지 사진을 선택하세요</p></div></div>}
+          {!exportMode && onUpload && <button className="absolute inset-0 grid place-items-center bg-black/0 text-sm font-semibold text-transparent transition hover:bg-black/45 hover:text-white" onClick={onUpload} type="button">{imageUrl ? "사진 바꾸기" : "사진 선택"}</button>}
+        </div>
+      </article>
+      <article className={classNames("relative flex min-w-0 flex-col bg-[#0b0b0b]", exportMode ? "h-full px-[76px] py-[70px]" : "aspect-[5/6] px-7 py-7 lg:aspect-auto lg:px-8 lg:py-8")}>
+        <div className="flex items-end justify-between border-b border-white/35 pb-4">
+          <h3 className={classNames("font-bold tracking-[-0.035em]", exportMode ? "text-[62px]" : "text-[30px] lg:text-[28px]")}>목차</h3>
+          <span className={classNames("font-medium text-white/45", exportMode ? "text-[26px]" : "text-xs")}>{themes.length}개의 주제</span>
+        </div>
+        <ol className={classNames("grid flex-1 content-center", exportMode ? "gap-[20px]" : "gap-2.5 sm:gap-3 lg:gap-2.5")}>
+          {themes.map((theme) => (
+            <li className={classNames("grid grid-cols-[auto_minmax(0,1fr)_auto] items-baseline border-b border-white/12", exportMode ? "gap-[28px] pb-[15px]" : "gap-3 pb-2")} key={theme.id}>
+              <span className={classNames("font-medium tabular-nums text-white/38", exportMode ? "text-[25px]" : "text-[11px]")}>{String(theme.order).padStart(2, "0")}</span>
+              <span className={classNames("truncate font-medium tracking-[-0.025em]", exportMode ? "text-[34px]" : "text-[15px] sm:text-[16px] lg:text-[14px]")}>{theme.title.replace(/\n/g, " ")}</span>
+              <span className={classNames("font-medium tabular-nums text-white/45", exportMode ? "text-[25px]" : "text-[11px]")}>{theme.cardNumbers.length}</span>
+            </li>
+          ))}
+        </ol>
+      </article>
+    </div>
+  );
+}
+
 export function ImageZettelkastenPrototype() {
   const [mode, setMode] = useState<AppMode>("library");
   const [libraryView, setLibraryView] = useState<LibraryView>("cards");
@@ -795,6 +867,9 @@ export function ImageZettelkastenPrototype() {
   const importImageInputRef = useRef<HTMLInputElement | null>(null);
   const cardExportRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const themeExportRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const introExportRef = useRef<HTMLDivElement | null>(null);
+  const titleExportRef = useRef<HTMLDivElement | null>(null);
+  const titleImageInputRef = useRef<HTMLInputElement | null>(null);
   const lastSuggestionRequestKey = useRef("");
   const saveInFlightRef = useRef(false);
   const [exporting, setExporting] = useState(false);
@@ -806,6 +881,12 @@ export function ImageZettelkastenPrototype() {
   const [pendingImportRows, setPendingImportRows] = useState<ImportRow[]>([]);
   const [importQueue, setImportQueue] = useState<ImportQueue | null>(null);
   const [libraryMenuOpen, setLibraryMenuOpen] = useState(false);
+  const [titleImageUrl, setTitleImageUrl] = useState("");
+  const [titleEditorSource, setTitleEditorSource] = useState("");
+  const [titleCrop, setTitleCrop] = useState<Point>({ x: 0, y: 0 });
+  const [titleZoom, setTitleZoom] = useState(1);
+  const [titleCropArea, setTitleCropArea] = useState<Area | null>(null);
+  const [titleImageSaving, setTitleImageSaving] = useState(false);
 
   const filteredCards = useMemo(() => cards.filter((card) => cardMatchesQuery(card, query)), [cards, query]);
   const groups = useMemo(() => groupCards(filteredCards, groupBy), [filteredCards, groupBy]);
@@ -828,6 +909,16 @@ export function ImageZettelkastenPrototype() {
     collectedTime: draft.collectedTime,
     collectedPlace: draft.collectedPlace,
   }), [draft.collectedAt, draft.collectedPlace, draft.collectedTime, draft.observation]);
+
+  useEffect(() => {
+    let active = true;
+    void fetch("/api/theme-cover").then(async (response) => {
+      if (!response.ok) return;
+      const data = await response.json();
+      if (active && typeof data.cover?.imageUrl === "string") setTitleImageUrl(data.cover.imageUrl);
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
 
   useEffect(() => {
     if (addStep !== "suggest") return;
@@ -1273,6 +1364,15 @@ export function ImageZettelkastenPrototype() {
     await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     try {
       const zip = new JSZip();
+      if (titleExportRef.current) {
+        await waitForNodeImages(titleExportRef.current);
+        const titleDataUrl = await toPng(titleExportRef.current, { cacheBust: true, includeQueryParams: true, pixelRatio: 1, width: 2362, height: 1417, canvasWidth: 2362, canvasHeight: 1417 });
+        zip.file("theme-00-cover.png", titleDataUrl.split(",")[1], { base64: true });
+      }
+      if (introExportRef.current) {
+        const introDataUrl = await toPng(introExportRef.current, { pixelRatio: 1, width: 2362, height: 1417, canvasWidth: 2362, canvasHeight: 1417 });
+        zip.file("theme-00-main.png", introDataUrl.split(",")[1], { base64: true });
+      }
       for (const theme of themes) {
         const node = themeExportRefs.current[theme.id];
         if (!node) continue;
@@ -1305,6 +1405,68 @@ export function ImageZettelkastenPrototype() {
       link.click();
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function exportIntroCard() {
+    if (exporting || !introExportRef.current) return;
+    setExporting(true);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    try {
+      const dataUrl = await toPng(introExportRef.current, { pixelRatio: 1, width: 2362, height: 1417, canvasWidth: 2362, canvasHeight: 1417 });
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = "theme-00-main.png";
+      link.click();
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function exportTitleCard() {
+    if (exporting || !titleExportRef.current) return;
+    setExporting(true);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    try {
+      await waitForNodeImages(titleExportRef.current);
+      const dataUrl = await toPng(titleExportRef.current, { cacheBust: true, includeQueryParams: true, pixelRatio: 1, width: 2362, height: 1417, canvasWidth: 2362, canvasHeight: 1417 });
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = "theme-00-cover.png";
+      link.click();
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function selectTitleImage(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    const dataUrl = await fileToDataUrl(file);
+    const workingImage = await resizeImageDataUrl(dataUrl, 1800, 0.86);
+    setTitleEditorSource(workingImage);
+    setTitleCrop({ x: 0, y: 0 });
+    setTitleZoom(1);
+    setTitleCropArea(null);
+  }
+
+  async function saveTitleImage() {
+    if (!titleEditorSource || !titleCropArea || titleImageSaving) return;
+    setTitleImageSaving(true);
+    try {
+      const imageUrl = await getCroppedAreaImage(titleEditorSource, titleCropArea);
+      const response = await fetch("/api/theme-cover", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl }),
+      });
+      if (!response.ok) throw new Error("표지 사진을 저장하지 못했습니다.");
+      const data = await response.json();
+      setTitleImageUrl(data.cover.imageUrl);
+      setTitleEditorSource("");
+    } finally {
+      setTitleImageSaving(false);
     }
   }
 
@@ -1571,10 +1733,30 @@ export function ImageZettelkastenPrototype() {
           )}
         </section>
         {libraryView === "themes" && <section className="grid min-w-0 grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-2">
+          <TitleCardSpread themes={themes} imageUrl={titleImageUrl} onUpload={() => titleImageInputRef.current?.click()} onExport={() => void exportTitleCard()} />
+          <IntroCardSpread card={introCard} onExport={() => void exportIntroCard()} />
           {themes.map((theme) => <ThemeCardSpread key={theme.id} theme={theme} onExport={() => void exportSingleTheme(theme)} />)}
           {themes.length === 0 && <div className="col-span-full grid min-h-[52svh] place-items-center rounded-[24px] border border-dashed border-black/15 bg-white/55 px-6 text-center"><div><p className="text-lg font-semibold">아직 주제 카드가 없습니다.</p><p className="mt-2 text-sm text-[#77777b]">주제 데이터가 등록되면 이곳에 표시됩니다.</p></div></div>}
         </section>}
       </main>
+
+      <input className="hidden" ref={titleImageInputRef} accept="image/*" type="file" onChange={selectTitleImage} />
+
+      {titleEditorSource && (
+        <div className="fixed inset-0 z-[70] flex flex-col bg-[#f5f5f7]">
+          <header className="grid h-16 shrink-0 grid-cols-[1fr_auto_1fr] items-center border-b border-black/10 bg-white px-4 sm:px-6">
+            <button className="justify-self-start text-sm font-medium text-black/55" disabled={titleImageSaving} onClick={() => setTitleEditorSource("")} type="button">취소</button>
+            <div className="text-center"><p className="text-[10px] font-semibold text-black/40">표지 사진</p><h2 className="text-base font-semibold">1:1 이미지화</h2></div>
+            <button className="justify-self-end rounded-full bg-[#0a84ff] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-45" disabled={!titleCropArea || titleImageSaving} onClick={() => void saveTitleImage()} type="button">{titleImageSaving ? "저장 중" : "선택"}</button>
+          </header>
+          <div className="relative min-h-0 flex-1 bg-[#111]">
+            <Cropper image={titleEditorSource} crop={titleCrop} zoom={titleZoom} aspect={1} showGrid cropShape="rect" objectFit="contain" zoomWithScroll={false} onCropChange={setTitleCrop} onZoomChange={setTitleZoom} onCropComplete={(_, area) => setTitleCropArea(area)} />
+          </div>
+          <div className="shrink-0 border-t border-black/10 bg-white px-5 py-5 pb-[calc(20px+env(safe-area-inset-bottom))]">
+            <div className="mx-auto grid max-w-2xl grid-cols-[72px_minmax(0,1fr)_52px] items-center gap-4"><span className="text-sm font-semibold">크롭 배율</span><input className="w-full accent-[#0a84ff]" min={1} max={3} step={0.01} type="range" value={titleZoom} onChange={(event) => setTitleZoom(Number(event.target.value))} /><span className="text-right font-mono text-xs text-black/50">{titleZoom.toFixed(2)}x</span></div>
+          </div>
+        </div>
+      )}
 
       {pendingImportRows.length > 0 && !importQueue?.active && (
         <div className="fixed inset-0 z-50 grid place-items-end bg-black/30 px-3 pb-[calc(12px+env(safe-area-inset-bottom))] backdrop-blur-sm sm:place-items-center sm:p-5">
@@ -1613,6 +1795,8 @@ export function ImageZettelkastenPrototype() {
           </div>
         ))}
         {themes.map((theme) => <div ref={(node) => { themeExportRefs.current[theme.id] = node; }} key={theme.id}><ThemeCardSpread theme={theme} exportMode /></div>)}
+        <div ref={introExportRef}><IntroCardSpread card={introCard} exportMode /></div>
+        <div ref={titleExportRef}><TitleCardSpread themes={themes} imageUrl={titleImageUrl} exportMode /></div>
       </div>
 
     </div>
