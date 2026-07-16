@@ -742,11 +742,11 @@ function ExportCardSpread({ card }: { card: ImageCard }) {
         <div className="flex h-full flex-col gap-[54px] pb-[120px] pt-[160px]">
           <section>
             <p className="mb-[18px] text-[48px] font-bold leading-[1.38]">관찰</p>
-            <p className="whitespace-pre-line text-[42px] font-normal leading-[1.42]">{observed}</p>
+            <p className="whitespace-pre-line text-[42px] font-light leading-[1.42]">{observed}</p>
           </section>
           <section>
             <p className="mb-[18px] text-[48px] font-bold leading-[1.38]">인사이트</p>
-            <p className="whitespace-pre-line text-[42px] font-normal leading-[1.42]">{insight}</p>
+            <p className="whitespace-pre-line text-[42px] font-light leading-[1.42]">{insight}</p>
           </section>
         </div>
         <span className="absolute bottom-[46px] right-[46px] inline-flex h-[92px] w-[92px] items-center justify-center rounded-full bg-black text-[46px] font-bold leading-none text-white">{card.number}</span>
