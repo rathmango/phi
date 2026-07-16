@@ -757,15 +757,17 @@ function ExportCardSpread({ card }: { card: ImageCard }) {
 
 function ThemeCardSpread({ theme, exportMode = false, onExport }: { theme: ThemeCard; exportMode?: boolean; onExport?: () => void }) {
   return (
-    <div className={classNames("group/theme relative grid overflow-hidden border border-[#b8b8bd] bg-white", exportMode ? "h-[1417px] w-[2362px] grid-cols-2" : "grid-cols-1 rounded-[22px] shadow-[0_12px_34px_rgba(18,18,18,0.06)] sm:rounded-[26px] lg:aspect-[10/6] lg:grid-cols-2 lg:rounded-none")}>
-      {!exportMode && onExport && <button className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/92 opacity-100 shadow-md shadow-black/10 transition lg:pointer-events-none lg:opacity-0 lg:group-hover/theme:pointer-events-auto lg:group-hover/theme:opacity-100" onClick={onExport} type="button" aria-label={`${theme.title} 내보내기`}><Download size={17} /></button>}
-      <article className={classNames("relative flex min-w-0 flex-col justify-between border-black/10 bg-white", exportMode ? "h-full border-r border-[#b8b8bd] p-[70px]" : "aspect-[5/6] border-b p-7 lg:aspect-auto lg:border-b-0 lg:border-r lg:p-8")}>
-        <p className={classNames("font-medium text-[#85858a]", exportMode ? "text-[30px]" : "text-xs")}>주제 {String(theme.order).padStart(2, "0")}</p>
-        <h2 className={classNames("max-w-[90%] break-keep font-bold tracking-[-0.035em]", exportMode ? "text-[112px] leading-[1.08]" : "text-[42px] leading-[1.08] sm:text-[50px] lg:text-[44px]")}>{theme.title}</h2>
-        <p className={classNames("font-medium text-[#85858a]", exportMode ? "text-[28px]" : "text-xs")}>{theme.cardNumbers.length} cards</p>
+    <div className={classNames("group/theme relative grid overflow-hidden border border-black bg-black text-white", exportMode ? "h-[1417px] w-[2362px] grid-cols-2" : "grid-cols-1 rounded-[22px] shadow-[0_16px_44px_rgba(0,0,0,0.18)] sm:rounded-[26px] lg:aspect-[10/6] lg:grid-cols-2 lg:rounded-none")}>
+      {!exportMode && onExport && <button className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/12 text-white opacity-100 shadow-md shadow-black/20 backdrop-blur-xl transition lg:pointer-events-none lg:opacity-0 lg:group-hover/theme:pointer-events-auto lg:group-hover/theme:opacity-100" onClick={onExport} type="button" aria-label={`${theme.title} 내보내기`}><Download size={17} /></button>}
+      <article className={classNames("relative flex min-w-0 flex-col border-white/20 bg-black", exportMode ? "h-full border-r p-[70px]" : "aspect-[5/6] border-b p-7 lg:aspect-auto lg:border-b-0 lg:border-r lg:p-8")}>
+        <p className={classNames("font-medium text-white/45", exportMode ? "text-[30px]" : "text-xs")}>주제 {String(theme.order).padStart(2, "0")}</p>
+        <div className={classNames("mt-auto flex w-full items-end", exportMode ? "mb-[150px] h-[360px]" : "mb-[18%] h-[180px] sm:h-[210px] lg:h-[190px]")}>
+          <h2 className={classNames("max-w-[92%] whitespace-pre-line break-keep font-bold tracking-[-0.035em]", exportMode ? "text-[112px] leading-[1.08]" : "text-[42px] leading-[1.08] sm:text-[50px] lg:text-[44px]")}>{theme.title}</h2>
+        </div>
+        <p className={classNames("absolute font-medium text-white/45", exportMode ? "bottom-[70px] left-[70px] text-[28px]" : "bottom-7 left-7 text-xs lg:bottom-8 lg:left-8")}>{theme.cardNumbers.length} cards</p>
       </article>
-      <article className={classNames("relative flex min-w-0 items-center bg-white", exportMode ? "h-full p-[76px]" : "aspect-[5/6] p-7 lg:aspect-auto lg:p-8")}>
-        <p className={classNames("whitespace-pre-line text-[#252527]", exportMode ? "text-[44px] font-light leading-[1.55]" : "text-[18px] font-normal leading-[1.7] sm:text-[20px] lg:text-[17px]")}>{theme.description}</p>
+      <article className={classNames("relative flex min-w-0 items-start bg-black", exportMode ? "h-full px-[76px] pt-[360px]" : "aspect-[5/6] px-7 pt-[30%] lg:aspect-auto lg:px-8 lg:pt-[28%]")}>
+        <p className={classNames("whitespace-pre-line text-white/90", exportMode ? "text-[44px] font-light leading-[1.55]" : "text-[18px] font-normal leading-[1.7] sm:text-[20px] lg:text-[17px]")}>{theme.description}</p>
       </article>
     </div>
   );

@@ -31,6 +31,12 @@ async function accessToken() {
 }
 
 function parseCsv(text) {
+  const titleLineBreaks = new Map([
+    ["시간의 흔적은 흉내낼 수 없지", "시간의 흔적은\n흉내낼 수 없지"],
+    ["호기심을 불러 일으키는 것들", "호기심을 불러\n일으키는 것들"],
+    ["사라진 것이 표현되는 방법", "사라진 것이\n표현되는 방법"],
+    ["높은 채도는 시선을 끌어", "높은 채도는\n시선을 끌어"],
+  ]);
   const rows = [];
   let row = [];
   let cell = "";
@@ -58,13 +64,17 @@ function parseCsv(text) {
     row.push(cell);
     rows.push(row);
   }
-  return rows.slice(1).filter((values) => values.some(Boolean)).map((values, index) => ({
-    id: `theme-${String(index + 1).padStart(2, "0")}`,
-    order: index + 1,
-    title: values[0].trim(),
-    description: values[1].trim(),
-    cardNumbers: values[2].split(",").map((value) => Number(value.trim())).filter(Number.isFinite),
-  }));
+  return rows.slice(1).filter((values) => values.some(Boolean)).map((values, index) => {
+    const topicLabel = values[0].trim();
+    return {
+      id: `theme-${String(index + 1).padStart(2, "0")}`,
+      order: index + 1,
+      title: titleLineBreaks.get(topicLabel) || topicLabel,
+      topicLabel,
+      description: values[1].trim(),
+      cardNumbers: values[2].split(",").map((value) => Number(value.trim())).filter(Number.isFinite),
+    };
+  });
 }
 
 const token = await accessToken();
@@ -86,7 +96,7 @@ async function saveDocument(collection, id, payload) {
 const themes = parseCsv((await readFile(csvPath, "utf8")).replace(/^\uFEFF/, ""));
 const cards = await listCollection("cards");
 const themeByCardNumber = new Map();
-themes.forEach((theme) => theme.cardNumbers.forEach((number) => themeByCardNumber.set(String(number), theme.title)));
+themes.forEach((theme) => theme.cardNumbers.forEach((number) => themeByCardNumber.set(String(number), theme.topicLabel)));
 const emptyTags = { subject: [], composition: [], color: [], material: [], effect: [] };
 
 for (const theme of themes) await saveDocument("themes", theme.id, theme);
