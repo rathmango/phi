@@ -8,9 +8,10 @@ import type { Area, Point } from "react-easy-crop";
 import "react-easy-crop/react-easy-crop.css";
 
 type AppMode = "library" | "add";
+type LibraryView = "cards" | "themes";
 type AddStep = "refine" | "metadata" | "observe" | "insight" | "suggest";
 type TagCategory = "subject" | "composition" | "color" | "material" | "effect";
-type GroupField = TagCategory | "collectedAt" | "collectedPlace";
+type GroupField = TagCategory | "topic" | "collectedAt" | "collectedPlace";
 
 type Observation = {
   element: string;
@@ -50,7 +51,10 @@ type ImageCard = {
   crop: CropState;
   observation: Observation;
   tags: CardTags;
+  topics?: string[];
 };
+
+type ThemeCard = { id: string; order: number; title: string; description: string; cardNumbers: number[] };
 
 type DraftCard = Omit<ImageCard, "id" | "number">;
 type CardLike = (ImageCard | DraftCard) & { number?: string };
@@ -84,6 +88,7 @@ const observationFields: Array<{ key: keyof Observation; label: string; prompt: 
 ];
 
 const groupFieldLabels: Record<GroupField, string> = {
+  topic: "주제",
   collectedAt: "수집 시간",
   collectedPlace: "수집 공간",
   subject: "대상",
@@ -302,6 +307,7 @@ function createDraft(): DraftCard {
     crop: { crop: { x: 0, y: 0 }, zoom: 1, rotation: 0, croppedAreaPixels: null },
     observation: { ...emptyObservation },
     tags: { ...emptyTags },
+    topics: [],
   };
 }
 
@@ -384,6 +390,7 @@ function normalizeCard(card: ImageCard): ImageCard {
     imageUrl: normalizeCardImageUrl(card.imageUrl),
     originalImageUrl: normalizeCardImageUrl(card.originalImageUrl),
     tags: normalizeTags(card.tags),
+    topics: Array.isArray(card.topics) ? card.topics.filter((topic): topic is string => typeof topic === "string" && Boolean(topic.trim())) : [],
   };
 }
 
@@ -509,6 +516,7 @@ function isTagCategory(value: GroupField): value is TagCategory {
 }
 
 function getGroupValues(card: ImageCard, groupBy: GroupField) {
+  if (groupBy === "topic") return card.topics?.length ? card.topics : ["주제 미정"];
   if (isTagCategory(groupBy)) return card.tags[groupBy];
   return [card[groupBy] || "미기록"];
 }
@@ -526,7 +534,7 @@ function groupCards(cards: ImageCard[], groupBy: GroupField) {
 function cardMatchesQuery(card: ImageCard, query: string) {
   const normalized = query.trim().toLowerCase();
   if (!normalized) return true;
-  const haystack = [card.title, card.collectedAt, card.collectedPlace, card.sourceUrl, card.foundContext, observationText(card.observation), ...Object.values(card.tags).flat()].join(" ").toLowerCase();
+  const haystack = [card.title, card.collectedAt, card.collectedPlace, card.sourceUrl, card.foundContext, observationText(card.observation), ...(card.topics || []), ...Object.values(card.tags).flat()].join(" ").toLowerCase();
   return haystack.includes(normalized);
 }
 
@@ -643,7 +651,7 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
   const title = card.title || "제목 미정";
   const observed = observationBody(card.observation);
   const insight = insightBody(card.observation);
-  const displayTags = flattenTags(normalizeTags(card.tags)).slice(0, 5);
+  const displayTags = (card.topics || []).slice(0, 5).map((label) => ({ category: "effect" as TagCategory, label }));
   const timeLine = [card.collectedAt, card.collectedTime].filter(Boolean).join(" · ");
   const placeLine = card.collectedPlace;
   const imageNode = card.imageUrl ? <img className="h-full w-full object-cover" src={card.imageUrl} alt="" /> : <SampleVisual tone="cool" />;
@@ -684,7 +692,7 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
 
       <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full" : "h-auto lg:aspect-[5/6]", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "", textCardPadding)}>
         <div className={classNames("flex flex-wrap", exportMode ? "absolute left-[54px] top-[54px] gap-[12px]" : "gap-1.5 lg:absolute lg:left-6 lg:top-6")}>
-          {(displayTags.length > 0 ? displayTags : [{ category: "effect" as TagCategory, label: "태그 미정" }]).map((tag) => <span className={classNames("whitespace-nowrap rounded-full border border-black/70 font-semibold leading-none text-black/70", exportMode ? "px-[18px] py-[8px] text-[24px]" : "px-2 py-1 text-[10px] sm:px-2 sm:py-1 sm:text-[10px] lg:text-[11px]")} key={`${tag.category}-${tag.label}`}>{tag.label}</span>)}
+          {(displayTags.length > 0 ? displayTags : [{ category: "effect" as TagCategory, label: "주제 미정" }]).map((tag) => <span className={classNames("whitespace-nowrap rounded-full border border-black/70 font-semibold leading-none text-black/70", exportMode ? "px-[18px] py-[8px] text-[24px]" : "px-2 py-1 text-[10px] sm:px-2 sm:py-1 sm:text-[10px] lg:text-[11px]")} key={`${tag.category}-${tag.label}`}>{tag.label}</span>)}
         </div>
         <div className={classNames("flex h-full flex-col", exportMode ? "gap-[42px] pb-[90px] pt-[150px]" : "gap-5 pb-11 pt-5 lg:pb-10 lg:pt-[54px]")}>
           <section>
@@ -705,7 +713,7 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
 function ExportCardSpread({ card }: { card: ImageCard }) {
   const observed = observationBody(card.observation);
   const insight = insightBody(card.observation);
-  const displayTags = flattenTags(normalizeTags(card.tags)).slice(0, 5);
+  const displayTags = (card.topics || []).slice(0, 5).map((label) => ({ category: "effect" as TagCategory, label }));
   const timeLine = [card.collectedAt, card.collectedTime].filter(Boolean).join(" · ");
   const imageNode = card.imageUrl ? <img className="h-full w-full object-cover" crossOrigin="anonymous" src={withExportCacheBust(card.imageUrl, card.id)} alt="" /> : <SampleVisual tone="cool" />;
 
@@ -727,7 +735,7 @@ function ExportCardSpread({ card }: { card: ImageCard }) {
 
       <article className="relative h-full overflow-hidden bg-white px-[58px] py-[58px]">
         <div className="absolute left-[58px] top-[58px] flex max-w-[980px] flex-wrap gap-[10px]">
-          {(displayTags.length > 0 ? displayTags : [{ category: "effect" as TagCategory, label: "태그 미정" }]).map((tag) => (
+          {(displayTags.length > 0 ? displayTags : [{ category: "effect" as TagCategory, label: "주제 미정" }]).map((tag) => (
             <span className="whitespace-nowrap rounded-full border border-black/70 px-[22px] py-[10px] text-[28px] font-semibold leading-none text-black/70" key={`${tag.category}-${tag.label}`}>{tag.label}</span>
           ))}
         </div>
@@ -747,10 +755,28 @@ function ExportCardSpread({ card }: { card: ImageCard }) {
   );
 }
 
+function ThemeCardSpread({ theme, exportMode = false, onExport }: { theme: ThemeCard; exportMode?: boolean; onExport?: () => void }) {
+  return (
+    <div className={classNames("group/theme relative grid overflow-hidden border border-[#b8b8bd] bg-white", exportMode ? "h-[1417px] w-[2362px] grid-cols-2" : "grid-cols-1 rounded-[22px] shadow-[0_12px_34px_rgba(18,18,18,0.06)] sm:rounded-[26px] lg:aspect-[10/6] lg:grid-cols-2 lg:rounded-none")}>
+      {!exportMode && onExport && <button className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/92 opacity-100 shadow-md shadow-black/10 transition lg:pointer-events-none lg:opacity-0 lg:group-hover/theme:pointer-events-auto lg:group-hover/theme:opacity-100" onClick={onExport} type="button" aria-label={`${theme.title} 내보내기`}><Download size={17} /></button>}
+      <article className={classNames("relative flex min-w-0 flex-col justify-between border-black/10 bg-white", exportMode ? "h-full border-r border-[#b8b8bd] p-[70px]" : "aspect-[5/6] border-b p-7 lg:aspect-auto lg:border-b-0 lg:border-r lg:p-8")}>
+        <p className={classNames("font-medium text-[#85858a]", exportMode ? "text-[30px]" : "text-xs")}>주제 {String(theme.order).padStart(2, "0")}</p>
+        <h2 className={classNames("max-w-[90%] break-keep font-bold tracking-[-0.035em]", exportMode ? "text-[112px] leading-[1.08]" : "text-[42px] leading-[1.08] sm:text-[50px] lg:text-[44px]")}>{theme.title}</h2>
+        <p className={classNames("font-medium text-[#85858a]", exportMode ? "text-[28px]" : "text-xs")}>{theme.cardNumbers.length} cards</p>
+      </article>
+      <article className={classNames("relative flex min-w-0 items-center bg-white", exportMode ? "h-full p-[76px]" : "aspect-[5/6] p-7 lg:aspect-auto lg:p-8")}>
+        <p className={classNames("whitespace-pre-line font-normal text-[#252527]", exportMode ? "text-[44px] leading-[1.55]" : "text-[18px] leading-[1.7] sm:text-[20px] lg:text-[17px]")}>{theme.description}</p>
+      </article>
+    </div>
+  );
+}
+
 export function ImageZettelkastenPrototype() {
   const [mode, setMode] = useState<AppMode>("library");
+  const [libraryView, setLibraryView] = useState<LibraryView>("cards");
   const [cards, setCards] = useState<ImageCard[]>([]);
-  const [groupBy, setGroupBy] = useState<GroupField>("subject");
+  const [themes, setThemes] = useState<ThemeCard[]>([]);
+  const [groupBy, setGroupBy] = useState<GroupField>("topic");
   const [selectedGroupValue, setSelectedGroupValue] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [draft, setDraft] = useState<DraftCard>(createDraft);
@@ -766,6 +792,7 @@ export function ImageZettelkastenPrototype() {
   const importCsvInputRef = useRef<HTMLInputElement | null>(null);
   const importImageInputRef = useRef<HTMLInputElement | null>(null);
   const cardExportRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  const themeExportRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const lastSuggestionRequestKey = useRef("");
   const saveInFlightRef = useRef(false);
   const [exporting, setExporting] = useState(false);
@@ -820,6 +847,21 @@ export function ImageZettelkastenPrototype() {
       })
       .finally(() => {
         if (!cancelled) setCardsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/themes")
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error("load failed")))
+      .then((data) => {
+        if (!cancelled) setThemes(Array.isArray(data.themes) ? data.themes : []);
+      })
+      .catch(() => {
+        if (!cancelled) setThemes([]);
       });
     return () => {
       cancelled = true;
@@ -1049,6 +1091,7 @@ export function ImageZettelkastenPrototype() {
           crop: draft.crop,
           observation: draft.observation,
           tags: finalTags,
+          topics: draft.topics || [],
         };
         const response = await fetch(`/api/cards/${encodeURIComponent(editingCardId)}`, {
           method: "PUT",
@@ -1086,6 +1129,7 @@ export function ImageZettelkastenPrototype() {
         crop: draft.crop,
         observation: draft.observation,
         tags: finalTags,
+        topics: draft.topics || [],
       };
       const response = await fetch("/api/cards", {
         method: "POST",
@@ -1128,6 +1172,7 @@ export function ImageZettelkastenPrototype() {
       crop: card.crop,
       observation: { ...emptyObservation, ...card.observation },
       tags: normalizeTags(card.tags),
+      topics: card.topics || [],
     });
     setTagInputs(tagMapToInputs(normalizeTags(card.tags)));
     setLlmSuggestion(null);
@@ -1214,6 +1259,47 @@ export function ImageZettelkastenPrototype() {
       const link = document.createElement("a");
       link.href = dataUrl;
       link.download = `card-${card.number}.png`;
+      link.click();
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function exportAllThemes() {
+    if (exporting) return;
+    setExporting(true);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    try {
+      const zip = new JSZip();
+      for (const theme of themes) {
+        const node = themeExportRefs.current[theme.id];
+        if (!node) continue;
+        const dataUrl = await toPng(node, { pixelRatio: 1, width: 2362, height: 1417, canvasWidth: 2362, canvasHeight: 1417 });
+        zip.file(`theme-${String(theme.order).padStart(2, "0")}.png`, dataUrl.split(",")[1], { base64: true });
+      }
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "image-zettelkasten-themes.zip";
+      link.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function exportSingleTheme(theme: ThemeCard) {
+    if (exporting) return;
+    setExporting(true);
+    await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    try {
+      const node = themeExportRefs.current[theme.id];
+      if (!node) return;
+      const dataUrl = await toPng(node, { pixelRatio: 1, width: 2362, height: 1417, canvasWidth: 2362, canvasHeight: 1417 });
+      const link = document.createElement("a");
+      link.href = dataUrl;
+      link.download = `theme-${String(theme.order).padStart(2, "0")}.png`;
       link.click();
     } finally {
       setExporting(false);
@@ -1425,7 +1511,7 @@ export function ImageZettelkastenPrototype() {
         <div className="mx-auto flex w-full max-w-[1500px] items-center gap-3 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4">
           <div className="grid h-10 w-10 shrink-0 place-items-center rounded-[14px] bg-black text-white sm:h-11 sm:w-11"><Library size={19} strokeWidth={1.8} /></div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-baseline gap-2"><h1 className="truncate text-[19px] font-semibold tracking-[-0.025em] sm:text-[22px]">수집함</h1><span className="text-xs font-medium text-[#7b7b80]">{cards.length}</span></div>
+            <div className="flex items-baseline gap-2"><h1 className="truncate text-[19px] font-semibold tracking-[-0.025em] sm:text-[22px]">{libraryView === "cards" ? "수집함" : "주제 카드"}</h1><span className="text-xs font-medium text-[#7b7b80]">{libraryView === "cards" ? cards.length : themes.length}</span></div>
             <p className="hidden text-xs font-normal text-[#85858a] sm:block">매일 발견한 조형 언어의 아카이브</p>
           </div>
           <button className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full bg-black px-3.5 text-[13px] font-semibold text-white sm:hidden" onClick={startAddMode} type="button"><ImagePlus size={16} /> 새 기록</button>
@@ -1434,7 +1520,7 @@ export function ImageZettelkastenPrototype() {
             <button className="grid h-10 w-10 place-items-center rounded-full bg-white text-black shadow-sm shadow-black/5 transition hover:bg-black/5 sm:h-11 sm:w-11" aria-label="가져오기 및 내보내기" aria-expanded={libraryMenuOpen} onClick={() => setLibraryMenuOpen((current) => !current)} type="button"><MoreHorizontal size={19} /></button>
             {libraryMenuOpen && <div className="absolute right-0 z-50 mt-2 grid w-48 overflow-hidden rounded-[18px] border border-black/8 bg-white p-1.5 text-sm font-medium shadow-[0_18px_50px_rgba(18,18,18,0.15)]">
               <button className="flex h-11 items-center gap-3 rounded-[13px] px-3 text-left hover:bg-black/5" onClick={() => { setLibraryMenuOpen(false); importCsvInputRef.current?.click(); }} type="button"><Upload size={16} /> 대량 임포트</button>
-              <button className="flex h-11 items-center gap-3 rounded-[13px] px-3 text-left hover:bg-black/5 disabled:opacity-45" disabled={exporting} onClick={() => { setLibraryMenuOpen(false); void exportAllCards(); }} type="button"><Download size={16} /> {exporting ? "내보내는 중" : "전체 내보내기"}</button>
+              <button className="flex h-11 items-center gap-3 rounded-[13px] px-3 text-left hover:bg-black/5 disabled:opacity-45" disabled={exporting} onClick={() => { setLibraryMenuOpen(false); void (libraryView === "cards" ? exportAllCards() : exportAllThemes()); }} type="button"><Download size={16} /> {exporting ? "내보내는 중" : "전체 내보내기"}</button>
               <a className="flex h-11 items-center gap-3 rounded-[13px] px-3 hover:bg-black/5" href="/image-zettelkasten-import-template.csv" onClick={() => setLibraryMenuOpen(false)} download>CSV 템플릿</a>
             </div>}
           </div>
@@ -1446,7 +1532,11 @@ export function ImageZettelkastenPrototype() {
       </header>
 
       <main className="mx-auto grid w-full max-w-[1500px] gap-4 px-3 pb-10 pt-4 sm:px-6 sm:pt-6">
-        <section className="min-w-0">
+        <nav className="flex w-fit rounded-full bg-black/5 p-1">
+          <button className={classNames("h-9 rounded-full px-4 text-xs font-semibold transition", libraryView === "cards" ? "bg-black text-white" : "text-black/55")} onClick={() => setLibraryView("cards")} type="button">수집 카드</button>
+          <button className={classNames("h-9 rounded-full px-4 text-xs font-semibold transition", libraryView === "themes" ? "bg-black text-white" : "text-black/55")} onClick={() => setLibraryView("themes")} type="button">주제 카드</button>
+        </nav>
+        <section className={classNames("min-w-0", libraryView !== "cards" && "hidden")}>
           <div className="mb-4 sm:mb-5">
             <div className="flex max-w-full items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <label className="relative flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-black/8 bg-white px-3 text-xs font-medium shadow-sm shadow-black/[0.03]">
@@ -1478,6 +1568,10 @@ export function ImageZettelkastenPrototype() {
             <div className="grid min-h-[52svh] place-items-center rounded-[24px] border border-dashed border-black/15 bg-white/55 px-6 text-center"><div><p className="text-lg font-semibold">아직 보이는 기록이 없습니다.</p><p className="mt-2 text-sm font-normal text-[#77777b]">필터를 바꾸거나 새 장면을 수집해보세요.</p></div></div>
           )}
         </section>
+        {libraryView === "themes" && <section className="grid min-w-0 grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-2">
+          {themes.map((theme) => <ThemeCardSpread key={theme.id} theme={theme} onExport={() => void exportSingleTheme(theme)} />)}
+          {themes.length === 0 && <div className="col-span-full grid min-h-[52svh] place-items-center rounded-[24px] border border-dashed border-black/15 bg-white/55 px-6 text-center"><div><p className="text-lg font-semibold">아직 주제 카드가 없습니다.</p><p className="mt-2 text-sm text-[#77777b]">주제 데이터가 등록되면 이곳에 표시됩니다.</p></div></div>}
+        </section>}
       </main>
 
       {pendingImportRows.length > 0 && !importQueue?.active && (
@@ -1516,6 +1610,7 @@ export function ImageZettelkastenPrototype() {
             <ExportCardSpread card={card} />
           </div>
         ))}
+        {themes.map((theme) => <div ref={(node) => { themeExportRefs.current[theme.id] = node; }} key={theme.id}><ThemeCardSpread theme={theme} exportMode /></div>)}
       </div>
 
     </div>
