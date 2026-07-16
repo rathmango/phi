@@ -650,6 +650,7 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
   const imageCardPadding = exportMode ? "p-[44px]" : compact ? "p-5" : "p-4 sm:p-5 lg:p-5";
   const textCardPadding = exportMode ? "px-[54px] py-[54px]" : compact ? "px-6 py-6" : "px-4 pb-5 pt-4 sm:px-5 sm:pb-6 lg:px-6 lg:py-6";
   const titleSize = exportMode ? "text-[54px] leading-[1.08]" : compact ? "text-[21px] leading-[1.22]" : "text-[20px] leading-[1.18] sm:text-[22px] lg:text-[19px]";
+  const numberSize = exportMode ? "h-[62px] w-[62px] text-[30px]" : compact ? "h-8 w-8 text-[16px]" : "h-8 w-8 text-[14px] lg:h-7 lg:w-7 lg:text-[13px]";
 
   return (
     <div className={classNames("group/card relative grid min-w-0 max-w-full", exportMode && "h-[1417px] w-[2362px] grid-cols-2 overflow-hidden border border-[#b8b8bd] bg-white", !exportMode && (compact ? "grid-cols-1 gap-6" : "w-full grid-cols-1 overflow-hidden rounded-[22px] border border-black/10 bg-white shadow-[0_12px_34px_rgba(18,18,18,0.06)] sm:rounded-[26px] lg:grid-cols-2 lg:rounded-none lg:border-[#b8b8bd] lg:shadow-[0_12px_34px_rgba(18,18,18,0.08)]"))}>
@@ -670,7 +671,7 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
       <article className={classNames("relative min-w-0 overflow-hidden bg-white", exportMode ? "h-full border-r border-[#b8b8bd]" : "h-auto lg:aspect-[5/6]", compact ? "border border-[#b8b8bd] shadow-[0_1px_10px_rgba(0,0,0,0.14)]" : "border-b border-black/10 lg:border-b-0 lg:border-r lg:border-[#b8b8bd]", imageCardPadding)}>
         <div>
           <div className="flex items-center gap-3 pr-10 lg:pr-0">
-            <span className={classNames("inline-flex shrink-0 items-center justify-center rounded-full bg-black font-bold leading-none text-white", exportMode ? "h-[62px] w-[62px] text-[30px]" : compact ? "h-8 w-8 text-[16px]" : "h-8 w-8 text-[14px] lg:h-7 lg:w-7 lg:text-[13px]")}>{number}</span>
+            <span className={classNames("inline-flex shrink-0 items-center justify-center rounded-full bg-black font-bold leading-none text-white", numberSize)}>{number}</span>
             <h3 className={classNames("font-bold", titleSize)}>{title}</h3>
           </div>
           <div className={classNames("mt-2 font-normal leading-[1.45] text-[#5f5f63]", exportMode ? "text-[24px]" : "text-[12px] lg:text-[10px]")}>
@@ -685,7 +686,7 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
         <div className={classNames("flex flex-wrap", exportMode ? "absolute left-[54px] top-[54px] gap-[12px]" : "gap-1.5 lg:absolute lg:left-6 lg:top-6")}>
           {(displayTags.length > 0 ? displayTags : [{ category: "effect" as TagCategory, label: "태그 미정" }]).map((tag) => <span className={classNames("whitespace-nowrap rounded-full border border-black/70 font-semibold leading-none text-black/70", exportMode ? "px-[18px] py-[8px] text-[24px]" : "px-2 py-1 text-[10px] sm:px-2 sm:py-1 sm:text-[10px] lg:text-[11px]")} key={`${tag.category}-${tag.label}`}>{tag.label}</span>)}
         </div>
-        <div className={classNames("flex h-full flex-col", exportMode ? "gap-[42px] pt-[150px]" : "gap-5 pt-5 lg:pt-[54px]")}>
+        <div className={classNames("flex h-full flex-col", exportMode ? "gap-[42px] pb-[90px] pt-[150px]" : "gap-5 pb-11 pt-5 lg:pb-10 lg:pt-[54px]")}>
           <section>
             <p className={classNames("mb-2 font-semibold text-black", exportMode ? "text-[34px] leading-[1.35]" : compact ? "text-[18px] leading-[1.55]" : "text-[15px] leading-[1.4] lg:text-[14px]")}>관찰</p>
             <p className={classNames("whitespace-pre-line font-normal text-[#252527]", exportMode ? "text-[30px] leading-[1.5]" : compact ? "text-[16px] leading-[1.55]" : "text-[14px] leading-[1.65] lg:text-[12px]")}>{observed}</p>
@@ -695,6 +696,7 @@ function CardSpread({ card, compact = false, exportMode = false, hideActions = f
             <p className={classNames("whitespace-pre-line font-normal text-[#252527]", exportMode ? "text-[30px] leading-[1.5]" : compact ? "text-[16px] leading-[1.55]" : "text-[14px] leading-[1.65] lg:text-[12px]")}>{insight}</p>
           </section>
         </div>
+        <span className={classNames("absolute inline-flex shrink-0 items-center justify-center rounded-full bg-black font-bold leading-none text-white", numberSize, exportMode ? "bottom-[44px] right-[44px]" : compact ? "bottom-5 right-5" : "bottom-4 right-4 sm:bottom-5 sm:right-5 lg:bottom-5 lg:right-5")}>{number}</span>
       </article>
     </div>
   );
@@ -729,7 +731,7 @@ function ExportCardSpread({ card }: { card: ImageCard }) {
             <span className="whitespace-nowrap rounded-full border border-black/70 px-[22px] py-[10px] text-[28px] font-semibold leading-none text-black/70" key={`${tag.category}-${tag.label}`}>{tag.label}</span>
           ))}
         </div>
-        <div className="flex h-full flex-col gap-[54px] pt-[160px]">
+        <div className="flex h-full flex-col gap-[54px] pb-[120px] pt-[160px]">
           <section>
             <p className="mb-[18px] text-[48px] font-bold leading-[1.38]">관찰</p>
             <p className="whitespace-pre-line text-[42px] font-medium leading-[1.42]">{observed}</p>
@@ -739,6 +741,7 @@ function ExportCardSpread({ card }: { card: ImageCard }) {
             <p className="whitespace-pre-line text-[42px] font-medium leading-[1.42]">{insight}</p>
           </section>
         </div>
+        <span className="absolute bottom-[46px] right-[46px] inline-flex h-[92px] w-[92px] items-center justify-center rounded-full bg-black text-[46px] font-bold leading-none text-white">{card.number}</span>
       </article>
     </div>
   );
