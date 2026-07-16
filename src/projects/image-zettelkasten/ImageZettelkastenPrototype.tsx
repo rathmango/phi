@@ -221,12 +221,19 @@ function formatCardTime(date: Date) {
 }
 
 function parseExifDate(value: unknown) {
-  if (value instanceof Date) return value;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+  if (typeof value === "number") {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
   if (typeof value !== "string") return null;
-  const match = value.match(/^(\d{4}):(\d{2}):(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?/);
-  if (!match) return null;
-  const [, year, month, day, hour, minute, second = "0"] = match;
-  return new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second));
+  const exifMatch = value.trim().match(/^(\d{4}):(\d{2}):(\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (exifMatch) {
+    const [, year, month, day, hour, minute, second = "0"] = exifMatch;
+    return new Date(Number(year), Number(month) - 1, Number(day), Number(hour), Number(minute), Number(second));
+  }
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
 function compactKoreanAddress(address: Record<string, string> | undefined) {
@@ -252,7 +259,16 @@ async function reverseGeocodeKorean(latitude: number, longitude: number) {
 async function readExifMetadata(file: File) {
   try {
     const metadata = await exifr.parse(file, { exif: true, gps: true, tiff: true });
-    const capturedAt = parseExifDate(metadata?.DateTimeOriginal) ?? parseExifDate(metadata?.CreateDate) ?? parseExifDate(metadata?.ModifyDate);
+    const capturedAt = [
+      metadata?.DateTimeOriginal,
+      metadata?.CreateDate,
+      metadata?.DateTimeDigitized,
+      metadata?.DateCreated,
+      metadata?.CreationDate,
+      metadata?.MediaCreateDate,
+      metadata?.ModifyDate,
+      file.lastModified,
+    ].map(parseExifDate).find((date): date is Date => date !== null) ?? null;
     const latitude = metadata?.latitude ?? metadata?.GPSLatitude;
     const longitude = metadata?.longitude ?? metadata?.GPSLongitude;
     const collectedPlace = typeof latitude === "number" && typeof longitude === "number" ? await reverseGeocodeKorean(latitude, longitude) : "";
@@ -263,9 +279,10 @@ async function readExifMetadata(file: File) {
       collectedPlace,
     };
   } catch {
+    const fileDate = parseExifDate(file.lastModified);
     return {
-      collectedAt: today(),
-      collectedTime: nowTime(),
+      collectedAt: fileDate ? formatCardDate(fileDate) : today(),
+      collectedTime: fileDate ? formatCardTime(fileDate) : nowTime(),
       collectedPlace: "",
     };
   }
@@ -914,7 +931,6 @@ export function ImageZettelkastenPrototype() {
       return;
     }
     setPendingImportRows(rows);
-    importImageInputRef.current?.click();
   }
 
   function readImportImages(fileList: FileList | null) {
@@ -1460,6 +1476,20 @@ export function ImageZettelkastenPrototype() {
           )}
         </section>
       </main>
+
+      {pendingImportRows.length > 0 && !importQueue?.active && (
+        <div className="fixed inset-0 z-50 grid place-items-end bg-black/30 px-3 pb-[calc(12px+env(safe-area-inset-bottom))] backdrop-blur-sm sm:place-items-center sm:p-5">
+          <div className="w-full max-w-md rounded-[26px] bg-white p-5 shadow-2xl shadow-black/20 sm:p-6">
+            <p className="text-xs font-semibold text-[#77777b]">대량 임포트</p>
+            <h2 className="mt-1 text-xl font-semibold tracking-[-0.02em]">CSV {pendingImportRows.length}개 항목을 읽었습니다.</h2>
+            <p className="mt-2 text-sm font-normal leading-6 text-[#6e6e73]">CSV의 파일명과 연결할 이미지들을 한 번에 선택하세요. 일부 이미지만 선택해도 매칭된 항목만 진행합니다.</p>
+            <div className="mt-6 grid grid-cols-[0.8fr_1.2fr] gap-2">
+              <button className="h-12 rounded-full bg-black/6 text-sm font-semibold" onClick={() => setPendingImportRows([])} type="button">취소</button>
+              <button className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-black text-sm font-semibold text-white" onClick={() => importImageInputRef.current?.click()} type="button"><ImagePlus size={17} /> 이미지 선택</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {deleteTarget && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-black/35 px-5 backdrop-blur-sm">
