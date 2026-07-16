@@ -742,11 +742,11 @@ function ExportCardSpread({ card }: { card: ImageCard }) {
         <div className="flex h-full flex-col gap-[54px] pb-[120px] pt-[160px]">
           <section>
             <p className="mb-[18px] text-[48px] font-bold leading-[1.38]">관찰</p>
-            <p className="whitespace-pre-line text-[42px] font-medium leading-[1.42]">{observed}</p>
+            <p className="whitespace-pre-line text-[42px] font-normal leading-[1.42]">{observed}</p>
           </section>
           <section>
             <p className="mb-[18px] text-[48px] font-bold leading-[1.38]">인사이트</p>
-            <p className="whitespace-pre-line text-[42px] font-medium leading-[1.42]">{insight}</p>
+            <p className="whitespace-pre-line text-[42px] font-normal leading-[1.42]">{insight}</p>
           </section>
         </div>
         <span className="absolute bottom-[46px] right-[46px] inline-flex h-[92px] w-[92px] items-center justify-center rounded-full bg-black text-[46px] font-bold leading-none text-white">{card.number}</span>
@@ -765,7 +765,7 @@ function ThemeCardSpread({ theme, exportMode = false, onExport }: { theme: Theme
         <p className={classNames("font-medium text-[#85858a]", exportMode ? "text-[28px]" : "text-xs")}>{theme.cardNumbers.length} cards</p>
       </article>
       <article className={classNames("relative flex min-w-0 items-center bg-white", exportMode ? "h-full p-[76px]" : "aspect-[5/6] p-7 lg:aspect-auto lg:p-8")}>
-        <p className={classNames("whitespace-pre-line font-normal text-[#252527]", exportMode ? "text-[44px] leading-[1.55]" : "text-[18px] leading-[1.7] sm:text-[20px] lg:text-[17px]")}>{theme.description}</p>
+        <p className={classNames("whitespace-pre-line text-[#252527]", exportMode ? "text-[44px] font-light leading-[1.55]" : "text-[18px] font-normal leading-[1.7] sm:text-[20px] lg:text-[17px]")}>{theme.description}</p>
       </article>
     </div>
   );
