@@ -59,7 +59,7 @@ type IntroCard = { id: string; title: string; description: string; signature: st
 
 const introCard: IntroCard = {
   id: "main",
-  title: "정민규",
+  title: "MINGYU\nJEONG",
   description: "'디자이너는 아니지만, 디자이너와 같은 미감을 갖고 싶다.'\n\n이런 생각으로 수업에 참가하게 되었다. 지난 2개월 동안 나의 시선이 닿은 사진들을 모아, 11가지 주제로 분류했다.\n\n아직 서툴지만 미감이 무엇이고 취향이 무엇인지, 어떻게 사물을 바라보고, 생각하고, 기록하며 나만의 미감과 취향을 다듬어 나가야 할지, 나름의 갈피를 잡을 수 있게 되었다고 생각한다.\n\n이 책이 그 시작이다.",
   signature: "2026년 7월 16일, 정민규",
 };
@@ -597,8 +597,9 @@ async function getCroppedAreaImage(imageSrc: string, area: Area) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return imageSrc;
 
-  canvas.width = 1800;
-  canvas.height = 1800;
+  const outputScale = 1800 / Math.max(area.width, area.height);
+  canvas.width = Math.round(area.width * outputScale);
+  canvas.height = Math.round(area.height * outputScale);
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.imageSmoothingEnabled = true;
@@ -803,7 +804,7 @@ function IntroCardSpread({ card, exportMode = false, onExport }: { card: IntroCa
       {!exportMode && onExport && <button className="absolute right-3 top-3 z-10 grid h-10 w-10 place-items-center rounded-full bg-white/14 text-white opacity-100 shadow-md shadow-black/15 backdrop-blur-xl transition lg:pointer-events-none lg:opacity-0 lg:group-hover/intro:pointer-events-auto lg:group-hover/intro:opacity-100" onClick={onExport} type="button" aria-label="메인 카드 내보내기"><Download size={17} /></button>}
       <article className={classNames("relative flex min-w-0 items-end border-white/25", exportMode ? "h-full border-r p-[70px]" : "aspect-[5/6] border-b p-7 lg:aspect-auto lg:border-b-0 lg:border-r lg:p-8")}>
         <p className={classNames("absolute font-bold tracking-[-0.045em] text-white", exportMode ? "left-[70px] top-[70px] text-[64px] leading-[0.96]" : "left-7 top-7 text-[28px] leading-[0.98] lg:left-8 lg:top-8 lg:text-[26px]")}>IMAGE<br />ZETTELKASTEN</p>
-        <h2 className={classNames("font-bold tracking-[-0.04em]", exportMode ? "mb-[120px] text-[132px] leading-none" : "mb-[16%] text-[54px] leading-none sm:text-[62px] lg:text-[54px]")}>{card.title}</h2>
+        <h2 className={classNames("whitespace-pre-line font-bold tracking-[-0.04em]", exportMode ? "mb-[120px] text-[132px] leading-[0.92]" : "mb-[16%] text-[54px] leading-[0.92] sm:text-[62px] lg:text-[54px]")}>{card.title}</h2>
       </article>
       <article className={classNames("relative flex min-w-0 flex-col", exportMode ? "h-full px-[76px] pb-[76px] pt-[230px]" : "aspect-[5/6] px-7 pb-7 pt-[22%] lg:aspect-auto lg:px-8 lg:pb-8 lg:pt-[20%]")}>
         <p className={classNames("whitespace-pre-line text-white/94", exportMode ? "text-[43px] font-light leading-[1.62]" : "text-[17px] font-normal leading-[1.75] sm:text-[19px] lg:text-[16px]")}>{card.description}</p>
@@ -1743,11 +1744,11 @@ export function ImageZettelkastenPrototype() {
         <div className="fixed inset-0 z-[70] flex flex-col bg-[#f5f5f7]">
           <header className="grid h-16 shrink-0 grid-cols-[1fr_auto_1fr] items-center border-b border-black/10 bg-white px-4 sm:px-6">
             <button className="justify-self-start text-sm font-medium text-black/55" disabled={titleImageSaving} onClick={() => setTitleEditorSource("")} type="button">취소</button>
-            <div className="text-center"><p className="text-[10px] font-semibold text-black/40">표지 사진</p><h2 className="text-base font-semibold">1:1 이미지화</h2></div>
+            <div className="text-center"><p className="text-[10px] font-semibold text-black/40">표지 사진</p><h2 className="text-base font-semibold">5:6 이미지화</h2></div>
             <button className="justify-self-end rounded-full bg-[#0a84ff] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-45" disabled={!titleCropArea || titleImageSaving} onClick={() => void saveTitleImage()} type="button">{titleImageSaving ? "저장 중" : "선택"}</button>
           </header>
           <div className="relative min-h-0 flex-1 bg-[#111]">
-            <Cropper image={titleEditorSource} crop={titleCrop} zoom={titleZoom} aspect={1} showGrid cropShape="rect" objectFit="contain" zoomWithScroll={false} onCropChange={setTitleCrop} onZoomChange={setTitleZoom} onCropComplete={(_, area) => setTitleCropArea(area)} />
+            <Cropper image={titleEditorSource} crop={titleCrop} zoom={titleZoom} aspect={5 / 6} showGrid cropShape="rect" objectFit="contain" zoomWithScroll={false} onCropChange={setTitleCrop} onZoomChange={setTitleZoom} onCropComplete={(_, area) => setTitleCropArea(area)} />
           </div>
           <div className="shrink-0 border-t border-black/10 bg-white px-5 py-5 pb-[calc(20px+env(safe-area-inset-bottom))]">
             <div className="mx-auto grid max-w-2xl grid-cols-[72px_minmax(0,1fr)_52px] items-center gap-4"><span className="text-sm font-semibold">크롭 배율</span><input className="w-full accent-[#0a84ff]" min={1} max={3} step={0.01} type="range" value={titleZoom} onChange={(event) => setTitleZoom(Number(event.target.value))} /><span className="text-right font-mono text-xs text-black/50">{titleZoom.toFixed(2)}x</span></div>
